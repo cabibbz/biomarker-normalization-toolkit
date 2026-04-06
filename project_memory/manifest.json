@@ -1,6 +1,6 @@
 {
-  "current_percent": 120,
-  "latest_checkpoint": "project_memory/checkpoints/120_vendor-alias-and-edge-case-wave.md",
+  "current_percent": 130,
+  "latest_checkpoint": "project_memory/checkpoints/130_external-fhir-validation-integrated.md",
   "checkpoints": [
     {
       "percent": 10,
@@ -61,6 +61,11 @@
       "percent": 120,
       "title": "vendor alias and edge-case wave",
       "file": "project_memory/checkpoints/120_vendor-alias-and-edge-case-wave.md"
+    },
+    {
+      "percent": 130,
+      "title": "external fhir validation integrated",
+      "file": "project_memory/checkpoints/130_external-fhir-validation-integrated.md"
     }
   ]
 }

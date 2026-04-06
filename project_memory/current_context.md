@@ -1,24 +1,24 @@
 # Current Context
 
-Latest checkpoint: `120_vendor-alias-and-edge-case-wave.md`
-Progress: `120%`
+Latest checkpoint: `130_external-fhir-validation-integrated.md`
+Progress: `130%`
 
 ## Compressed State
 
-Expanded the deterministic normalizer to handle vendor-style aliases, specimen shorthand, and unit spelling variants across the existing biomarker set, then verified the behavior with a dedicated edge-case fixture and checker script.
+Integrated external FHIR bundle validation into the repo workflow and verified emitted bundles across the original sample, coverage wave 1, and vendor-alias wave fixtures.
 
 ## Locked Decisions
 
-- Alias expansion should continue through explicit deterministic additions rather than fuzzy matching
-- Specimen shorthand normalization remains part of the deterministic preprocessing layer
-- Per-slice verification scripts remain the preferred way to validate new coverage waves
+- FHIR output changes now require external validation, not just internal structural checks
+- Current-fixture FHIR validation is now part of the ready-now baseline
+- Broader beta readiness still requires wider fixture and coverage validation, not just one validator pass
 
 ## Immediate Next Steps
 
-- Choose the next biomarker group for coverage expansion
-- Add another vendor-style alias wave or real compendia-inspired fixture set
-- Decide whether to extend FHIR validation alongside the next coverage wave
+- Choose the next biomarker group for expansion
+- Carry the same external validation path into the next coverage wave
+- Consider automating the validation tool inside a CI-style workflow later
 
 ## Resume From
 
-Start from project_memory/current_context.md and the new vendor-alias fixture, then move into the next coverage group or FHIR-validation decision.
+Start from project_memory/current_context.md and docs/release_readiness.md, then choose the next coverage wave with external FHIR validation included from the start.

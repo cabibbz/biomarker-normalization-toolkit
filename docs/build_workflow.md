@@ -17,6 +17,7 @@ This is the operational workflow for all future work in this repo.
 5. Create the phase-specific verification record for that exact slice
 6. Run the derived verification, including UI click-through and backend behavior if relevant
 7. When the public CLI or packaging surface changes, prefer verifying the installed entry point instead of only `python -m`
+8. When FHIR output changes or expanded biomarker coverage affects FHIR output, run the external FHIR validator tool
 
 ## Before Marking Done
 

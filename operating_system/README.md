@@ -51,3 +51,5 @@ If the implementation cannot be verified across the surfaces it changed, do not 
 If a 10% milestone is reached and no checkpoint is written, the work is not operationally ready for handoff.
 
 After verification and checkpointing, commit the slice and push it to `origin/main`.
+
+If the slice affects FHIR output, include external bundle validation using [validate_fhir_bundle.py](/C:/Users/me/Desktop/longevb2b/operating_system/tools/validate_fhir_bundle.py).

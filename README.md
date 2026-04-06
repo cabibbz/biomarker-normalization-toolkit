@@ -58,6 +58,7 @@ Work is not considered operationally complete until the checkpoint, commit, and 
 
 ```powershell
 python -m pip install -e .
+python -m pip install -r .\requirements-verification.txt
 bnt status
 bnt normalize --input .\fixtures\input\v0_sample.csv --output-dir .\out
 bnt normalize --input .\fixtures\input\v0_sample.csv --output-dir .\out --emit-fhir

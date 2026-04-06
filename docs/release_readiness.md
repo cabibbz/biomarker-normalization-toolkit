@@ -20,13 +20,13 @@ The current state is:
 - editable install verification
 - built wheel verification
 - installed wheel demo verification
+- external FHIR bundle validation for current fixtures
 
 ## Not Ready Yet
 
 - broad biomarker coverage
 - large gold dataset coverage
 - richer unit conversion coverage
-- external FHIR validator check
 - production packaging/release pipeline
 - real-world vendor catalog breadth
 
@@ -55,7 +55,7 @@ Minimum next requirements:
 - expanded biomarker and alias coverage
 - expanded gold dataset and edge-case set
 - explicit packaging/release process
-- FHIR output validation against a proper validator
+- broader FHIR validation coverage across expanded fixtures
 
 ## Current Recommendation
 
