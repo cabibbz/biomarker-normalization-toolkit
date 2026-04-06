@@ -11,10 +11,12 @@ from biomarker_normalization_toolkit.normalizer import normalize_rows
 
 
 def build_parser() -> argparse.ArgumentParser:
+    from biomarker_normalization_toolkit import __version__
     parser = argparse.ArgumentParser(
         prog="bnt",
-        description="Biomarker Normalization Toolkit scaffold CLI.",
+        description="Biomarker Normalization Toolkit — normalize lab data into canonical output.",
     )
+    parser.add_argument("--version", action="version", version=f"bnt {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("status", help="Show current project direction and repo status.")
@@ -84,12 +86,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def command_status() -> int:
-    print("Biomarker Normalization Toolkit")
-    print("Route: customer-run B2B normalization toolkit")
-    print("Scope: lab aliases, units, ranges, LOINC, canonical output")
-    print("Hosted PHI: off by default")
-    print("Consumer app: excluded")
-    print("Next step: lock initial build decisions and begin core normalization fixtures")
+    from biomarker_normalization_toolkit import __version__
+    print(f"Biomarker Normalization Toolkit v{__version__}")
+    print(f"Biomarkers: {len(BIOMARKER_CATALOG)}")
+    print(f"Input formats: CSV, FHIR R4 JSON")
+    print(f"Output formats: JSON, CSV, FHIR Bundle, Markdown summary")
+    print(f"Deployment: customer-run (CLI, Docker, pip)")
+    print("Scope: normalization only - no diagnosis, no hosted PHI")
     return 0
 
 

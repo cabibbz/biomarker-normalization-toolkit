@@ -1,68 +1,112 @@
 # Biomarker Normalization Toolkit
 
-Customer-run toolkit for normalizing biomarker and lab data into canonical machine-readable output.
+Customer-run toolkit that normalizes messy lab data from any vendor into clean, canonical, machine-readable output.
 
-## Current Direction
+Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in Blood"` — all different names for the same test from different labs — and maps them to a single canonical biomarker with a standard LOINC code and normalized unit.
 
-The repo is intentionally starting with the lowest-risk, highest-probability route:
+## What It Does
 
-- B2B first
-- customer-run deployment
-- biomarker normalization and mapping only
-- no hosted PHI by default
-- no consumer product
-- no clinical recommendation engine
+- Maps vendor-specific test names to canonical biomarkers via deterministic alias matching
+- Converts units (mmol/L to mg/dL, umol/L to mg/dL, g/L to g/dL, etc.)
+- Normalizes reference ranges
+- Assigns LOINC codes
+- Preserves full provenance (original values always kept alongside normalized output)
+- Flags ambiguous or unknown tests as `review_needed` / `unmapped` — never guesses
 
-## What This Repo Includes
+## What It Does NOT Do
 
-- decision memos in [`docs/`](/C:/Users/me/Desktop/longevb2b/docs)
-- the enforcement system in [`operating_system/`](/C:/Users/me/Desktop/longevb2b/operating_system)
-- resumable progress checkpoints in [`project_memory/`](/C:/Users/me/Desktop/longevb2b/project_memory)
-- the initial Python package scaffold in [`src/biomarker_normalization_toolkit/`](/C:/Users/me/Desktop/longevb2b/src/biomarker_normalization_toolkit)
+- No diagnosis, treatment advice, or clinical recommendations
+- No hosted PHI — runs entirely in the customer's environment
+- No consumer-facing product
 
-## Working Rules
+## Coverage
 
-Before building:
+61 biomarkers across all major preventive health panels:
 
-1. Check hard constraints in [constraints.md](/C:/Users/me/Desktop/longevb2b/operating_system/constraints.md)
-2. Score the idea with [review_rubric.md](/C:/Users/me/Desktop/longevb2b/operating_system/review_rubric.md)
+| Panel | Biomarkers |
+|-------|-----------|
+| Metabolic | Glucose, HbA1c, BUN, Calcium, Phosphate, Uric Acid |
+| Lipid | Total Cholesterol, LDL, HDL, Triglycerides |
+| Renal | Creatinine (serum + urine), eGFR |
+| Liver | ALT, AST, ALP, Bilirubin, Albumin, LDH, Globulin |
+| Thyroid | TSH, Free T4 |
+| Inflammation | hs-CRP |
+| CBC | WBC, RBC, Hemoglobin, Hematocrit, Platelets, MCV, MCH, MCHC, RDW |
+| WBC Differential | Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils |
+| Coagulation | PT, INR, PTT |
+| Electrolytes | Sodium, Potassium, Chloride, Bicarbonate |
+| Vitamins | D, B12, Folate |
+| Minerals | Iron, Ferritin, Magnesium |
+| Cardiac | Troponin T, CK, CK-MB |
+| Blood Gas | pO2, pCO2, Base Excess |
+| Other | Anion Gap, Lactate, Lipase, Total Protein |
 
-During implementation:
+78% mapping rate tested against 128K real-world lab events from MIMIC-IV and Synthea.
 
-1. Derive a context-based verification plan with [derive_verification_plan.py](/C:/Users/me/Desktop/longevb2b/operating_system/tools/derive_verification_plan.py)
-2. Create a slice-specific verification record in [project_memory/verifications/](/C:/Users/me/Desktop/longevb2b/project_memory/verifications)
-3. Run the relevant functionality verification, including click-through and backend behavior when the change calls for it
-4. Do not mark work complete if relevant verification modes were skipped
+## Input Formats
 
-During delivery:
+- **CSV** with columns: `source_row_id`, `source_test_name`, `raw_value`, `source_unit`, `specimen_type`, `source_reference_range`
+- **FHIR R4 JSON** — Bundle or individual Observation resources (auto-detected)
 
-1. Record a checkpoint at each 10% milestone using [record_checkpoint.py](/C:/Users/me/Desktop/longevb2b/operating_system/tools/record_checkpoint.py)
-2. Update the resumable state in [current_context.md](/C:/Users/me/Desktop/longevb2b/project_memory/current_context.md)
-3. Commit the verified slice
-4. Push `main` to `origin`
+## Output Formats
 
-## Git Discipline
-
-After every verified implementation slice:
-
-1. derive the context-based verification plan
-2. create the phase-specific verification record
-3. execute the relevant verification
-4. record the checkpoint and update project memory
-5. commit the changes
-6. push to `origin/main`
-
-Work is not considered operationally complete until the checkpoint, commit, and push all happen.
+- Normalized **JSON** with full provenance
+- Normalized **CSV**
+- Optional **FHIR R4 Observation Bundle**
+- Human-readable **Markdown summary**
 
 ## Quick Start
 
-```powershell
-python -m pip install -e .
-python -m pip install -r .\requirements-verification.txt
+```bash
+pip install -e .
 bnt status
-bnt normalize --input .\fixtures\input\v0_sample.csv --output-dir .\out
-bnt normalize --input .\fixtures\input\v0_sample.csv --output-dir .\out --emit-fhir
-bnt demo --output-dir .\demo_out
-python .\operating_system\tools\evaluate_proposal.py .\operating_system\examples\customer_run_toolkit.json
-python .\operating_system\tools\derive_verification_plan.py .\operating_system\examples\ui_and_api_change.json
+bnt catalog
+bnt demo --output-dir demo_out
 ```
+
+## Usage
+
+```bash
+# Normalize a CSV file
+bnt normalize --input labs.csv --output-dir out
+
+# Normalize a FHIR Bundle
+bnt normalize --input fhir_bundle.json --output-dir out
+
+# Normalize with FHIR output
+bnt normalize --input labs.csv --output-dir out --emit-fhir
+
+# Show all supported biomarkers
+bnt catalog
+bnt catalog --format json
+
+# Analyze coverage gaps in a file
+bnt analyze --input labs.csv
+
+# Run bundled demo
+bnt demo --output-dir demo_out
+```
+
+## Docker
+
+```bash
+docker build -t bnt .
+docker run -v /path/to/data:/data bnt normalize --input /data/labs.csv --output-dir /data/out
+```
+
+## Output Schema
+
+Each normalized record contains:
+
+| Field | Description |
+|-------|-------------|
+| `source_test_name` | Original test name from vendor |
+| `canonical_biomarker_id` | Standardized ID (e.g., `glucose_serum`) |
+| `canonical_biomarker_name` | Human-readable name (e.g., `Glucose`) |
+| `loinc` | LOINC code |
+| `mapping_status` | `mapped`, `review_needed`, or `unmapped` |
+| `status_reason` | Why the row was mapped/flagged |
+| `raw_value` | Original value |
+| `normalized_value` | Converted value in canonical unit |
+| `normalized_unit` | Canonical unit |
+| `provenance` | Full source traceability |
