@@ -55,6 +55,8 @@ UNIT_SYNONYMS = {
     "10*6/ul": "M/uL",
     "ml/min/1.73m2": "mL/min/1.73m2",
     "ml/min/{1.73_m2}": "mL/min/1.73m2",
+    "ml/min": "mL/min",
+    "ph": "pH",
     "mmhg": "mmHg",
     "mm hg": "mmHg",
     "mm[hg]": "mmHg",
@@ -199,7 +201,10 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "basophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
     # --- Wave 5: Other ---
     "total_protein": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
-    "egfr": {"mL/min/1.73m2": Decimal("1")},
+    "rdw_sd": {"fL": Decimal("1")},
+    "mpv": {"fL": Decimal("1")},
+    "pdw": {"fL": Decimal("1")},
+    "egfr": {"mL/min/1.73m2": Decimal("1"), "mL/min": Decimal("1")},
     # --- Wave 6: Enzymes ---
     "ldh": {"U/L": Decimal("1")},
     "lipase": {"U/L": Decimal("1")},
@@ -213,6 +218,14 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "base_excess": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     # --- Wave 6: Other ---
     "globulin": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
+    "ionized_calcium": {"mmol/L": Decimal("1"), "mg/dL": Decimal("1") / Decimal("4.008")},
+    "oxygen_saturation": {"%": Decimal("1")},
+    # --- Urinalysis ---
+    "urine_specific_gravity": {"": Decimal("1")},
+    "urine_ph": {"pH": Decimal("1"), "": Decimal("1")},
+    "urine_protein": {"mg/dL": Decimal("1")},
+    "urine_ketones": {"mg/dL": Decimal("1")},
+    "urine_bilirubin": {"mg/dL": Decimal("1")},
 }
 
 
