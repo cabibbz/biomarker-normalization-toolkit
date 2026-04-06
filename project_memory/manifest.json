@@ -1,0 +1,41 @@
+{
+  "current_percent": 70,
+  "latest_checkpoint": "project_memory/checkpoints/070_cli-and-outputs-verified.md",
+  "checkpoints": [
+    {
+      "percent": 10,
+      "title": "repo setup and operating system install",
+      "file": "project_memory/checkpoints/010_repo-setup-and-operating-system-install.md"
+    },
+    {
+      "percent": 20,
+      "title": "canonical schema locked",
+      "file": "project_memory/checkpoints/020_canonical-schema-locked.md"
+    },
+    {
+      "percent": 30,
+      "title": "gold dataset seeded",
+      "file": "project_memory/checkpoints/030_gold-dataset-seeded.md"
+    },
+    {
+      "percent": 40,
+      "title": "mapping registry implemented",
+      "file": "project_memory/checkpoints/040_mapping-registry-implemented.md"
+    },
+    {
+      "percent": 50,
+      "title": "unit conversion registry implemented",
+      "file": "project_memory/checkpoints/050_unit-conversion-registry-implemented.md"
+    },
+    {
+      "percent": 60,
+      "title": "normalization pipeline implemented",
+      "file": "project_memory/checkpoints/060_normalization-pipeline-implemented.md"
+    },
+    {
+      "percent": 70,
+      "title": "cli and outputs verified",
+      "file": "project_memory/checkpoints/070_cli-and-outputs-verified.md"
+    }
+  ]
+}

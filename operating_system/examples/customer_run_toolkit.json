@@ -1,0 +1,25 @@
+{
+  "name": "customer-run biomarker normalization toolkit",
+  "summary": "A CLI or Docker image that maps local lab names, aliases, units, and ranges to canonical biomarkers and optional FHIR Observations inside the customer's own environment.",
+  "buyer": "digital health startup with messy lab data",
+  "deployment_model": "customer_run",
+  "is_consumer_product": false,
+  "hosts_live_phi": false,
+  "requires_hipaa_ops_before_revenue": false,
+  "requires_clinicians_or_medical_structure": false,
+  "requires_clia_operations": false,
+  "requires_fda_regulated_interpretation": false,
+  "incremental_launch_cost_usd": 300,
+  "needs_live_patient_data_in_our_env": false,
+  "improves_normalization_corpus": true,
+  "repeatable_asset": true,
+  "scores": {
+    "compliance": 5,
+    "speed": 5,
+    "pain": 4,
+    "reuse": 5,
+    "delivery": 4,
+    "revenue": 4
+  }
+}
+

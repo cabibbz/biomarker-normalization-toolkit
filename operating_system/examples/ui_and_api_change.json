@@ -1,0 +1,39 @@
+{
+  "name": "lab upload and normalization results flow",
+  "summary": "Adds a frontend upload flow, backend normalization endpoint, and results page rendering for normalized biomarker output.",
+  "changed_files": [
+    "src/pages/upload.tsx",
+    "src/components/UploadForm.tsx",
+    "src/components/ResultsTable.tsx",
+    "src/api/normalize.ts",
+    "src/services/normalization.py",
+    "src/services/unit_conversion.py"
+  ],
+  "touched_surfaces": [
+    "frontend",
+    "backend",
+    "api",
+    "normalization",
+    "file_upload"
+  ],
+  "user_visible_flows": [
+    "user uploads a lab file",
+    "user sees normalization results",
+    "user sees validation errors for malformed input"
+  ],
+  "system_flows": [
+    "file upload request hits normalization endpoint",
+    "normalization service maps aliases and units",
+    "results are returned to frontend",
+    "ambiguous and unmapped rows are surfaced to the user"
+  ],
+  "external_integrations": [],
+  "risk_keywords": [
+    "upload",
+    "data transformation",
+    "ambiguous mappings",
+    "error handling"
+  ],
+  "notes": "This change spans UI interaction, request handling, data normalization, and user-visible error states."
+}
+

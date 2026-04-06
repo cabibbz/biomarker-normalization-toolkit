@@ -1,0 +1,17 @@
+# Roadmap
+
+This roadmap uses 10% milestones to force resumable progress summaries.
+
+## Milestones
+
+- `10%`: repo initialized, operating system installed, build direction locked
+- `20%`: canonical schema and initial fixture strategy locked
+- `30%`: gold dataset fixtures created
+- `40%`: mapping registry implemented
+- `50%`: unit conversion registry implemented
+- `60%`: normalization pipeline implemented
+- `70%`: normalized CSV and JSON outputs implemented
+- `80%`: FHIR Observation export and packaging stabilized
+- `90%`: verification coverage and demo flow proven
+- `100%`: v0 release readiness decision
+
