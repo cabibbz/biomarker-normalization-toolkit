@@ -9,14 +9,17 @@ from biomarker_normalization_toolkit.models import RangeValue
 UNIT_SYNONYMS = {
     "mg/dl": "mg/dL",
     "mg dl": "mg/dL",
+    "mg per dl": "mg/dL",
     "mmol/l": "mmol/L",
     "mmol l": "mmol/L",
+    "mmol per l": "mmol/L",
     "umol/l": "umol/L",
     "umol l": "umol/L",
     "μmol/l": "umol/L",
     "µmol/l": "umol/L",
     "%": "%",
 }
+
 
 
 CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {

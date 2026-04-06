@@ -29,8 +29,13 @@ def normalize_specimen(specimen: str | None) -> str | None:
         "serum": "serum",
         "plasma": "plasma",
         "serum plasma": "serum",
+        "ser plas": "serum",
+        "ser plasma": "serum",
+        "serum plas": "serum",
         "whole blood": "whole_blood",
         "blood": "whole_blood",
+        "bld": "whole_blood",
+        "wb": "whole_blood",
         "urine": "urine",
     }
     return mapping.get(specimen_key, specimen_key or None)
@@ -43,7 +48,15 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2345-7",
         normalized_unit="mg/dL",
         allowed_specimens=frozenset({"serum", "plasma"}),
-        aliases=("Glucose", "Glucose, Serum", "Glucose, Plasma", "Serum Glucose", "GLU"),
+        aliases=(
+            "Glucose",
+            "Glucose, Serum",
+            "Glucose, Plasma",
+            "Serum Glucose",
+            "GLU",
+            "Fasting Glucose",
+            "Glucose SerPl",
+        ),
     ),
     "glucose_urine": BiomarkerDefinition(
         biomarker_id="glucose_urine",
@@ -59,7 +72,14 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="4548-4",
         normalized_unit="%",
         allowed_specimens=frozenset({"whole_blood"}),
-        aliases=("Hemoglobin A1c", "A1C", "HbA1c", "Glycated Hemoglobin"),
+        aliases=(
+            "Hemoglobin A1c",
+            "A1C",
+            "HbA1c",
+            "Glycated Hemoglobin",
+            "Hgb A1C",
+            "Glycohemoglobin A1C",
+        ),
     ),
     "total_cholesterol": BiomarkerDefinition(
         biomarker_id="total_cholesterol",
@@ -67,7 +87,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2093-3",
         normalized_unit="mg/dL",
         allowed_specimens=frozenset({"serum", "plasma"}),
-        aliases=("Total Cholesterol", "Cholesterol, Total"),
+        aliases=("Total Cholesterol", "Cholesterol, Total", "Cholesterol Total", "CHOL TOTAL"),
     ),
     "ldl_cholesterol": BiomarkerDefinition(
         biomarker_id="ldl_cholesterol",
@@ -75,7 +95,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2089-1",
         normalized_unit="mg/dL",
         allowed_specimens=frozenset({"serum", "plasma"}),
-        aliases=("LDL Cholesterol", "LDL-C", "LDL"),
+        aliases=("LDL Cholesterol", "LDL-C", "LDL", "LDL Chol Calc", "LDL Cholesterol Calculated", "LDL Calc"),
     ),
     "hdl_cholesterol": BiomarkerDefinition(
         biomarker_id="hdl_cholesterol",
@@ -83,7 +103,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2085-9",
         normalized_unit="mg/dL",
         allowed_specimens=frozenset({"serum", "plasma"}),
-        aliases=("HDL Cholesterol", "HDL-C", "HDL"),
+        aliases=("HDL Cholesterol", "HDL-C", "HDL", "HDL Chol", "HDL Cholesterol Direct"),
     ),
     "triglycerides": BiomarkerDefinition(
         biomarker_id="triglycerides",
@@ -91,7 +111,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2571-8",
         normalized_unit="mg/dL",
         allowed_specimens=frozenset({"serum", "plasma"}),
-        aliases=("Triglycerides", "Triglyceride", "TG"),
+        aliases=("Triglycerides", "Triglyceride", "TG", "TRIG", "Triglyc"),
     ),
     "creatinine": BiomarkerDefinition(
         biomarker_id="creatinine",
@@ -99,7 +119,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2160-0",
         normalized_unit="mg/dL",
         allowed_specimens=frozenset({"serum", "plasma"}),
-        aliases=("Creatinine", "Creatinine, Serum", "Creatinine, Plasma", "Creat"),
+        aliases=("Creatinine", "Creatinine, Serum", "Creatinine, Plasma", "Creat", "Crea", "Creatinine SerPl"),
     ),
 }
 

@@ -79,3 +79,7 @@ Wave 1 should prove:
 Wave 1 fixture file:
 
 - `fixtures/input/coverage_wave_1.csv`
+
+Vendor-style alias and edge-case fixture:
+
+- `fixtures/input/vendor_alias_edge_cases.csv`

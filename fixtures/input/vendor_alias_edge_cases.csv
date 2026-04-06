@@ -1,0 +1,10 @@
+source_row_id,source_lab_name,source_panel_name,source_test_name,raw_value,source_unit,specimen_type,source_reference_range
+201,Labcorp,Lipids,LDL Chol Calc,100,mg/dl,ser/plas,0-129 mg/dl
+202,Labcorp,Lipids,HDL CHOL,55,mg dl,ser/plas,40-999 mg dl
+203,Labcorp,Lipids,TRIG,150,mg/dl,ser/plas,0-149 mg/dl
+204,Labcorp,Metabolic,Fasting Glucose,90,mg per dL,ser/plas,70-99 mg/dl
+205,Labcorp,Renal,CREA,106,umol/L,ser/plas,62-106 umol/L
+206,Labcorp,Glycemic,Hgb A1C,5.8,%,bld,4.0-5.6 %
+207,Labcorp,Urinalysis,GLU,20,mg/dl,urine,0-15 mg/dl
+208,Labcorp,Unknown,LDL/HDL Ratio,2.0,ratio,ser/plas,1.0-3.5 ratio
+
