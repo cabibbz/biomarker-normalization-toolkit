@@ -21,27 +21,28 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ## Coverage
 
-61 biomarkers across all major preventive health panels:
+71 biomarkers across major preventive health, inpatient, and urinalysis panels:
 
 | Panel | Biomarkers |
 |-------|-----------|
-| Metabolic | Glucose, HbA1c, BUN, Calcium, Phosphate, Uric Acid |
+| Metabolic | Glucose, HbA1c, BUN, Calcium, Ionized Calcium, Phosphate, Uric Acid |
 | Lipid | Total Cholesterol, LDL, HDL, Triglycerides |
 | Renal | Creatinine (serum + urine), eGFR |
 | Liver | ALT, AST, ALP, Bilirubin, Albumin, LDH, Globulin |
 | Thyroid | TSH, Free T4 |
 | Inflammation | hs-CRP |
-| CBC | WBC, RBC, Hemoglobin, Hematocrit, Platelets, MCV, MCH, MCHC, RDW |
+| CBC | WBC, RBC, Hemoglobin, Hematocrit, Platelets, MCV, MCH, MCHC, RDW, RDW-SD, MPV, PDW |
 | WBC Differential | Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils |
 | Coagulation | PT, INR, PTT |
 | Electrolytes | Sodium, Potassium, Chloride, Bicarbonate |
 | Vitamins | D, B12, Folate |
 | Minerals | Iron, Ferritin, Magnesium |
 | Cardiac | Troponin T, CK, CK-MB |
-| Blood Gas | pO2, pCO2, Base Excess |
+| Blood Gas | pO2, pCO2, Base Excess, Oxygen Saturation |
+| Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin |
 | Other | Anion Gap, Lactate, Lipase, Total Protein |
 
-78% mapping rate tested against 128K real-world lab events from MIMIC-IV and Synthea.
+84.7% combined mapping rate tested against 128K real-world lab events from MIMIC-IV and Synthea.
 
 ## Input Formats
 

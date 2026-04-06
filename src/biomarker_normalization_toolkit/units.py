@@ -287,12 +287,13 @@ def parse_reference_range(text: str, fallback_unit: str) -> RangeValue | None:
     high = Decimal(match.group("high"))
     raw_unit = (match.group("unit") or "").strip()
     unit = normalize_unit(raw_unit or fallback_unit)
-    if not unit:
-        return None
     return RangeValue(low=low, high=high, unit=unit)
 
 
 def format_range(range_value: RangeValue | None) -> str:
     if range_value is None:
         return ""
-    return f"{format_decimal(range_value.low)}-{format_decimal(range_value.high)} {range_value.unit}"
+    text = f"{format_decimal(range_value.low)}-{format_decimal(range_value.high)}"
+    if range_value.unit:
+        return f"{text} {range_value.unit}"
+    return text

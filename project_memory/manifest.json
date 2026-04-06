@@ -1,6 +1,6 @@
 {
-  "current_percent": 140,
-  "latest_checkpoint": "project_memory/checkpoints/140_coverage-expansion-waves-2-6-and-fhir-ingest.md",
+  "current_percent": 150,
+  "latest_checkpoint": "project_memory/checkpoints/150_catalog-integrity-and-71-biomarker-hardening.md",
   "checkpoints": [
     {
       "percent": 10,
@@ -71,6 +71,11 @@
       "percent": 140,
       "title": "coverage expansion waves 2-6 and FHIR ingest",
       "file": "project_memory/checkpoints/140_coverage-expansion-waves-2-6-and-fhir-ingest.md"
+    },
+    {
+      "percent": 150,
+      "title": "catalog integrity and 71-biomarker hardening",
+      "file": "project_memory/checkpoints/150_catalog-integrity-and-71-biomarker-hardening.md"
     }
   ]
 }

@@ -10,6 +10,7 @@ import shutil
 
 from decimal import Decimal
 
+from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG
 from biomarker_normalization_toolkit.fhir import build_bundle
 from biomarker_normalization_toolkit.io_utils import read_fhir_input, read_input, read_input_csv
 from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_rows, normalize_source_record
@@ -278,6 +279,25 @@ class NormalizationTests(unittest.TestCase):
         result = normalize_rows(rows)
         self.assertEqual(len(result.warnings), 0)
 
+    # --- Catalog integrity ---
+
+    def test_corrected_loinc_assignments(self) -> None:
+        self.assertEqual(BIOMARKER_CATALOG["bun"].loinc, "3094-0")
+        self.assertEqual(BIOMARKER_CATALOG["iron"].loinc, "2498-4")
+        self.assertEqual(BIOMARKER_CATALOG["potassium"].loinc, "2823-3")
+        self.assertEqual(BIOMARKER_CATALOG["uric_acid"].loinc, "3084-1")
+
+    def test_catalog_loinc_codes_are_unique(self) -> None:
+        seen: dict[str, str] = {}
+        duplicates: dict[str, list[str]] = {}
+        for biomarker_id, biomarker in BIOMARKER_CATALOG.items():
+            existing = seen.get(biomarker.loinc)
+            if existing is None:
+                seen[biomarker.loinc] = biomarker_id
+                continue
+            duplicates.setdefault(biomarker.loinc, [existing]).append(biomarker_id)
+        self.assertEqual(duplicates, {})
+
     # --- Urine creatinine coverage ---
 
     def test_urine_creatinine_maps(self) -> None:
@@ -289,6 +309,56 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(result.records[0].mapping_status, "mapped")
         self.assertEqual(result.records[0].canonical_biomarker_id, "creatinine_urine")
         self.assertEqual(result.records[0].loinc, "2161-8")
+
+    # --- Latest wave coverage and blank-unit reference ranges ---
+
+    def test_latest_wave_biomarkers_map_and_keep_ranges(self) -> None:
+        rows = [
+            {"source_row_id": "nw1", "source_test_name": "RDW-SD", "raw_value": "42.1",
+             "source_unit": "fL", "specimen_type": "whole blood", "source_reference_range": "39-46 fL"},
+            {"source_row_id": "nw2", "source_test_name": "Mean Platelet Volume", "raw_value": "10.2",
+             "source_unit": "fL", "specimen_type": "whole blood", "source_reference_range": "7.5-11.5 fL"},
+            {"source_row_id": "nw3", "source_test_name": "PDW", "raw_value": "12.4",
+             "source_unit": "fL", "specimen_type": "whole blood", "source_reference_range": "9-17 fL"},
+            {"source_row_id": "nw4", "source_test_name": "iCa", "raw_value": "1.18",
+             "source_unit": "mmol/L", "specimen_type": "whole blood", "source_reference_range": "1.12-1.32 mmol/L"},
+            {"source_row_id": "nw5", "source_test_name": "O2 Sat", "raw_value": "97",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": "95-100 %"},
+            {"source_row_id": "nw6", "source_test_name": "Specific Gravity", "raw_value": "1.015",
+             "source_unit": "", "specimen_type": "urine", "source_reference_range": "1.005-1.030"},
+            {"source_row_id": "nw7", "source_test_name": "Urine pH", "raw_value": "6.0",
+             "source_unit": "", "specimen_type": "urine", "source_reference_range": "5.0-8.0"},
+            {"source_row_id": "nw8", "source_test_name": "Protein", "raw_value": "15",
+             "source_unit": "mg/dL", "specimen_type": "urine", "source_reference_range": "0-20 mg/dL"},
+            {"source_row_id": "nw9", "source_test_name": "Ketones", "raw_value": "0",
+             "source_unit": "mg/dL", "specimen_type": "urine", "source_reference_range": "0-5 mg/dL"},
+            {"source_row_id": "nw10", "source_test_name": "Bilirubin", "raw_value": "0.2",
+             "source_unit": "mg/dL", "specimen_type": "urine", "source_reference_range": "0-0.3 mg/dL"},
+        ]
+        result = normalize_rows(rows)
+
+        expected = {
+            "nw1": "rdw_sd",
+            "nw2": "mpv",
+            "nw3": "pdw",
+            "nw4": "ionized_calcium",
+            "nw5": "oxygen_saturation",
+            "nw6": "urine_specific_gravity",
+            "nw7": "urine_ph",
+            "nw8": "urine_protein",
+            "nw9": "urine_ketones",
+            "nw10": "urine_bilirubin",
+        }
+        self.assertEqual(result.summary["mapped"], 10)
+        for record in result.records:
+            self.assertEqual(record.mapping_status, "mapped")
+            self.assertEqual(record.canonical_biomarker_id, expected[record.source_row_id])
+
+        by_id = {record.source_row_id: record for record in result.records}
+        self.assertEqual(by_id["nw6"].normalized_reference_range, "1.005-1.03")
+        self.assertEqual(by_id["nw6"].normalized_unit, "")
+        self.assertEqual(by_id["nw7"].normalized_reference_range, "5-8 pH")
+        self.assertEqual(by_id["nw7"].normalized_unit, "pH")
 
     # --- Empty input ---
 

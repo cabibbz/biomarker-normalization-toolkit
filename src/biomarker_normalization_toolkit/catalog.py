@@ -214,7 +214,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "bun": BiomarkerDefinition(
         biomarker_id="bun",
         canonical_name="BUN",
-        loinc="3084-1",
+        loinc="3094-0",
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
         aliases=("BUN", "Urea Nitrogen", "Blood Urea Nitrogen",
@@ -296,7 +296,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "iron": BiomarkerDefinition(
         biomarker_id="iron",
         canonical_name="Iron",
-        loinc="2823-3",
+        loinc="2498-4",
         normalized_unit="ug/dL",
         allowed_specimens=_BLOOD,
         aliases=("Iron", "Serum Iron", "Fe"),

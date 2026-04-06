@@ -20,5 +20,6 @@ This roadmap uses 10% milestones to force resumable progress summaries.
 - `110%`: coverage expansion wave 1 implemented
 - `120%`: broader alias and edge-case wave implemented
 - `130%`: external FHIR validation integrated
-- `140%`: coverage expansion waves 2 and 3 (liver, thyroid, CBC, vitamins, minerals)
-- `150%`: Docker packaging and beta readiness decision
+- `140%`: coverage expansion waves 2-6 and native FHIR ingest
+- `150%`: catalog integrity and 71-biomarker hardening
+- `160%`: beta readiness decision and broader validation automation
