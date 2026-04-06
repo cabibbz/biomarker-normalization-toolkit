@@ -60,6 +60,7 @@ Work is not considered operationally complete until the checkpoint, commit, and 
 python -m pip install -e .
 python -m biomarker_normalization_toolkit.cli status
 python -m biomarker_normalization_toolkit.cli normalize --input .\fixtures\input\v0_sample.csv --output-dir .\out
+python -m biomarker_normalization_toolkit.cli normalize --input .\fixtures\input\v0_sample.csv --output-dir .\out --emit-fhir
 python .\operating_system\tools\evaluate_proposal.py .\operating_system\examples\customer_run_toolkit.json
 python .\operating_system\tools\derive_verification_plan.py .\operating_system\examples\ui_and_api_change.json
 ```

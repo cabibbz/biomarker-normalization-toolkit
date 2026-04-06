@@ -1,24 +1,24 @@
 # Current Context
 
-Latest checkpoint: `070_cli-and-outputs-verified.md`
-Progress: `70%`
+Latest checkpoint: `080_fhir-export-implemented.md`
+Progress: `80%`
 
 ## Compressed State
 
-Added stable JSON and CSV output writing plus a working normalize CLI command, then verified the slice end-to-end with fixture regression, direct error-path checks, and real CLI execution on valid and malformed input.
+Added optional FHIR Observation bundle export for mapped rows, wired it into the normalize CLI behind --emit-fhir, and verified the new output path without regressing the existing normalization baseline.
 
 ## Locked Decisions
 
-- No implementation is complete without context-derived verification
-- The first real delivery surface is the CLI, not a frontend or hosted API
-- Golden fixtures plus CLI flow are the baseline verification shape for backend-only slices
+- FHIR export is optional and explicit, not always-on
+- Only mapped rows are emitted as Observation resources
+- Per-slice verification records are now mandatory for implementation work
 
 ## Immediate Next Steps
 
-- Decide the next milestone between FHIR export and packaging stabilization
-- Expand the gold dataset with more biomarkers and edge cases
-- Consider a structured demo command or sample report flow
+- Stabilize packaging beyond editable local install
+- Add a stronger demo or sample-report flow on top of the CLI
+- Expand fixture coverage with more biomarkers and edge cases
 
 ## Resume From
 
-Start from project_memory/current_context.md, then choose the next implementation milestone after the now-working CLI normalization baseline.
+Start from project_memory/current_context.md, then choose between packaging stabilization and a stronger demo flow for the 90% milestone.

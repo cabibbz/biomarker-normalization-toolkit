@@ -1,0 +1,42 @@
+{
+  "percent": 80,
+  "title": "fhir export implemented",
+  "summary": "Added optional FHIR Observation bundle export for mapped rows, wired it into the normalize CLI behind --emit-fhir, and verified the new output path without regressing the existing normalization baseline.",
+  "completed": [
+    "Added FHIR Observation bundle generation",
+    "Added optional FHIR bundle writing to the output directory",
+    "Extended the normalize CLI with --emit-fhir",
+    "Added focused tests for FHIR bundle generation and CLI emission",
+    "Recorded a per-slice verification artifact for the change"
+  ],
+  "decisions_locked": [
+    "FHIR export is optional and explicit, not always-on",
+    "Only mapped rows are emitted as Observation resources",
+    "Per-slice verification records are now mandatory for implementation work"
+  ],
+  "verification_evidence": [
+    "python .\\operating_system\\tools\\derive_verification_plan.py .\\project_memory\\entries\\fhir_export_change.json",
+    "python -m unittest discover -s tests -v",
+    "python -m biomarker_normalization_toolkit.cli normalize --input .\\fixtures\\input\\v0_sample.csv --output-dir .\\tmp_verify_fhir --emit-fhir",
+    "project_memory/verifications/080_fhir_export_verification.md"
+  ],
+  "files_touched": [
+    "src/biomarker_normalization_toolkit/fhir.py",
+    "src/biomarker_normalization_toolkit/io_utils.py",
+    "src/biomarker_normalization_toolkit/cli.py",
+    "tests/test_normalization.py",
+    "README.md",
+    "project_memory/roadmap.md"
+  ],
+  "open_questions": [
+    "Whether the next slice should focus on packaging or a stronger demo flow",
+    "Whether to introduce a proper FHIR validation step before release readiness",
+    "Whether mapped-but-partial rows need a second FHIR export policy later"
+  ],
+  "next_steps": [
+    "Stabilize packaging beyond editable local install",
+    "Add a stronger demo or sample-report flow on top of the CLI",
+    "Expand fixture coverage with more biomarkers and edge cases"
+  ],
+  "resume_from": "Start from project_memory/current_context.md, then choose between packaging stabilization and a stronger demo flow for the 90% milestone."
+}

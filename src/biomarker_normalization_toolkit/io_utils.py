@@ -4,6 +4,7 @@ import csv
 import json
 from pathlib import Path
 
+from biomarker_normalization_toolkit.fhir import build_bundle
 from biomarker_normalization_toolkit.models import NormalizationResult
 
 
@@ -73,3 +74,12 @@ def write_result(result: NormalizationResult, output_dir: Path) -> tuple[Path, P
 
     return json_path, csv_path
 
+
+def write_fhir_bundle(result: NormalizationResult, output_dir: Path) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    fhir_path = output_dir / "fhir_observations.json"
+    fhir_path.write_text(
+        json.dumps(build_bundle(result), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return fhir_path

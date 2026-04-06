@@ -99,6 +99,11 @@ Recommendation:
 - JSON
 - FHIR Observation export only after canonical schema is stable
 
+Status:
+
+- normalized CSV and JSON are implemented
+- optional FHIR Observation bundle export is now in scope for the next verified slice
+
 ### 7. Packaging
 
 Recommendation:

@@ -1,6 +1,6 @@
 {
-  "current_percent": 70,
-  "latest_checkpoint": "project_memory/checkpoints/070_cli-and-outputs-verified.md",
+  "current_percent": 80,
+  "latest_checkpoint": "project_memory/checkpoints/080_fhir-export-implemented.md",
   "checkpoints": [
     {
       "percent": 10,
@@ -36,6 +36,11 @@
       "percent": 70,
       "title": "cli and outputs verified",
       "file": "project_memory/checkpoints/070_cli-and-outputs-verified.md"
+    },
+    {
+      "percent": 80,
+      "title": "fhir export implemented",
+      "file": "project_memory/checkpoints/080_fhir-export-implemented.md"
     }
   ]
 }

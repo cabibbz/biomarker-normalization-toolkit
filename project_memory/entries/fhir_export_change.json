@@ -1,0 +1,34 @@
+{
+  "name": "fhir observation export",
+  "summary": "Adds optional FHIR Observation bundle export for mapped normalized rows and exposes it through the normalize CLI command.",
+  "changed_files": [
+    "src/biomarker_normalization_toolkit/fhir.py",
+    "src/biomarker_normalization_toolkit/io_utils.py",
+    "src/biomarker_normalization_toolkit/cli.py",
+    "tests/test_normalization.py",
+    "README.md",
+    "docs/initial_build_decisions.md",
+    "project_memory/roadmap.md"
+  ],
+  "touched_surfaces": [
+    "backend",
+    "normalization",
+    "cli"
+  ],
+  "user_visible_flows": [
+    "operator runs normalize with --emit-fhir",
+    "operator receives a FHIR bundle file for mapped rows"
+  ],
+  "system_flows": [
+    "normalized records are transformed into FHIR Observation resources",
+    "only mapped rows are emitted into the bundle",
+    "the CLI writes the extra FHIR output file when requested"
+  ],
+  "external_integrations": [],
+  "risk_keywords": [
+    "output generation",
+    "data transformation",
+    "cli behavior"
+  ],
+  "notes": "This slice remains backend-only. Verification should focus on FHIR bundle structure, mapped-row filtering, CLI output behavior, and regression against the existing normalization baseline."
+}

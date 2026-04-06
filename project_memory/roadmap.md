@@ -11,7 +11,6 @@ This roadmap uses 10% milestones to force resumable progress summaries.
 - `50%`: unit conversion registry implemented
 - `60%`: normalization pipeline implemented
 - `70%`: normalized CSV and JSON outputs implemented
-- `80%`: FHIR Observation export and packaging stabilized
-- `90%`: verification coverage and demo flow proven
+- `80%`: FHIR Observation export implemented
+- `90%`: packaging and demo flow proven
 - `100%`: v0 release readiness decision
-

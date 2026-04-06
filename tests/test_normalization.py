@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 
+from biomarker_normalization_toolkit.fhir import build_bundle
 from biomarker_normalization_toolkit.io_utils import read_input_csv
 from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_rows, normalize_source_record
 
@@ -100,6 +101,50 @@ class NormalizationTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("missing required columns", result.stderr.lower())
+
+    def test_fhir_bundle_contains_only_mapped_rows(self) -> None:
+        input_path = FIXTURES / "input" / "v0_sample.csv"
+        rows = read_input_csv(input_path)
+        result = normalize_rows(rows, input_file=input_path.name)
+
+        bundle = build_bundle(result)
+        self.assertEqual(bundle["resourceType"], "Bundle")
+        self.assertEqual(len(bundle["entry"]), 4)
+
+        first = bundle["entry"][0]["resource"]
+        self.assertEqual(first["resourceType"], "Observation")
+        self.assertEqual(first["code"]["coding"][0]["system"], "http://loinc.org")
+        self.assertEqual(first["valueQuantity"]["unit"], "mg/dL")
+
+    def test_cli_normalize_can_emit_fhir_bundle(self) -> None:
+        input_path = FIXTURES / "input" / "v0_sample.csv"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "biomarker_normalization_toolkit.cli",
+                    "normalize",
+                    "--input",
+                    str(input_path),
+                    "--output-dir",
+                    temp_dir,
+                    "--emit-fhir"
+                ],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("FHIR output:", result.stdout)
+
+            fhir_output = Path(temp_dir) / "fhir_observations.json"
+            self.assertTrue(fhir_output.exists())
+
+            bundle = json.loads(fhir_output.read_text(encoding="utf-8"))
+            self.assertEqual(bundle["resourceType"], "Bundle")
+            self.assertEqual(len(bundle["entry"]), 4)
 
 
 if __name__ == "__main__":

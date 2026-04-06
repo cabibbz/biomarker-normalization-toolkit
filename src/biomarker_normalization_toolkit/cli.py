@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 import sys
 
-from biomarker_normalization_toolkit.io_utils import read_input_csv, write_result
+from biomarker_normalization_toolkit.io_utils import read_input_csv, write_fhir_bundle, write_result
 from biomarker_normalization_toolkit.normalizer import normalize_rows
 
 
@@ -41,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Directory where normalized outputs should be written.",
     )
+    normalize.add_argument(
+        "--emit-fhir",
+        action="store_true",
+        help="Also write mapped rows as a FHIR Observation bundle.",
+    )
 
     return parser
 
@@ -65,7 +70,7 @@ def command_where_left_off(path: str) -> int:
     return 0
 
 
-def command_normalize(input_path: str, output_dir: str) -> int:
+def command_normalize(input_path: str, output_dir: str, emit_fhir: bool) -> int:
     source_path = Path(input_path)
     if not source_path.exists():
         print(f"Input file does not exist: {source_path}", file=sys.stderr)
@@ -75,6 +80,7 @@ def command_normalize(input_path: str, output_dir: str) -> int:
         rows = read_input_csv(source_path)
         result = normalize_rows(rows, input_file=source_path.name)
         json_path, csv_path = write_result(result, Path(output_dir))
+        fhir_path = write_fhir_bundle(result, Path(output_dir)) if emit_fhir else None
     except Exception as exc:
         print(f"Normalization failed: {exc}", file=sys.stderr)
         return 1
@@ -87,6 +93,8 @@ def command_normalize(input_path: str, output_dir: str) -> int:
     )
     print(f"JSON output: {json_path}")
     print(f"CSV output: {csv_path}")
+    if fhir_path is not None:
+        print(f"FHIR output: {fhir_path}")
     return 0
 
 
@@ -99,7 +107,7 @@ def main() -> int:
     if args.command == "where-left-off":
         return command_where_left_off(args.path)
     if args.command == "normalize":
-        return command_normalize(args.input, args.output_dir)
+        return command_normalize(args.input, args.output_dir, args.emit_fhir)
 
     parser.error(f"Unknown command: {args.command}")
     return 2
