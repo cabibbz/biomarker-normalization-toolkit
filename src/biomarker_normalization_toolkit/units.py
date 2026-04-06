@@ -11,6 +11,10 @@ UNIT_SYNONYMS = {
     "mg dl": "mg/dL",
     "mmol/l": "mmol/L",
     "mmol l": "mmol/L",
+    "umol/l": "umol/L",
+    "umol l": "umol/L",
+    "μmol/l": "umol/L",
+    "µmol/l": "umol/L",
     "%": "%",
 }
 
@@ -30,6 +34,22 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "total_cholesterol": {
         "mg/dL": Decimal("1"),
         "mmol/L": Decimal("38.67"),
+    },
+    "ldl_cholesterol": {
+        "mg/dL": Decimal("1"),
+        "mmol/L": Decimal("38.67"),
+    },
+    "hdl_cholesterol": {
+        "mg/dL": Decimal("1"),
+        "mmol/L": Decimal("38.67"),
+    },
+    "triglycerides": {
+        "mg/dL": Decimal("1"),
+        "mmol/L": Decimal("88.57"),
+    },
+    "creatinine": {
+        "mg/dL": Decimal("1"),
+        "umol/L": Decimal("1") / Decimal("88.4"),
     },
 }
 
@@ -93,4 +113,3 @@ def format_range(range_value: RangeValue | None) -> str:
     if range_value is None:
         return ""
     return f"{format_decimal(range_value.low)}-{format_decimal(range_value.high)} {range_value.unit}"
-

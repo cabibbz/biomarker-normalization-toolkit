@@ -60,3 +60,22 @@ Examples that should be covered in early fixtures:
 - `fixtures/input/v0_invalid_missing_headers.csv`
 - `fixtures/expected/v0_sample_expected.json`
 
+## Coverage Expansion Wave 1
+
+Add the next coverage fixture around common lipid and renal markers:
+
+- LDL cholesterol
+- HDL cholesterol
+- triglycerides
+- creatinine
+
+Wave 1 should prove:
+
+- additional mmol/L to mg/dL conversions
+- creatinine `umol/L` to `mg/dL` conversion
+- serum/plasma specimen handling for the new biomarkers
+- unsupported specimen handling for creatinine
+
+Wave 1 fixture file:
+
+- `fixtures/input/coverage_wave_1.csv`

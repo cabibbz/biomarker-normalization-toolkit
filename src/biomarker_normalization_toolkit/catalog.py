@@ -69,6 +69,38 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=frozenset({"serum", "plasma"}),
         aliases=("Total Cholesterol", "Cholesterol, Total"),
     ),
+    "ldl_cholesterol": BiomarkerDefinition(
+        biomarker_id="ldl_cholesterol",
+        canonical_name="LDL Cholesterol",
+        loinc="2089-1",
+        normalized_unit="mg/dL",
+        allowed_specimens=frozenset({"serum", "plasma"}),
+        aliases=("LDL Cholesterol", "LDL-C", "LDL"),
+    ),
+    "hdl_cholesterol": BiomarkerDefinition(
+        biomarker_id="hdl_cholesterol",
+        canonical_name="HDL Cholesterol",
+        loinc="2085-9",
+        normalized_unit="mg/dL",
+        allowed_specimens=frozenset({"serum", "plasma"}),
+        aliases=("HDL Cholesterol", "HDL-C", "HDL"),
+    ),
+    "triglycerides": BiomarkerDefinition(
+        biomarker_id="triglycerides",
+        canonical_name="Triglycerides",
+        loinc="2571-8",
+        normalized_unit="mg/dL",
+        allowed_specimens=frozenset({"serum", "plasma"}),
+        aliases=("Triglycerides", "Triglyceride", "TG"),
+    ),
+    "creatinine": BiomarkerDefinition(
+        biomarker_id="creatinine",
+        canonical_name="Creatinine",
+        loinc="2160-0",
+        normalized_unit="mg/dL",
+        allowed_specimens=frozenset({"serum", "plasma"}),
+        aliases=("Creatinine", "Creatinine, Serum", "Creatinine, Plasma", "Creat"),
+    ),
 }
 
 
@@ -77,4 +109,3 @@ for biomarker_id, biomarker in BIOMARKER_CATALOG.items():
     for alias in biomarker.aliases:
         alias_key = normalize_key(alias)
         ALIAS_INDEX.setdefault(alias_key, []).append(biomarker_id)
-

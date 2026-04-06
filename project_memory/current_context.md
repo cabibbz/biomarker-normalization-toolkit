@@ -1,24 +1,24 @@
 # Current Context
 
-Latest checkpoint: `100_release-readiness-decision-recorded.md`
-Progress: `100%`
+Latest checkpoint: `110_coverage-expansion-wave-1.md`
+Progress: `110%`
 
 ## Compressed State
 
-Verified a real build-and-install path with the packaged demo asset and recorded the current release decision: alpha-ready for constrained use, not ready for broad external release.
+Expanded the normalization catalog and conversion registry to include LDL cholesterol, HDL cholesterol, triglycerides, and creatinine, then verified the new coverage through a dedicated slice-specific checker script and CLI run.
 
 ## Locked Decisions
 
-- The toolkit is currently ready for constrained alpha use only
-- Broad external release is blocked on coverage and validation expansion
-- Release readiness now includes a built-distribution verification path
+- New coverage slices should prefer dedicated on-the-spot verification scripts over expanding a generic static test file
+- Coverage expansion remains deterministic and specimen-aware
+- Post-alpha progress now continues past 100% in 10% slices
 
 ## Immediate Next Steps
 
-- Expand biomarker and fixture coverage
-- Add external FHIR validation to the verification workflow
-- Define the beta release bar separately from the alpha bar
+- Add broader alias and edge-case coverage for common vendor naming patterns
+- Expand the fixture set with the next biomarker group
+- Decide whether the next wave should include FHIR-specific validation for added markers
 
 ## Resume From
 
-Start from docs/release_readiness.md and project_memory/current_context.md, then expand coverage against the new release bar.
+Start from project_memory/current_context.md and project_memory/roadmap.md, then move into the 120% alias and edge-case expansion wave.
