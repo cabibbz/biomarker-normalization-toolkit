@@ -1,10 +1,47 @@
 from __future__ import annotations
 
+import uuid
+
 from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord
 from biomarker_normalization_toolkit.units import parse_reference_range
 
 
 FHIR_VERSION = "4.0.1"
+_BNT_NAMESPACE = uuid.UUID("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+
+UCUM_CODES: dict[str, str] = {
+    "mg/dL": "mg/dL",
+    "mmol/L": "mmol/L",
+    "umol/L": "umol/L",
+    "%": "%",
+    "U/L": "U/L",
+    "g/dL": "g/dL",
+    "g/L": "g/L",
+    "mIU/L": "m[IU]/L",
+    "ng/dL": "ng/dL",
+    "ng/mL": "ng/mL",
+    "pg/mL": "pg/mL",
+    "ug/dL": "ug/dL",
+    "mg/L": "mg/L",
+    "K/uL": "10*3/uL",
+    "10^9/L": "10*9/L",
+    "L/L": "L/L",
+    "pmol/L": "pmol/L",
+    "nmol/L": "nmol/L",
+    "mEq/L": "meq/L",
+    "M/uL": "10*6/uL",
+    "10^12/L": "10*12/L",
+    "fL": "fL",
+    "pg": "pg",
+    "sec": "s",
+    "ratio": "{ratio}",
+    "mL/min/1.73m2": "mL/min/{1.73_m2}",
+    "mmHg": "mm[Hg]",
+}
+
+
+def _ucum_code(display_unit: str) -> str:
+    return UCUM_CODES.get(display_unit, display_unit)
 
 
 def _build_reference_range(record: NormalizedRecord) -> list[dict]:
@@ -18,26 +55,31 @@ def _build_reference_range(record: NormalizedRecord) -> list[dict]:
                 "value": float(parsed.low),
                 "unit": parsed.unit,
                 "system": "http://unitsofmeasure.org",
-                "code": parsed.unit,
+                "code": _ucum_code(parsed.unit),
             },
             "high": {
                 "value": float(parsed.high),
                 "unit": parsed.unit,
                 "system": "http://unitsofmeasure.org",
-                "code": parsed.unit,
+                "code": _ucum_code(parsed.unit),
             },
             "text": record.normalized_reference_range,
         }
     ]
 
 
+def _observation_uuid(source_row_id: str) -> str:
+    return str(uuid.uuid5(_BNT_NAMESPACE, f"observation-{source_row_id}"))
+
+
 def build_observation(record: NormalizedRecord) -> dict | None:
     if record.mapping_status != "mapped":
         return None
 
+    obs_id = _observation_uuid(record.source_row_id)
     observation = {
         "resourceType": "Observation",
-        "id": f"observation-{record.source_row_id}",
+        "id": obs_id,
         "status": "final",
         "category": [
             {
@@ -65,7 +107,7 @@ def build_observation(record: NormalizedRecord) -> dict | None:
             "value": float(record.normalized_value),
             "unit": record.normalized_unit,
             "system": "http://unitsofmeasure.org",
-            "code": record.normalized_unit,
+            "code": _ucum_code(record.normalized_unit),
         },
         "referenceRange": _build_reference_range(record),
         "note": [
@@ -98,7 +140,7 @@ def build_bundle(result: NormalizationResult) -> dict:
             continue
         entries.append(
             {
-                "fullUrl": f"urn:uuid:{observation['id']}",
+                "fullUrl": f"urn:uuid:{observation['id']}",  # id is already a valid UUID
                 "resource": observation,
             }
         )

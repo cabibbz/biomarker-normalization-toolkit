@@ -26,8 +26,8 @@ def main() -> int:
     summary = payload["summary"]
 
     require(summary["total_rows"] == 8, "Expected 8 rows in coverage wave 1 output")
-    require(summary["mapped"] == 6, "Expected 6 mapped rows in coverage wave 1 output")
-    require(summary["review_needed"] == 1, "Expected 1 review-needed row in coverage wave 1 output")
+    require(summary["mapped"] == 7, "Expected 7 mapped rows in coverage wave 1 output")
+    require(summary["review_needed"] == 0, "Expected 0 review-needed rows in coverage wave 1 output")
     require(summary["unmapped"] == 1, "Expected 1 unmapped row in coverage wave 1 output")
 
     rows = payload["records"]
@@ -49,8 +49,9 @@ def main() -> int:
     require(creatinine["normalized_value"] == "1", "Creatinine umol/L row should convert to 1 mg/dL")
 
     creatinine_urine = record_by_id(rows, "107")
-    require(creatinine_urine["mapping_status"] == "review_needed", "Urine creatinine row should require review")
-    require(creatinine_urine["status_reason"] == "no_candidate_for_specimen", "Urine creatinine row should fail specimen filtering")
+    require(creatinine_urine["mapping_status"] == "mapped", "Urine creatinine row should map to creatinine_urine")
+    require(creatinine_urine["canonical_biomarker_id"] == "creatinine_urine", "Urine creatinine row should map to creatinine_urine")
+    require(creatinine_urine["loinc"] == "2161-8", "Urine creatinine should have LOINC 2161-8")
 
     unknown = record_by_id(rows, "108")
     require(unknown["mapping_status"] == "unmapped", "Unknown row should be unmapped")

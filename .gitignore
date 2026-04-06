@@ -10,3 +10,4 @@ build/
 *.pyc
 *.pyo
 *.pyd
+sample data/

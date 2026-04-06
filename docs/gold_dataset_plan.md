@@ -74,7 +74,7 @@ Wave 1 should prove:
 - additional mmol/L to mg/dL conversions
 - creatinine `umol/L` to `mg/dL` conversion
 - serum/plasma specimen handling for the new biomarkers
-- unsupported specimen handling for creatinine
+- urine creatinine specimen-disambiguated mapping
 
 Wave 1 fixture file:
 
@@ -83,3 +83,47 @@ Wave 1 fixture file:
 Vendor-style alias and edge-case fixture:
 
 - `fixtures/input/vendor_alias_edge_cases.csv`
+
+## Coverage Expansion Wave 2
+
+Liver panel, thyroid, renal expansion, inflammation, and CBC:
+
+- ALT, AST, ALP, total bilirubin, albumin
+- TSH, free T4
+- BUN
+- hs-CRP
+- WBC, hemoglobin, hematocrit, platelets
+
+Wave 2 should prove:
+
+- U/L identity and IU/L synonym handling
+- umol/L to mg/dL conversion for bilirubin
+- g/L to g/dL conversion for albumin and hemoglobin
+- pmol/L to ng/dL conversion for free T4
+- mmol/L to mg/dL conversion for BUN
+- mg/dL to mg/L conversion for CRP
+- L/L to % conversion for hematocrit
+- 10^9/L to K/uL identity for WBC and platelets
+
+Wave 2 fixture file:
+
+- `fixtures/input/coverage_wave_2.csv`
+
+## Coverage Expansion Wave 3
+
+Vitamins and minerals:
+
+- vitamin D 25-OH, vitamin B12, folate
+- iron, ferritin, magnesium
+
+Wave 3 should prove:
+
+- nmol/L to ng/mL conversion for vitamin D
+- pmol/L to pg/mL conversion for B12
+- nmol/L to ng/mL conversion for folate (different MW)
+- umol/L to ug/dL conversion for iron
+- mmol/L to mg/dL conversion for magnesium
+
+Wave 3 fixture file:
+
+- `fixtures/input/coverage_wave_3.csv`

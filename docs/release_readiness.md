@@ -21,14 +21,14 @@ The current state is:
 - built wheel verification
 - installed wheel demo verification
 - external FHIR bundle validation for current fixtures
+- 28 biomarkers across metabolic, lipid, renal, liver, thyroid, inflammation, CBC, vitamin, and mineral panels
+- unit conversions for all major SI/conventional unit pairs
+- Docker packaging
 
 ## Not Ready Yet
 
-- broad biomarker coverage
-- large gold dataset coverage
-- richer unit conversion coverage
-- production packaging/release pipeline
-- real-world vendor catalog breadth
+- production packaging/release pipeline (CI/CD, versioned releases)
+- real-world vendor catalog breadth (more vendor-specific alias coverage)
 
 ## Release Bar
 

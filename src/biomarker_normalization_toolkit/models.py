@@ -109,12 +109,20 @@ class NormalizationResult:
     input_file: str
     summary: dict[str, int]
     records: list[NormalizedRecord]
+    warnings: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if isinstance(self.warnings, list):
+            object.__setattr__(self, "warnings", tuple(self.warnings))
 
     def to_json_dict(self) -> dict[str, Any]:
-        return {
+        result: dict[str, Any] = {
             "schema_version": "0.1.0",
             "input_file": self.input_file,
             "summary": self.summary,
             "records": [record.to_json_dict() for record in self.records],
         }
+        if self.warnings:
+            result["warnings"] = list(self.warnings)
+        return result
 

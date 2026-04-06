@@ -5,7 +5,7 @@ from importlib import resources
 from pathlib import Path
 import sys
 
-from biomarker_normalization_toolkit.io_utils import read_input_csv, write_fhir_bundle, write_result, write_summary_report
+from biomarker_normalization_toolkit.io_utils import read_input, write_fhir_bundle, write_result, write_summary_report
 from biomarker_normalization_toolkit.normalizer import normalize_rows
 
 
@@ -30,12 +30,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     normalize = subparsers.add_parser(
         "normalize",
-        help="Normalize a CSV file into canonical output.",
+        help="Normalize a CSV or FHIR JSON file into canonical output.",
     )
     normalize.add_argument(
         "--input",
         required=True,
-        help="Path to the input CSV file.",
+        help="Path to input file (CSV or FHIR JSON, auto-detected).",
     )
     normalize.add_argument(
         "--output-dir",
@@ -88,7 +88,7 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool) -> int:
         return 1
 
     try:
-        rows = read_input_csv(source_path)
+        rows = read_input(source_path)
         result = normalize_rows(rows, input_file=source_path.name)
         json_path, csv_path = write_result(result, Path(output_dir))
         fhir_path = write_fhir_bundle(result, Path(output_dir)) if emit_fhir else None
@@ -96,6 +96,9 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool) -> int:
     except Exception as exc:
         print(f"Normalization failed: {exc}", file=sys.stderr)
         return 1
+
+    for warning in result.warnings:
+        print(f"WARNING: {warning}", file=sys.stderr)
 
     print(f"Normalized {result.summary['total_rows']} rows.")
     print(

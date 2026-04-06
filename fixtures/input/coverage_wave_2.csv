@@ -1,0 +1,26 @@
+source_row_id,source_lab_name,source_panel_name,source_test_name,raw_value,source_unit,specimen_type,source_reference_range
+301,Quest,Liver,ALT,25,U/L,serum,7-56 U/L
+302,Quest,Liver,SGPT,30,IU/L,plasma,7-56 IU/L
+303,Quest,Liver,AST,22,U/L,serum,10-40 U/L
+304,Quest,Liver,Alkaline Phosphatase,65,U/L,serum,44-147 U/L
+305,Quest,Liver,Bilirubin,1.0,mg/dL,serum,0.1-1.2 mg/dL
+306,Quest,Liver,TBIL,17.1,umol/L,plasma,1.7-20.5 umol/L
+307,Quest,Liver,Albumin,4.0,g/dL,serum,3.4-5.4 g/dL
+308,Quest,Liver,Alb,40,g/L,plasma,34-54 g/L
+309,Quest,Thyroid,TSH,2.5,mIU/L,serum,0.4-4.0 mIU/L
+310,Quest,Thyroid,Thyrotropin,2.5,uIU/mL,plasma,0.4-4.0 uIU/mL
+311,Quest,Thyroid,Free T4,1.2,ng/dL,serum,0.8-1.8 ng/dL
+312,Quest,Thyroid,FT4,15.4,pmol/L,plasma,10.3-23.2 pmol/L
+313,Quest,Renal,BUN,15,mg/dL,serum,6-20 mg/dL
+314,Quest,Renal,Urea Nitrogen,5.0,mmol/L,plasma,2.1-7.1 mmol/L
+315,Quest,Inflammation,CRP,1.5,mg/L,serum,0-3 mg/L
+316,Quest,Inflammation,hs-CRP,0.15,mg/dL,plasma,0-0.3 mg/dL
+317,Quest,CBC,WBC,7.0,K/uL,whole blood,4.5-11.0 K/uL
+318,Quest,CBC,Leukocytes,7.0,10^9/L,blood,4.5-11.0 10^9/L
+319,Quest,CBC,Hemoglobin,14.0,g/dL,whole blood,12.0-17.5 g/dL
+320,Quest,CBC,HGB,140,g/L,blood,120-175 g/L
+321,Quest,CBC,Hematocrit,42,%,whole blood,36-54 %
+322,Quest,CBC,HCT,0.42,L/L,blood,0.36-0.54 L/L
+323,Quest,CBC,Platelets,250,K/uL,whole blood,150-400 K/uL
+324,Quest,CBC,Thrombocytes,250,10^9/L,blood,150-400 10^9/L
+325,Quest,Unknown,Mystery Enzyme,50,U/L,serum,10-100 U/L

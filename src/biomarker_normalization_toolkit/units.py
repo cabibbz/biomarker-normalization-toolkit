@@ -18,6 +18,45 @@ UNIT_SYNONYMS = {
     "μmol/l": "umol/L",
     "µmol/l": "umol/L",
     "%": "%",
+    "u/l": "U/L",
+    "iu/l": "U/L",
+    "[iu]/l": "U/L",
+    "g/l": "g/L",
+    "g/dl": "g/dL",
+    "ng/ml": "ng/mL",
+    "pg/ml": "pg/mL",
+    "miu/l": "mIU/L",
+    "uiu/ml": "mIU/L",
+    "µiu/ml": "mIU/L",
+    "ng/dl": "ng/dL",
+    "ug/dl": "ug/dL",
+    "mcg/dl": "ug/dL",
+    "k/ul": "K/uL",
+    "k/µl": "K/uL",
+    "10^3/ul": "K/uL",
+    "10*3/ul": "K/uL",
+    "10^9/l": "10^9/L",
+    "10*9/l": "10^9/L",
+    "l/l": "L/L",
+    "pmol/l": "pmol/L",
+    "nmol/l": "nmol/L",
+    "mg/l": "mg/L",
+    "meq/l": "mEq/L",
+    "meq l": "mEq/L",
+    "m/ul": "M/uL",
+    "10^12/l": "10^12/L",
+    "10*12/l": "10^12/L",
+    "fl": "fL",
+    "pg": "pg",
+    "sec": "sec",
+    "s": "sec",
+    "ratio": "ratio",
+    "{inr}": "ratio",
+    "10*6/ul": "M/uL",
+    "ml/min/1.73m2": "mL/min/1.73m2",
+    "ml/min/{1.73_m2}": "mL/min/1.73m2",
+    "mmhg": "mmHg",
+    "mm[hg]": "mmHg",
 }
 
 
@@ -54,6 +93,124 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
         "mg/dL": Decimal("1"),
         "umol/L": Decimal("1") / Decimal("88.4"),
     },
+    "creatinine_urine": {
+        "mg/dL": Decimal("1"),
+        "umol/L": Decimal("1") / Decimal("88.4"),
+    },
+    # --- Wave 2: Liver panel ---
+    "alt": {"U/L": Decimal("1")},
+    "ast": {"U/L": Decimal("1")},
+    "alp": {"U/L": Decimal("1")},
+    "total_bilirubin": {
+        "mg/dL": Decimal("1"),
+        "umol/L": Decimal("1") / Decimal("17.1"),
+    },
+    "albumin": {
+        "g/dL": Decimal("1"),
+        "g/L": Decimal("0.1"),
+    },
+    # --- Wave 2: Thyroid ---
+    "tsh": {"mIU/L": Decimal("1")},
+    "free_t4": {
+        "ng/dL": Decimal("1"),
+        "pmol/L": Decimal("0.0129"),
+    },
+    # --- Wave 2: Renal expansion ---
+    "bun": {
+        "mg/dL": Decimal("1"),
+        "mmol/L": Decimal("2.8"),
+    },
+    # --- Wave 2: Inflammation ---
+    "hscrp": {
+        "mg/L": Decimal("1"),
+        "mg/dL": Decimal("10"),
+    },
+    # --- Wave 2: CBC ---
+    "wbc": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
+    "hemoglobin": {
+        "g/dL": Decimal("1"),
+        "g/L": Decimal("0.1"),
+    },
+    "hematocrit": {
+        "%": Decimal("1"),
+        "L/L": Decimal("100"),
+    },
+    "platelets": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
+    # --- Wave 3: Vitamins ---
+    "vitamin_d": {
+        "ng/mL": Decimal("1"),
+        "nmol/L": Decimal("0.4"),
+    },
+    "vitamin_b12": {
+        "pg/mL": Decimal("1"),
+        "pmol/L": Decimal("1.355"),
+    },
+    "folate": {
+        "ng/mL": Decimal("1"),
+        "nmol/L": Decimal("0.2266"),
+    },
+    # --- Wave 3: Minerals ---
+    "iron": {
+        "ug/dL": Decimal("1"),
+        "umol/L": Decimal("5.585"),
+    },
+    "ferritin": {"ng/mL": Decimal("1")},
+    "magnesium": {
+        "mg/dL": Decimal("1"),
+        "mmol/L": Decimal("2.4"),
+    },
+    # --- Wave 4: CBC sub-components ---
+    "rbc": {"M/uL": Decimal("1"), "10^12/L": Decimal("1")},
+    "mcv": {"fL": Decimal("1")},
+    "mch": {"pg": Decimal("1")},
+    "mchc": {"g/dL": Decimal("1"), "g/L": Decimal("0.1"), "%": Decimal("1")},
+    "rdw": {"%": Decimal("1")},
+    # --- Wave 4: Coagulation ---
+    "pt": {"sec": Decimal("1")},
+    "inr": {"ratio": Decimal("1"), "": Decimal("1")},
+    "ptt": {"sec": Decimal("1")},
+    # --- Wave 4: Other ---
+    "anion_gap": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "lactate": {"mmol/L": Decimal("1"), "mg/dL": Decimal("1") / Decimal("9.01")},
+    # --- Wave 4: Electrolytes ---
+    "sodium": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "potassium": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "chloride": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "bicarbonate": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "calcium": {
+        "mg/dL": Decimal("1"),
+        "mmol/L": Decimal("4.008"),
+    },
+    "phosphate": {
+        "mg/dL": Decimal("1"),
+        "mmol/L": Decimal("3.097"),
+    },
+    "uric_acid": {
+        "mg/dL": Decimal("1"),
+        "umol/L": Decimal("1") / Decimal("59.48"),
+    },
+    # --- Wave 5: WBC differentials ---
+    "neutrophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
+    "lymphocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
+    "monocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
+    "eosinophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
+    "basophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
+    # --- Wave 5: Other ---
+    "total_protein": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
+    "egfr": {"mL/min/1.73m2": Decimal("1")},
+    # --- Wave 6: Enzymes ---
+    "ldh": {"U/L": Decimal("1")},
+    "lipase": {"U/L": Decimal("1")},
+    "ck": {"U/L": Decimal("1")},
+    "ck_mb": {"ng/mL": Decimal("1")},
+    # --- Wave 6: Cardiac ---
+    "troponin_t": {"ng/mL": Decimal("1")},
+    # --- Wave 6: Blood gases ---
+    "pco2": {"mmHg": Decimal("1")},
+    "po2": {"mmHg": Decimal("1")},
+    "base_excess": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    # --- Wave 6: Other ---
+    "globulin": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
 }
 
 
@@ -80,6 +237,13 @@ def convert_to_normalized(value: Decimal, biomarker_id: str, source_unit: str) -
     return value * factor
 
 
+def is_inequality_value(value: str | None) -> bool:
+    if value is None:
+        return False
+    stripped = value.strip()
+    return bool(re.match(r"^[<>]=?\s*-?\d+(\.\d+)?$", stripped))
+
+
 def parse_decimal(value: str | None) -> Decimal | None:
     if value is None:
         return None
@@ -98,7 +262,7 @@ def parse_reference_range(text: str, fallback_unit: str) -> RangeValue | None:
         return None
 
     match = re.match(
-        r"^\s*(?P<low>-?\d+(?:\.\d+)?)\s*-\s*(?P<high>-?\d+(?:\.\d+)?)\s*(?P<unit>.*)\s*$",
+        r"^\s*(?P<low>-?\d+(?:\.\d+)?)\s*(?:to|–|—|-)\s*(?P<high>-?\d+(?:\.\d+)?)\s*(?P<unit>[a-zA-Z/%μµ].*?)?\s*$",
         stripped,
     )
     if not match:
@@ -106,7 +270,8 @@ def parse_reference_range(text: str, fallback_unit: str) -> RangeValue | None:
 
     low = Decimal(match.group("low"))
     high = Decimal(match.group("high"))
-    unit = normalize_unit(match.group("unit").strip() or fallback_unit)
+    raw_unit = (match.group("unit") or "").strip()
+    unit = normalize_unit(raw_unit or fallback_unit)
     if not unit:
         return None
     return RangeValue(low=low, high=high, unit=unit)

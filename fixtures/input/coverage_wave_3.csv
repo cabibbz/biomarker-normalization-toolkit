@@ -1,0 +1,13 @@
+source_row_id,source_lab_name,source_panel_name,source_test_name,raw_value,source_unit,specimen_type,source_reference_range
+401,Quest,Vitamins,Vitamin D,30,ng/mL,serum,30-100 ng/mL
+402,Quest,Vitamins,25-OH Vitamin D,75,nmol/L,plasma,75-250 nmol/L
+403,Quest,Vitamins,Vitamin B12,500,pg/mL,serum,200-900 pg/mL
+404,Quest,Vitamins,B12,369,pmol/L,plasma,148-664 pmol/L
+405,Quest,Vitamins,Folate,10,ng/mL,serum,3-20 ng/mL
+406,Quest,Vitamins,Folic Acid,22.7,nmol/L,plasma,6.8-45.3 nmol/L
+407,Quest,Minerals,Iron,80,ug/dL,serum,60-170 ug/dL
+408,Quest,Minerals,Serum Iron,14.3,umol/L,plasma,10.7-30.4 umol/L
+409,Quest,Minerals,Ferritin,100,ng/mL,serum,12-300 ng/mL
+410,Quest,Minerals,Magnesium,2.0,mg/dL,serum,1.7-2.2 mg/dL
+411,Quest,Minerals,Mag,0.83,mmol/L,plasma,0.7-0.92 mmol/L
+412,Quest,Unknown,Strange Vitamin,50,ng/mL,serum,10-100 ng/mL

@@ -5,4 +5,3 @@ source_row_id,source_lab_name,source_panel_name,source_test_name,raw_value,sourc
 4,Quest,Lipids,Total Cholesterol,180,mg/dL,serum,0-200 mg/dL
 5,Quest,Unknown,Foo Marker,12,mg/dL,serum,10-20 mg/dL
 6,Quest,Urinalysis,Glucose,20,mg/dL,urine,0-15 mg/dL
-

@@ -19,6 +19,85 @@ REQUIRED_INPUT_COLUMNS = (
 )
 
 
+def read_input(path: Path) -> list[dict[str, str]]:
+    """Auto-detect format and read input file. Supports CSV and FHIR JSON."""
+    suffix = path.suffix.lower()
+    if suffix == ".json":
+        return read_fhir_input(path)
+    return read_input_csv(path)
+
+
+def read_fhir_input(path: Path) -> list[dict[str, str]]:
+    """Read a FHIR Bundle JSON and extract Observation resources into input rows."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+
+    if data.get("resourceType") == "Observation":
+        entries = [{"resource": data}]
+    elif data.get("resourceType") == "Bundle":
+        entries = data.get("entry", [])
+    else:
+        raise ValueError(f"Unrecognized FHIR resourceType: {data.get('resourceType', 'none')}")
+
+    rows: list[dict[str, str]] = []
+    for index, entry in enumerate(entries, start=1):
+        resource = entry.get("resource", entry)
+        if resource.get("resourceType") != "Observation":
+            continue
+
+        code_obj = resource.get("code", {})
+        coding = code_obj.get("coding", [{}])
+        test_name = code_obj.get("text", "")
+        if not test_name and coding:
+            test_name = coding[0].get("display", "")
+        if not test_name:
+            continue
+
+        vq = resource.get("valueQuantity", {})
+        value = vq.get("value")
+        if value is None:
+            continue
+
+        unit = vq.get("unit", vq.get("code", ""))
+
+        ref_range = ""
+        ref_ranges = resource.get("referenceRange", [])
+        if ref_ranges:
+            rr = ref_ranges[0]
+            low = rr.get("low", {}).get("value")
+            high = rr.get("high", {}).get("value")
+            rr_unit = rr.get("low", {}).get("unit", unit)
+            if low is not None and high is not None:
+                ref_range = f"{low}-{high}"
+                if rr_unit:
+                    ref_range += f" {rr_unit}"
+
+        specimen = ""
+        spec_obj = resource.get("specimen", {})
+        if spec_obj:
+            specimen = spec_obj.get("display", "")
+
+        row_id = resource.get("id", "")
+        if not row_id:
+            identifiers = resource.get("identifier", [])
+            row_id = identifiers[0].get("value", "") if identifiers else f"fhir_{index}"
+
+        rows.append({
+            "source_row_id": str(row_id),
+            "source_lab_name": "",
+            "source_panel_name": "",
+            "source_test_name": test_name,
+            "raw_value": str(value),
+            "source_unit": unit,
+            "specimen_type": specimen,
+            "source_reference_range": ref_range,
+        })
+
+    if not rows:
+        raise ValueError("No Observation resources with numeric values found in FHIR input.")
+
+    return rows
+
+
 def read_input_csv(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)

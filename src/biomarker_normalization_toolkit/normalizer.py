@@ -4,7 +4,7 @@ from pathlib import Path
 
 from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, BIOMARKER_CATALOG, normalize_key, normalize_specimen
 from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord, RangeValue, SourceRecord
-from biomarker_normalization_toolkit.units import convert_to_normalized, format_decimal, format_range, normalize_unit, parse_decimal, parse_reference_range
+from biomarker_normalization_toolkit.units import convert_to_normalized, format_decimal, format_range, is_inequality_value, normalize_unit, parse_decimal, parse_reference_range
 
 
 def build_source_records(rows: list[dict[str, str]]) -> list[SourceRecord]:
@@ -115,10 +115,11 @@ def normalize_source_record(source: SourceRecord) -> NormalizedRecord:
     candidate = BIOMARKER_CATALOG[specimen_filtered[0]]
 
     if source.raw_value is None:
+        reason = "inequality_value" if is_inequality_value(source.raw_value_text) else "invalid_raw_value"
         return _empty_record(
             source,
             status="review_needed",
-            reason="invalid_raw_value",
+            reason=reason,
             biomarker_id=candidate.biomarker_id,
             biomarker_name=candidate.canonical_name,
             loinc=candidate.loinc,
@@ -159,9 +160,25 @@ def normalize_source_record(source: SourceRecord) -> NormalizedRecord:
     )
 
 
+def _detect_duplicate_row_ids(source_records: list[SourceRecord]) -> list[str]:
+    seen: dict[str, list[int]] = {}
+    for record in source_records:
+        if record.source_row_id:
+            seen.setdefault(record.source_row_id, []).append(record.row_number)
+    warnings: list[str] = []
+    for row_id, row_numbers in seen.items():
+        if len(row_numbers) > 1:
+            warnings.append(
+                f"Duplicate source_row_id '{row_id}' at input rows {row_numbers}"
+            )
+    return warnings
+
+
 def normalize_rows(rows: list[dict[str, str]], input_file: str = "") -> NormalizationResult:
     source_records = build_source_records(rows)
     normalized_records = [normalize_source_record(record) for record in source_records]
+
+    warnings = _detect_duplicate_row_ids(source_records)
 
     summary = {
         "total_rows": len(normalized_records),
@@ -174,5 +191,6 @@ def normalize_rows(rows: list[dict[str, str]], input_file: str = "") -> Normaliz
         input_file=Path(input_file).name if input_file else "",
         summary=summary,
         records=normalized_records,
+        warnings=warnings,
     )
 
