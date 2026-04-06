@@ -1,24 +1,24 @@
 # Current Context
 
-Latest checkpoint: `090_demo-and-packaging-proven.md`
-Progress: `90%`
+Latest checkpoint: `100_release-readiness-decision-recorded.md`
+Progress: `100%`
 
 ## Compressed State
 
-Added a demo command and human-readable summary report, then verified the installed bnt console script end to end so the package now has a stronger public demo and packaging proof path.
+Verified a real build-and-install path with the packaged demo asset and recorded the current release decision: alpha-ready for constrained use, not ready for broad external release.
 
 ## Locked Decisions
 
-- The installed bnt command is now the preferred verification path for public CLI changes
-- The toolkit should produce both machine outputs and a compact human-readable summary for demo flows
-- Packaging proof at this stage means editable local installation plus working console entry point
+- The toolkit is currently ready for constrained alpha use only
+- Broad external release is blocked on coverage and validation expansion
+- Release readiness now includes a built-distribution verification path
 
 ## Immediate Next Steps
 
-- Decide the v0 release-readiness bar
-- Expand fixture and biomarker coverage for broader confidence
-- Add wheel or sdist packaging verification if required for release readiness
+- Expand biomarker and fixture coverage
+- Add external FHIR validation to the verification workflow
+- Define the beta release bar separately from the alpha bar
 
 ## Resume From
 
-Start from project_memory/current_context.md, then move into the 100% release-readiness decision with fixture expansion and packaging-bar decisions.
+Start from docs/release_readiness.md and project_memory/current_context.md, then expand coverage against the new release bar.

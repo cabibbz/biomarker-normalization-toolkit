@@ -1,0 +1,28 @@
+{
+  "name": "distribution packaging and release readiness",
+  "summary": "Packages the demo sample asset inside the distribution and verifies that a built install can run the public console entry point.",
+  "changed_files": [
+    "pyproject.toml",
+    "src/biomarker_normalization_toolkit/cli.py",
+    "src/biomarker_normalization_toolkit/data/v0_sample.csv"
+  ],
+  "touched_surfaces": [
+    "backend",
+    "cli"
+  ],
+  "user_visible_flows": [
+    "installed bnt demo works from a built package, not only editable source checkout"
+  ],
+  "system_flows": [
+    "package data is included in the distribution",
+    "demo command resolves the packaged sample asset through importlib resources",
+    "wheel install provides a working bnt entry point"
+  ],
+  "external_integrations": [],
+  "risk_keywords": [
+    "packaging",
+    "cli behavior",
+    "distribution build"
+  ],
+  "notes": "The critical verification path is a real build and isolated install, followed by bnt status and bnt demo."
+}

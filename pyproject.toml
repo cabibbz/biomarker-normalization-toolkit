@@ -19,3 +19,5 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+biomarker_normalization_toolkit = ["data/*.csv"]

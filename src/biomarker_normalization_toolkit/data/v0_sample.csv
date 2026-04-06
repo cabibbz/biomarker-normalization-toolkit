@@ -1,0 +1,7 @@
+source_row_id,source_lab_name,source_panel_name,source_test_name,raw_value,source_unit,specimen_type,source_reference_range
+1,Quest,Basic Metabolic,Glucose,5.5,mmol/L,serum,3.9-5.5 mmol/L
+2,Quest,Basic Metabolic,GLU,110,mg/dL,,70-99 mg/dL
+3,Quest,Glycemic,Hemoglobin A1c,5.4,%,whole blood,4.0-5.6 %
+4,Quest,Lipids,Total Cholesterol,180,mg/dL,serum,0-200 mg/dL
+5,Quest,Unknown,Foo Marker,12,mg/dL,serum,10-20 mg/dL
+6,Quest,Urinalysis,Glucose,20,mg/dL,urine,0-15 mg/dL

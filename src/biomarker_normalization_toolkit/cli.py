@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from importlib import resources
 from pathlib import Path
 import sys
 
@@ -111,8 +112,7 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool) -> int:
 
 
 def command_demo(output_dir: str) -> int:
-    repo_root = Path(__file__).resolve().parents[2]
-    demo_input = repo_root / "fixtures" / "input" / "v0_sample.csv"
+    demo_input = resources.files("biomarker_normalization_toolkit").joinpath("data/v0_sample.csv")
     return command_normalize(str(demo_input), output_dir, emit_fhir=True)
 
 

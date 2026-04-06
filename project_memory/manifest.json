@@ -1,6 +1,6 @@
 {
-  "current_percent": 90,
-  "latest_checkpoint": "project_memory/checkpoints/090_demo-and-packaging-proven.md",
+  "current_percent": 100,
+  "latest_checkpoint": "project_memory/checkpoints/100_release-readiness-decision-recorded.md",
   "checkpoints": [
     {
       "percent": 10,
@@ -46,6 +46,11 @@
       "percent": 90,
       "title": "demo and packaging proven",
       "file": "project_memory/checkpoints/090_demo-and-packaging-proven.md"
+    },
+    {
+      "percent": 100,
+      "title": "release readiness decision recorded",
+      "file": "project_memory/checkpoints/100_release-readiness-decision-recorded.md"
     }
   ]
 }
