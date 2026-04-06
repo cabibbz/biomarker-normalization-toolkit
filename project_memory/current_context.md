@@ -1,24 +1,24 @@
 # Current Context
 
-Latest checkpoint: `080_fhir-export-implemented.md`
-Progress: `80%`
+Latest checkpoint: `090_demo-and-packaging-proven.md`
+Progress: `90%`
 
 ## Compressed State
 
-Added optional FHIR Observation bundle export for mapped rows, wired it into the normalize CLI behind --emit-fhir, and verified the new output path without regressing the existing normalization baseline.
+Added a demo command and human-readable summary report, then verified the installed bnt console script end to end so the package now has a stronger public demo and packaging proof path.
 
 ## Locked Decisions
 
-- FHIR export is optional and explicit, not always-on
-- Only mapped rows are emitted as Observation resources
-- Per-slice verification records are now mandatory for implementation work
+- The installed bnt command is now the preferred verification path for public CLI changes
+- The toolkit should produce both machine outputs and a compact human-readable summary for demo flows
+- Packaging proof at this stage means editable local installation plus working console entry point
 
 ## Immediate Next Steps
 
-- Stabilize packaging beyond editable local install
-- Add a stronger demo or sample-report flow on top of the CLI
-- Expand fixture coverage with more biomarkers and edge cases
+- Decide the v0 release-readiness bar
+- Expand fixture and biomarker coverage for broader confidence
+- Add wheel or sdist packaging verification if required for release readiness
 
 ## Resume From
 
-Start from project_memory/current_context.md, then choose between packaging stabilization and a stronger demo flow for the 90% milestone.
+Start from project_memory/current_context.md, then move into the 100% release-readiness decision with fixture expansion and packaging-bar decisions.

@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 import sys
 
-from biomarker_normalization_toolkit.io_utils import read_input_csv, write_fhir_bundle, write_result
+from biomarker_normalization_toolkit.io_utils import read_input_csv, write_fhir_bundle, write_result, write_summary_report
 from biomarker_normalization_toolkit.normalizer import normalize_rows
 
 
@@ -47,6 +47,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Also write mapped rows as a FHIR Observation bundle.",
     )
 
+    demo = subparsers.add_parser(
+        "demo",
+        help="Run the bundled sample fixture through the toolkit and write demo outputs.",
+    )
+    demo.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory where demo outputs should be written.",
+    )
+
     return parser
 
 
@@ -81,6 +91,7 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool) -> int:
         result = normalize_rows(rows, input_file=source_path.name)
         json_path, csv_path = write_result(result, Path(output_dir))
         fhir_path = write_fhir_bundle(result, Path(output_dir)) if emit_fhir else None
+        summary_path = write_summary_report(result, Path(output_dir))
     except Exception as exc:
         print(f"Normalization failed: {exc}", file=sys.stderr)
         return 1
@@ -93,9 +104,16 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool) -> int:
     )
     print(f"JSON output: {json_path}")
     print(f"CSV output: {csv_path}")
+    print(f"Summary output: {summary_path}")
     if fhir_path is not None:
         print(f"FHIR output: {fhir_path}")
     return 0
+
+
+def command_demo(output_dir: str) -> int:
+    repo_root = Path(__file__).resolve().parents[2]
+    demo_input = repo_root / "fixtures" / "input" / "v0_sample.csv"
+    return command_normalize(str(demo_input), output_dir, emit_fhir=True)
 
 
 def main() -> int:
@@ -108,6 +126,8 @@ def main() -> int:
         return command_where_left_off(args.path)
     if args.command == "normalize":
         return command_normalize(args.input, args.output_dir, args.emit_fhir)
+    if args.command == "demo":
+        return command_demo(args.output_dir)
 
     parser.error(f"Unknown command: {args.command}")
     return 2

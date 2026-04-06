@@ -1,6 +1,6 @@
 {
-  "current_percent": 80,
-  "latest_checkpoint": "project_memory/checkpoints/080_fhir-export-implemented.md",
+  "current_percent": 90,
+  "latest_checkpoint": "project_memory/checkpoints/090_demo-and-packaging-proven.md",
   "checkpoints": [
     {
       "percent": 10,
@@ -41,6 +41,11 @@
       "percent": 80,
       "title": "fhir export implemented",
       "file": "project_memory/checkpoints/080_fhir-export-implemented.md"
+    },
+    {
+      "percent": 90,
+      "title": "demo and packaging proven",
+      "file": "project_memory/checkpoints/090_demo-and-packaging-proven.md"
     }
   ]
 }

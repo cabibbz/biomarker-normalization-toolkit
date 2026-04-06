@@ -6,6 +6,7 @@ from pathlib import Path
 
 from biomarker_normalization_toolkit.fhir import build_bundle
 from biomarker_normalization_toolkit.models import NormalizationResult
+from biomarker_normalization_toolkit.reporting import build_summary_report
 
 
 REQUIRED_INPUT_COLUMNS = (
@@ -83,3 +84,10 @@ def write_fhir_bundle(result: NormalizationResult, output_dir: Path) -> Path:
         encoding="utf-8",
     )
     return fhir_path
+
+
+def write_summary_report(result: NormalizationResult, output_dir: Path) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    report_path = output_dir / "normalization_summary.md"
+    report_path.write_text(build_summary_report(result), encoding="utf-8")
+    return report_path

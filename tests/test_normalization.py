@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import shutil
 
 from biomarker_normalization_toolkit.fhir import build_bundle
 from biomarker_normalization_toolkit.io_utils import read_input_csv
@@ -145,6 +146,32 @@ class NormalizationTests(unittest.TestCase):
             bundle = json.loads(fhir_output.read_text(encoding="utf-8"))
             self.assertEqual(bundle["resourceType"], "Bundle")
             self.assertEqual(len(bundle["entry"]), 4)
+
+    def test_installed_bnt_demo_command_writes_demo_outputs(self) -> None:
+        bnt_path = shutil.which("bnt")
+        self.assertIsNotNone(bnt_path, "Expected installed bnt console script")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = subprocess.run(
+                [
+                    bnt_path,
+                    "demo",
+                    "--output-dir",
+                    temp_dir
+                ],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("FHIR output:", result.stdout)
+
+            summary_output = Path(temp_dir) / "normalization_summary.md"
+            self.assertTrue(summary_output.exists())
+            summary_text = summary_output.read_text(encoding="utf-8")
+            self.assertIn("# Normalization Summary", summary_text)
+            self.assertIn("Mapped: 4", summary_text)
 
 
 if __name__ == "__main__":

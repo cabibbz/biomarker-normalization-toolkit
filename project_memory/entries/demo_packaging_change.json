@@ -1,0 +1,33 @@
+{
+  "name": "demo flow and console-script packaging proof",
+  "summary": "Adds a demo command, human-readable summary report, and verifies the installed bnt console script as the public CLI surface.",
+  "changed_files": [
+    "src/biomarker_normalization_toolkit/reporting.py",
+    "src/biomarker_normalization_toolkit/io_utils.py",
+    "src/biomarker_normalization_toolkit/cli.py",
+    "tests/test_normalization.py",
+    "README.md",
+    "docs/build_workflow.md"
+  ],
+  "touched_surfaces": [
+    "backend",
+    "cli",
+    "normalization"
+  ],
+  "user_visible_flows": [
+    "operator runs bnt demo",
+    "operator receives normalized outputs, fhir bundle, and a markdown summary report"
+  ],
+  "system_flows": [
+    "demo command reuses the sample fixture and normalize pipeline",
+    "summary markdown is generated from normalization results",
+    "installed console script resolves and executes successfully"
+  ],
+  "external_integrations": [],
+  "risk_keywords": [
+    "cli behavior",
+    "output generation",
+    "packaging"
+  ],
+  "notes": "The critical verification path for this slice is the installed bnt command itself."
+}

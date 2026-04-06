@@ -58,9 +58,10 @@ Work is not considered operationally complete until the checkpoint, commit, and 
 
 ```powershell
 python -m pip install -e .
-python -m biomarker_normalization_toolkit.cli status
-python -m biomarker_normalization_toolkit.cli normalize --input .\fixtures\input\v0_sample.csv --output-dir .\out
-python -m biomarker_normalization_toolkit.cli normalize --input .\fixtures\input\v0_sample.csv --output-dir .\out --emit-fhir
+bnt status
+bnt normalize --input .\fixtures\input\v0_sample.csv --output-dir .\out
+bnt normalize --input .\fixtures\input\v0_sample.csv --output-dir .\out --emit-fhir
+bnt demo --output-dir .\demo_out
 python .\operating_system\tools\evaluate_proposal.py .\operating_system\examples\customer_run_toolkit.json
 python .\operating_system\tools\derive_verification_plan.py .\operating_system\examples\ui_and_api_change.json
 ```

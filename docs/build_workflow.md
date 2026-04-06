@@ -16,6 +16,7 @@ This is the operational workflow for all future work in this repo.
 4. Implement
 5. Create the phase-specific verification record for that exact slice
 6. Run the derived verification, including UI click-through and backend behavior if relevant
+7. When the public CLI or packaging surface changes, prefer verifying the installed entry point instead of only `python -m`
 
 ## Before Marking Done
 
