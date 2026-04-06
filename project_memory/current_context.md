@@ -1,24 +1,26 @@
 # Current Context
 
-Latest checkpoint: `130_external-fhir-validation-integrated.md`
-Progress: `130%`
+Latest checkpoint: `140_coverage-expansion-waves-2-6-and-fhir-ingest.md`
+Progress: `140%`
 
 ## Compressed State
 
-Integrated external FHIR bundle validation into the repo workflow and verified emitted bundles across the original sample, coverage wave 1, and vendor-alias wave fixtures.
+Expanded catalog from 9 to 61 biomarkers across metabolic, lipid, renal, liver, thyroid, inflammation, CBC, vitamin, mineral, coagulation, blood gas, and cardiac panels. Added native FHIR Bundle ingest, Docker packaging, and validated against 128K rows of real data at 77% mapping rate.
 
 ## Locked Decisions
 
-- FHIR output changes now require external validation, not just internal structural checks
-- Current-fixture FHIR validation is now part of the ready-now baseline
-- Broader beta readiness still requires wider fixture and coverage validation, not just one validator pass
+- Serum/plasma biomarkers also accept whole_blood specimen (generic Blood reporting)
+- LOINC long-form aliases added for Synthea/EHR compatibility
+- FHIR ingest auto-detected by .json extension
+- Sample data excluded from git via .gitignore
 
 ## Immediate Next Steps
 
-- Choose the next biomarker group for expansion
-- Carry the same external validation path into the next coverage wave
-- Consider automating the validation tool inside a CI-style workflow later
+- Add bnt catalog command for biomarker discovery
+- Add bnt analyze command for coverage gap reporting on a given input file
+- Consider HL7v2 ingest for enterprise customers
+- Expand vendor alias coverage with real customer data
 
 ## Resume From
 
-Start from project_memory/current_context.md and docs/release_readiness.md, then choose the next coverage wave with external FHIR validation included from the start.
+Start from project_memory/current_context.md. The toolkit has 61 biomarkers, FHIR ingest, Docker packaging, and 77% mapping on real data. Next focus should be customer-facing usability features.

@@ -1,6 +1,6 @@
 {
-  "current_percent": 130,
-  "latest_checkpoint": "project_memory/checkpoints/130_external-fhir-validation-integrated.md",
+  "current_percent": 140,
+  "latest_checkpoint": "project_memory/checkpoints/140_coverage-expansion-waves-2-6-and-fhir-ingest.md",
   "checkpoints": [
     {
       "percent": 10,
@@ -66,6 +66,11 @@
       "percent": 130,
       "title": "external fhir validation integrated",
       "file": "project_memory/checkpoints/130_external-fhir-validation-integrated.md"
+    },
+    {
+      "percent": 140,
+      "title": "coverage expansion waves 2-6 and FHIR ingest",
+      "file": "project_memory/checkpoints/140_coverage-expansion-waves-2-6-and-fhir-ingest.md"
     }
   ]
 }

@@ -56,7 +56,9 @@ UNIT_SYNONYMS = {
     "ml/min/1.73m2": "mL/min/1.73m2",
     "ml/min/{1.73_m2}": "mL/min/1.73m2",
     "mmhg": "mmHg",
+    "mm hg": "mmHg",
     "mm[hg]": "mmHg",
+    "#/ul": "K/uL",
 }
 
 
