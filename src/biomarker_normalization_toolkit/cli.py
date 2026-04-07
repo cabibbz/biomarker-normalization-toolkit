@@ -55,6 +55,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Also write mapped rows as a FHIR Observation bundle.",
     )
+    normalize.add_argument(
+        "--fuzzy-threshold",
+        type=float,
+        default=0.0,
+        help="Enable fuzzy alias matching (0.0=disabled, 0.85=recommended). Requires rapidfuzz.",
+    )
 
     demo = subparsers.add_parser(
         "demo",
@@ -101,6 +107,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Also write FHIR bundles for each file.",
     )
+    batch.add_argument(
+        "--fuzzy-threshold",
+        type=float,
+        default=0.0,
+        help="Enable fuzzy alias matching (0.0=disabled, 0.85=recommended).",
+    )
 
     serve = subparsers.add_parser(
         "serve",
@@ -131,6 +143,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--aliases",
         default=None,
         help="Path to custom alias JSON file to merge before analyzing.",
+    )
+    analyze.add_argument(
+        "--fuzzy-threshold",
+        type=float,
+        default=0.0,
+        help="Enable fuzzy alias matching (0.0=disabled, 0.85=recommended).",
     )
 
     return parser
@@ -170,7 +188,7 @@ def _load_aliases(aliases_path: str | None) -> bool:
     return True
 
 
-def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None) -> int:
+def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None, fuzzy_threshold: float = 0.0) -> int:
     if not _load_aliases(aliases_path):
         return 1
 
@@ -181,7 +199,7 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
 
     try:
         rows = read_input(source_path)
-        result = normalize_rows(rows, input_file=source_path.name)
+        result = normalize_rows(rows, input_file=source_path.name, fuzzy_threshold=fuzzy_threshold)
         json_path, csv_path = write_result(result, Path(output_dir))
         fhir_path = write_fhir_bundle(result, Path(output_dir)) if emit_fhir else None
         summary_path = write_summary_report(result, Path(output_dir))
@@ -231,7 +249,7 @@ def command_catalog(fmt: str) -> int:
     return 0
 
 
-def command_analyze(input_path: str, aliases_path: str | None = None) -> int:
+def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_threshold: float = 0.0) -> int:
     if not _load_aliases(aliases_path):
         return 1
 
@@ -242,7 +260,7 @@ def command_analyze(input_path: str, aliases_path: str | None = None) -> int:
 
     try:
         rows = read_input(source_path)
-        result = normalize_rows(rows, input_file=source_path.name)
+        result = normalize_rows(rows, input_file=source_path.name, fuzzy_threshold=fuzzy_threshold)
     except Exception as exc:
         print(f"Analysis failed: {exc}", file=sys.stderr)
         return 1
@@ -321,7 +339,7 @@ def command_analyze(input_path: str, aliases_path: str | None = None) -> int:
 SUPPORTED_EXTENSIONS = {".csv", ".json", ".hl7", ".oru", ".xml", ".xlsx", ".xls"}
 
 
-def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None) -> int:
+def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None, fuzzy_threshold: float = 0.0) -> int:
     if not _load_aliases(aliases_path):
         return 1
 
@@ -348,7 +366,7 @@ def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path
         file_out = out_base / source_file.stem
         try:
             rows = read_input(source_file)
-            result = normalize_rows(rows, input_file=source_file.name)
+            result = normalize_rows(rows, input_file=source_file.name, fuzzy_threshold=fuzzy_threshold)
             write_result(result, file_out)
             if emit_fhir:
                 write_fhir_bundle(result, file_out)
@@ -401,17 +419,17 @@ def main() -> int:
     if args.command == "where-left-off":
         return command_where_left_off(args.path)
     if args.command == "normalize":
-        return command_normalize(args.input, args.output_dir, args.emit_fhir, args.aliases)
+        return command_normalize(args.input, args.output_dir, args.emit_fhir, args.aliases, args.fuzzy_threshold)
     if args.command == "demo":
         return command_demo(args.output_dir)
     if args.command == "batch":
-        return command_batch(args.input_dir, args.output_dir, args.emit_fhir, args.aliases)
+        return command_batch(args.input_dir, args.output_dir, args.emit_fhir, args.aliases, args.fuzzy_threshold)
     if args.command == "serve":
         return command_serve(args.host, args.port)
     if args.command == "catalog":
         return command_catalog(args.format)
     if args.command == "analyze":
-        return command_analyze(args.input, args.aliases)
+        return command_analyze(args.input, args.aliases, args.fuzzy_threshold)
 
     parser.error(f"Unknown command: {args.command}")
     return 2

@@ -1,0 +1,133 @@
+"""Physiological plausibility checks for normalized biomarker values.
+
+These ranges are deliberately wide — they catch data entry errors (decimal point
+in the wrong place) and unit conversion bugs, NOT clinical abnormalities.
+A value outside these ranges is almost certainly a data error.
+"""
+
+from __future__ import annotations
+
+from decimal import Decimal
+
+
+# (min, max) in normalized units. Ranges are 2-5x wider than clinical reference ranges.
+PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
+    # Endocrine
+    "glucose_serum":    (Decimal("1"),    Decimal("1500")),
+    "glucose_urine":    (Decimal("0"),    Decimal("5000")),
+    "hba1c":            (Decimal("2"),    Decimal("20")),
+    "eag":              (Decimal("20"),   Decimal("600")),
+    # Lipids
+    "total_cholesterol":(Decimal("20"),   Decimal("800")),
+    "ldl_cholesterol":  (Decimal("5"),    Decimal("600")),
+    "hdl_cholesterol":  (Decimal("2"),    Decimal("200")),
+    "triglycerides":    (Decimal("10"),   Decimal("5000")),
+    # Renal
+    "creatinine":       (Decimal("0.05"), Decimal("30")),
+    "creatinine_urine": (Decimal("1"),    Decimal("500")),
+    "bun":              (Decimal("1"),    Decimal("300")),
+    "egfr":             (Decimal("1"),    Decimal("200")),
+    "uric_acid":        (Decimal("0.5"),  Decimal("25")),
+    # Liver
+    "alt":              (Decimal("1"),    Decimal("10000")),
+    "ast":              (Decimal("1"),    Decimal("10000")),
+    "alp":              (Decimal("5"),    Decimal("5000")),
+    "ggt":              (Decimal("1"),    Decimal("5000")),
+    "total_bilirubin":  (Decimal("0"),    Decimal("50")),
+    "direct_bilirubin": (Decimal("0"),    Decimal("30")),
+    "albumin":          (Decimal("0.5"),  Decimal("7")),
+    "total_protein":    (Decimal("1"),    Decimal("15")),
+    "globulin":         (Decimal("0.5"),  Decimal("10")),
+    "amylase":          (Decimal("1"),    Decimal("5000")),
+    "lipase":           (Decimal("1"),    Decimal("10000")),
+    # Thyroid
+    "tsh":              (Decimal("0.001"),Decimal("500")),
+    "free_t4":          (Decimal("0.1"),  Decimal("50")),
+    # Inflammation
+    "hscrp":            (Decimal("0"),    Decimal("500")),
+    "crp":              (Decimal("0"),    Decimal("500")),
+    "procalcitonin":    (Decimal("0"),    Decimal("1000")),
+    # Hematology
+    "wbc":              (Decimal("0.1"),  Decimal("500")),
+    "hemoglobin":       (Decimal("1"),    Decimal("25")),
+    "hematocrit":       (Decimal("5"),    Decimal("75")),
+    "platelets":        (Decimal("1"),    Decimal("3000")),
+    "rbc":              (Decimal("0.5"),  Decimal("10")),
+    "mcv":              (Decimal("30"),   Decimal("150")),
+    "mch":              (Decimal("10"),   Decimal("50")),
+    "mchc":             (Decimal("20"),   Decimal("45")),
+    "rdw":              (Decimal("5"),    Decimal("35")),
+    "rdw_sd":           (Decimal("20"),   Decimal("80")),
+    "mpv":              (Decimal("3"),    Decimal("20")),
+    "pdw":              (Decimal("5"),    Decimal("25")),
+    "reticulocytes":    (Decimal("0"),    Decimal("30")),
+    # WBC differentials (absolute)
+    "neutrophils":      (Decimal("0"),    Decimal("100")),
+    "lymphocytes":      (Decimal("0"),    Decimal("50")),
+    "monocytes":        (Decimal("0"),    Decimal("10")),
+    "eosinophils":      (Decimal("0"),    Decimal("10")),
+    "basophils":        (Decimal("0"),    Decimal("5")),
+    # WBC differentials (percentage)
+    "neutrophils_pct":  (Decimal("0"),    Decimal("100")),
+    "lymphocytes_pct":  (Decimal("0"),    Decimal("100")),
+    "monocytes_pct":    (Decimal("0"),    Decimal("100")),
+    "eosinophils_pct":  (Decimal("0"),    Decimal("100")),
+    "basophils_pct":    (Decimal("0"),    Decimal("100")),
+    # Electrolytes
+    "sodium":           (Decimal("80"),   Decimal("200")),
+    "potassium":        (Decimal("1"),    Decimal("12")),
+    "chloride":         (Decimal("60"),   Decimal("150")),
+    "bicarbonate":      (Decimal("2"),    Decimal("50")),
+    "calcium":          (Decimal("3"),    Decimal("20")),
+    "phosphate":        (Decimal("0.5"),  Decimal("20")),
+    "magnesium":        (Decimal("0.3"),  Decimal("10")),
+    "anion_gap":        (Decimal("-5"),   Decimal("40")),
+    "ionized_calcium":  (Decimal("0.3"),  Decimal("3")),
+    # Coagulation
+    "pt":               (Decimal("5"),    Decimal("200")),
+    "inr":              (Decimal("0.5"),  Decimal("15")),
+    "ptt":              (Decimal("10"),   Decimal("200")),
+    "fibrinogen":       (Decimal("50"),   Decimal("2000")),
+    "d_dimer":          (Decimal("0"),    Decimal("100000")),
+    # Cardiac
+    "troponin_t":       (Decimal("0"),    Decimal("50")),
+    "troponin_i":       (Decimal("0"),    Decimal("50")),
+    "bnp":              (Decimal("0"),    Decimal("50000")),
+    "nt_probnp":        (Decimal("0"),    Decimal("100000")),
+    "ck":               (Decimal("1"),    Decimal("50000")),
+    "ck_mb":            (Decimal("0"),    Decimal("500")),
+    "ldh":              (Decimal("10"),   Decimal("10000")),
+    # Vitamins & minerals
+    "vitamin_d":        (Decimal("1"),    Decimal("200")),
+    "vitamin_b12":      (Decimal("50"),   Decimal("5000")),
+    "folate":           (Decimal("0.5"),  Decimal("100")),
+    "iron":             (Decimal("5"),    Decimal("1000")),
+    "ferritin":         (Decimal("1"),    Decimal("10000")),
+    # Blood gases
+    "blood_ph":         (Decimal("6.5"),  Decimal("8.0")),
+    "pco2":             (Decimal("5"),    Decimal("150")),
+    "po2":              (Decimal("10"),   Decimal("700")),
+    "base_excess":      (Decimal("-30"),  Decimal("30")),
+    "oxygen_saturation":(Decimal("20"),   Decimal("100")),
+    "lactate":          (Decimal("0"),    Decimal("30")),
+    # Urinalysis
+    "urine_specific_gravity": (Decimal("1.000"), Decimal("1.050")),
+    "urine_ph":         (Decimal("3"),    Decimal("10")),
+    "urine_protein":    (Decimal("0"),    Decimal("1000")),
+    "urine_ketones":    (Decimal("0"),    Decimal("500")),
+    "urine_bilirubin":  (Decimal("0"),    Decimal("20")),
+}
+
+
+def check_plausibility(biomarker_id: str, normalized_value: Decimal, normalized_unit: str) -> str | None:
+    """Return a warning string if the value is outside plausible physiological range, else None."""
+    bounds = PLAUSIBILITY_RANGES.get(biomarker_id)
+    if bounds is None:
+        return None
+    low, high = bounds
+    if normalized_value < low or normalized_value > high:
+        return (
+            f"Implausible {biomarker_id} value {normalized_value} {normalized_unit} "
+            f"(expected {low}-{high})"
+        )
+    return None

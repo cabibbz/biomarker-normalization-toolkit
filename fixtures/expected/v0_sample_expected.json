@@ -5,7 +5,13 @@
     "total_rows": 6,
     "mapped": 4,
     "review_needed": 1,
-    "unmapped": 1
+    "unmapped": 1,
+    "confidence_breakdown": {
+      "high": 4,
+      "medium": 0,
+      "low": 0,
+      "none": 2
+    }
   },
   "records": [
     {

@@ -156,13 +156,14 @@ def _read_upload(file: UploadFile) -> tuple[list[dict[str, str]], str | None]:
 def normalize(
     body: dict[str, Any],
     emit_fhir: bool = Query(False, description="Include FHIR Bundle in response"),
+    fuzzy_threshold: float = Query(0.0, description="Fuzzy matching threshold (0=disabled, 0.85=recommended)"),
 ) -> JSONResponse:
     rows, error = _validate_rows(body)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
-    input_file = str(body.get("input_file", ""))
-    result = normalize_rows(rows, input_file=input_file)
+    input_file = Path(str(body.get("input_file", ""))).name
+    result = normalize_rows(rows, input_file=input_file, fuzzy_threshold=fuzzy_threshold)
     response = result.to_json_dict()
 
     if emit_fhir:
@@ -177,13 +178,14 @@ def normalize(
 def normalize_upload(
     file: UploadFile = File(...),
     emit_fhir: bool = Query(False, description="Include FHIR Bundle in response"),
+    fuzzy_threshold: float = Query(0.0, description="Fuzzy matching threshold (0=disabled, 0.85=recommended)"),
 ) -> JSONResponse:
     rows, error = _read_upload(file)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
     safe_name = Path(file.filename or "").name
-    result = normalize_rows(rows, input_file=safe_name)
+    result = normalize_rows(rows, input_file=safe_name, fuzzy_threshold=fuzzy_threshold)
     response = result.to_json_dict()
     if emit_fhir:
         response["fhir_bundle"] = build_bundle(result)

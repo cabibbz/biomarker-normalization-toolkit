@@ -4,6 +4,7 @@ from pathlib import Path
 
 from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, BIOMARKER_CATALOG, normalize_key, normalize_specimen
 from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord, RangeValue, SourceRecord
+from biomarker_normalization_toolkit.plausibility import check_plausibility
 from biomarker_normalization_toolkit.units import convert_to_normalized, format_decimal, format_range, is_inequality_value, normalize_unit, parse_decimal, parse_reference_range
 
 _SAFE_RAW_SOURCE_KEYS = frozenset({
@@ -102,15 +103,26 @@ def _convert_range(range_value: RangeValue | None, biomarker_id: str) -> RangeVa
     return RangeValue(low=low, high=high, unit=target_unit)
 
 
-def normalize_source_record(source: SourceRecord) -> NormalizedRecord:
+def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.0) -> NormalizedRecord:
     candidate_ids = ALIAS_INDEX.get(source.alias_key, [])
+    fuzzy_result: tuple[str, float] | None = None
+
+    if not candidate_ids and fuzzy_threshold > 0:
+        from biomarker_normalization_toolkit.fuzzy import fuzzy_match
+        matches = fuzzy_match(source.alias_key, threshold=max(fuzzy_threshold, 0.70))
+        if matches:
+            best_alias, best_bio_id, best_score = matches[0]
+            candidate_ids = ALIAS_INDEX.get(best_alias, [best_bio_id])
+            fuzzy_result = (best_alias, best_score)
+
     if not candidate_ids:
         return _empty_record(source, status="unmapped", reason="unknown_alias")
 
     specimen_filtered = _filter_candidates_by_specimen(candidate_ids, source.specimen_type)
 
     if len(candidate_ids) > 1 and not source.specimen_type:
-        return _empty_record(source, status="review_needed", reason="ambiguous_alias_requires_specimen")
+        reason = "fuzzy_match_ambiguous_requires_specimen" if fuzzy_result else "ambiguous_alias_requires_specimen"
+        return _empty_record(source, status="review_needed", reason=reason)
 
     if len(specimen_filtered) > 1:
         return _empty_record(source, status="review_needed", reason="ambiguous_alias_after_specimen_filter")
@@ -145,15 +157,30 @@ def normalize_source_record(source: SourceRecord) -> NormalizedRecord:
     source_range = parse_reference_range(source.source_reference_range, source.source_unit)
     normalized_range = _convert_range(source_range, candidate.biomarker_id)
 
-    mapped_by_specimen = len(candidate_ids) > 1
-    reason = "mapped_by_alias_and_specimen" if mapped_by_specimen else "mapped_by_unique_alias"
-    mapping_rule = f"alias:{source.alias_key}|biomarker:{candidate.biomarker_id}"
-    if mapped_by_specimen:
-        mapping_rule += f"|specimen:{source.specimen_type}"
+    # Determine confidence and reason
+    if fuzzy_result:
+        best_alias, best_score = fuzzy_result
+        if best_score >= 0.85:
+            confidence = "medium"
+            status = "mapped"
+            reason = "fuzzy_match"
+        else:
+            confidence = "low"
+            status = "review_needed"
+            reason = "fuzzy_match_low_confidence"
+        mapping_rule = f"fuzzy:{best_score:.2f}|source:{source.alias_key}|match:{best_alias}|biomarker:{candidate.biomarker_id}"
+    else:
+        confidence = "high"
+        status = "mapped"
+        mapped_by_specimen = len(candidate_ids) > 1
+        reason = "mapped_by_alias_and_specimen" if mapped_by_specimen else "mapped_by_unique_alias"
+        mapping_rule = f"alias:{source.alias_key}|biomarker:{candidate.biomarker_id}"
+        if mapped_by_specimen:
+            mapping_rule += f"|specimen:{source.specimen_type}"
 
     return _empty_record(
         source,
-        status="mapped",
+        status=status,
         reason=reason,
         biomarker_id=candidate.biomarker_id,
         biomarker_name=candidate.canonical_name,
@@ -162,7 +189,7 @@ def normalize_source_record(source: SourceRecord) -> NormalizedRecord:
         normalized_value=format_decimal(normalized_value),
         normalized_unit=candidate.normalized_unit,
         normalized_reference_range=format_range(normalized_range),
-        confidence="high",
+        confidence=confidence,
     )
 
 
@@ -180,17 +207,35 @@ def _detect_duplicate_row_ids(source_records: list[SourceRecord]) -> list[str]:
     return warnings
 
 
-def normalize_rows(rows: list[dict[str, str]], input_file: str = "") -> NormalizationResult:
+def normalize_rows(rows: list[dict[str, str]], input_file: str = "", fuzzy_threshold: float = 0.0) -> NormalizationResult:
     source_records = build_source_records(rows)
-    normalized_records = [normalize_source_record(record) for record in source_records]
+    normalized_records = [normalize_source_record(record, fuzzy_threshold=fuzzy_threshold) for record in source_records]
 
     warnings = _detect_duplicate_row_ids(source_records)
+
+    # Plausibility checks on mapped records
+    for record in normalized_records:
+        if record.mapping_status == "mapped" and record.normalized_value:
+            from decimal import Decimal
+            try:
+                val = Decimal(record.normalized_value)
+            except Exception:
+                continue
+            warning = check_plausibility(record.canonical_biomarker_id, val, record.normalized_unit)
+            if warning:
+                warnings.append(f"Row {record.source_row_number}: {warning}")
 
     summary = {
         "total_rows": len(normalized_records),
         "mapped": sum(1 for record in normalized_records if record.mapping_status == "mapped"),
         "review_needed": sum(1 for record in normalized_records if record.mapping_status == "review_needed"),
         "unmapped": sum(1 for record in normalized_records if record.mapping_status == "unmapped"),
+        "confidence_breakdown": {
+            "high": sum(1 for r in normalized_records if r.match_confidence == "high"),
+            "medium": sum(1 for r in normalized_records if r.match_confidence == "medium"),
+            "low": sum(1 for r in normalized_records if r.match_confidence == "low"),
+            "none": sum(1 for r in normalized_records if r.match_confidence == "none"),
+        },
     }
 
     return NormalizationResult(

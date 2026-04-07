@@ -414,6 +414,21 @@ def main():
 
     execution = config.get("execution", {})
     hook_results = []
+
+    # Semantic validation gate — runs before implementation hooks
+    semantic_cmd = execution.get("semantic_validation_command")
+    if semantic_cmd:
+        ensure(isinstance(semantic_cmd, list), "semantic_validation_command must be a command list")
+        hook_result = run_hook("semantic_validation", semantic_cmd, values_base, workspace, hooks_dir)
+        hook_results.append(hook_result)
+        if hook_result["exit_code"] != 0:
+            adopted["status"] = "semantic_validation_failed"
+            adopted["failed_hook"] = "semantic_validation"
+            adopted["hooks"] = hook_results
+            write_json(run_dir / "result.json", adopted)
+            print("Consensus reached, but semantic validation failed")
+            sys.exit(1)
+
     for hook_name in ("implementation_command", "verification_command", "deploy_command"):
         command_template = execution.get(hook_name)
         if not command_template:

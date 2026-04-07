@@ -305,5 +305,78 @@ class DualAgentConsensusTests(unittest.TestCase):
             self.assertIn("normalized `accept` to `propose`", transcript)
 
 
+    def test_semantic_validation_blocks_hooks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp = Path(temp_dir)
+            agent_script = temp / "fake_agent.py"
+            failing_validator = temp / "fail_validate.py"
+            hook_script = temp / "write_hook.py"
+            task_file = temp / "task.md"
+            config_file = temp / "config.json"
+            run_dir = temp / "run"
+
+            agent_script.write_text(
+                textwrap.dedent(
+                    """
+                    import json
+                    import sys
+                    from pathlib import Path
+
+                    prompt_file = Path(sys.argv[1])
+                    response_file = Path(sys.argv[2])
+                    proposal_file = Path(sys.argv[3])
+                    agent_name = sys.argv[4]
+
+                    if agent_name == "codex":
+                        proposal_file.write_text("# Smoke\\n", encoding="utf-8")
+                        resp = {"action": "propose", "summary": "initial", "concerns": [], "proposal_markdown": "# Smoke"}
+                    else:
+                        resp = {"action": "accept", "summary": "ok", "concerns": [], "proposal_markdown": ""}
+                    response_file.write_text(json.dumps(resp), encoding="utf-8")
+                    """
+                ).strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            failing_validator.write_text("import sys; sys.exit(1)\n", encoding="utf-8")
+            hook_script.write_text(
+                "import sys; from pathlib import Path; Path(sys.argv[1]).write_text('ran\\n')\n",
+                encoding="utf-8",
+            )
+
+            task_file.write_text("Test semantic validation.\n", encoding="utf-8")
+
+            config = {
+                "workspace": str(temp),
+                "run_dir": str(run_dir),
+                "task_file": str(task_file),
+                "context_files": [],
+                "max_rounds": 4,
+                "agents": [
+                    {"name": "codex", "command": [sys.executable, str(agent_script), "{prompt_file}", "{response_file}", "{proposal_file}", "codex"]},
+                    {"name": "claude", "command": [sys.executable, str(agent_script), "{prompt_file}", "{response_file}", "{proposal_file}", "claude"]},
+                ],
+                "execution": {
+                    "semantic_validation_command": [sys.executable, str(failing_validator)],
+                    "implementation_command": [sys.executable, str(hook_script), str(temp / "implemented.txt")],
+                },
+            }
+            config_file.write_text(json.dumps(config, indent=2), encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), str(config_file)],
+                capture_output=True, text=True, check=False,
+            )
+
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("semantic validation failed", result.stdout)
+            # Implementation hook must NOT have run
+            self.assertFalse((temp / "implemented.txt").exists())
+
+            payload = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
+            self.assertEqual(payload["status"], "semantic_validation_failed")
+
+
 if __name__ == "__main__":
     unittest.main()

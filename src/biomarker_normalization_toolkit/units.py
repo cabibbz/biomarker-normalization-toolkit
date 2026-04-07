@@ -275,6 +275,12 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "urine_protein": {"mg/dL": Decimal("1")},
     "urine_ketones": {"mg/dL": Decimal("1")},
     "urine_bilirubin": {"mg/dL": Decimal("1")},
+    # --- WBC differential percentages ---
+    "neutrophils_pct": {"%": Decimal("1")},
+    "lymphocytes_pct": {"%": Decimal("1")},
+    "monocytes_pct": {"%": Decimal("1")},
+    "eosinophils_pct": {"%": Decimal("1")},
+    "basophils_pct": {"%": Decimal("1")},
     # --- Wave 7: New biomarkers ---
     "ggt": {"U/L": Decimal("1")},
     "amylase": {"U/L": Decimal("1")},

@@ -786,12 +786,13 @@ class NormalizationTests(unittest.TestCase):
 
     # --- Scrutiny fix: WBC differential aliases correctness (Fix 5) ---
 
-    def test_wbc_differential_percentage_alias_removed(self) -> None:
+    def test_wbc_differential_percentage_alias_maps_to_pct_biomarker(self) -> None:
         from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, normalize_key
-        # The old "/100 leukocytes" alias should no longer exist
-        bad_key = normalize_key("Neutrophils/100 leukocytes in Blood by Automated count")
-        if bad_key in ALIAS_INDEX:
-            self.fail(f"Percentage LOINC alias should have been removed: {bad_key}")
+        # "/100 leukocytes" aliases should map to *_pct biomarkers, not absolute counts
+        pct_key = normalize_key("Neutrophils/100 leukocytes in Blood by Automated count")
+        self.assertIn(pct_key, ALIAS_INDEX)
+        self.assertIn("neutrophils_pct", ALIAS_INDEX[pct_key])
+        self.assertNotIn("neutrophils", ALIAS_INDEX[pct_key])
 
     def test_wbc_differential_absolute_alias_works(self) -> None:
         from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, normalize_key
@@ -1090,13 +1091,119 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(result.records[2].canonical_biomarker_id, "total_bilirubin")
 
     def test_catalog_count_at_least_83(self) -> None:
-        """Verify catalog has grown to expected size after wave 7."""
-        self.assertGreaterEqual(len(BIOMARKER_CATALOG), 83)
+        """Verify catalog has grown to expected size after wave 7 + WBC pct."""
+        self.assertGreaterEqual(len(BIOMARKER_CATALOG), 89)
 
     def test_thous_mcl_unit_normalizes(self) -> None:
         from biomarker_normalization_toolkit.units import normalize_unit
         self.assertEqual(normalize_unit("THOUS/MCL"), "K/uL")
         self.assertEqual(normalize_unit("thous/ul"), "K/uL")
+
+    # --- Feature 2: WBC percentage differentials ---
+
+    def test_wbc_pct_differentials_map(self) -> None:
+        rows = [
+            {"source_row_id": "pct1", "source_test_name": "Neutrophils/100 leukocytes", "raw_value": "65",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": "40-70 %"},
+            {"source_row_id": "pct2", "source_test_name": "Lymphocytes Percent", "raw_value": "25",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": "20-40 %"},
+            {"source_row_id": "pct3", "source_test_name": "Monocytes/100 leukocytes", "raw_value": "6",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": "2-8 %"},
+            {"source_row_id": "pct4", "source_test_name": "Eosinophils Percent", "raw_value": "3",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": "1-4 %"},
+            {"source_row_id": "pct5", "source_test_name": "Basophils/100 leukocytes", "raw_value": "1",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": "0-1 %"},
+        ]
+        result = normalize_rows(rows)
+        expected = {
+            "pct1": "neutrophils_pct", "pct2": "lymphocytes_pct", "pct3": "monocytes_pct",
+            "pct4": "eosinophils_pct", "pct5": "basophils_pct",
+        }
+        self.assertEqual(result.summary["mapped"], 5)
+        for record in result.records:
+            self.assertEqual(record.mapping_status, "mapped", f"{record.source_row_id}")
+            self.assertEqual(record.canonical_biomarker_id, expected[record.source_row_id])
+            self.assertEqual(record.normalized_unit, "%")
+
+    def test_bare_neutrophils_with_pct_unit_does_not_silently_map(self) -> None:
+        """Bare 'Neutrophils' with unit '%' should NOT map to neutrophils_pct."""
+        rows = [{"source_row_id": "np1", "source_test_name": "Neutrophils", "raw_value": "65",
+                 "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        # Should hit absolute neutrophils (no % conversion) → review_needed
+        self.assertEqual(result.records[0].mapping_status, "review_needed")
+        self.assertEqual(result.records[0].status_reason, "unsupported_unit_for_biomarker")
+
+    def test_catalog_count_at_least_89(self) -> None:
+        """Verify catalog has grown to expected size with WBC pct differentials."""
+        self.assertGreaterEqual(len(BIOMARKER_CATALOG), 89)
+
+    # --- Feature 1: Fuzzy matching ---
+
+    def test_fuzzy_disabled_by_default(self) -> None:
+        rows = [{"source_row_id": "f1", "source_test_name": "Glucos", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)  # default fuzzy_threshold=0.0
+        self.assertEqual(result.records[0].mapping_status, "unmapped")
+
+    def test_fuzzy_maps_typo_with_medium_confidence(self) -> None:
+        rows = [{"source_row_id": "f2", "source_test_name": "Glucos", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows, fuzzy_threshold=0.7)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "glucose_serum")
+        self.assertIn(result.records[0].match_confidence, ("medium", "high"))
+        self.assertIn("fuzzy:", result.records[0].mapping_rule)
+
+    def test_fuzzy_high_threshold_rejects_moderate_match(self) -> None:
+        rows = [{"source_row_id": "f3", "source_test_name": "Glc", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows, fuzzy_threshold=0.95)
+        # "Glc" vs "glucose" is well below 95%
+        self.assertIn(result.records[0].mapping_status, ("unmapped", "review_needed"))
+
+    def test_fuzzy_does_not_break_exact_matches(self) -> None:
+        rows = [{"source_row_id": "f4", "source_test_name": "Glucose", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows, fuzzy_threshold=0.85)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].match_confidence, "high")  # exact match
+        self.assertNotIn("fuzzy:", result.records[0].mapping_rule)
+
+    def test_confidence_breakdown_in_summary(self) -> None:
+        rows = [
+            {"source_row_id": "cb1", "source_test_name": "Glucose", "raw_value": "100",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "cb2", "source_test_name": "Unknown Test", "raw_value": "42",
+             "source_unit": "U/L", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertIn("confidence_breakdown", result.summary)
+        breakdown = result.summary["confidence_breakdown"]
+        self.assertEqual(breakdown["high"], 1)
+        self.assertEqual(breakdown["none"], 1)
+
+    # --- Feature 3: Physiological plausibility checks ---
+
+    def test_implausible_glucose_generates_warning(self) -> None:
+        rows = [{"source_row_id": "p1", "source_test_name": "Glucose", "raw_value": "50000",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")  # Still mapped
+        self.assertTrue(any("Implausible" in w and "glucose_serum" in w for w in result.warnings))
+
+    def test_normal_glucose_no_plausibility_warning(self) -> None:
+        rows = [{"source_row_id": "p2", "source_test_name": "Glucose", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertFalse(any("Implausible" in w for w in result.warnings))
+
+    def test_implausible_sodium_generates_warning(self) -> None:
+        rows = [{"source_row_id": "p3", "source_test_name": "Sodium", "raw_value": "5",
+                 "source_unit": "mEq/L", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertTrue(any("sodium" in w for w in result.warnings))
 
 
 if __name__ == "__main__":
