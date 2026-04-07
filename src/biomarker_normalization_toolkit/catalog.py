@@ -293,7 +293,9 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Hematocrit", "Hct", "HCT", "PCV", "Packed Cell Volume",
                  "Hematocrit, Calculated",
-                 "Hematocrit [Volume Fraction] of Blood by Automated count"),
+                 "Hematocrit [Volume Fraction] of Blood",
+                 "Hematocrit [Volume Fraction] of Blood by Automated count",
+                 "Hematocrit [Volume Fraction] of Blood by calculation"),
     ),
     "platelets": BiomarkerDefinition(
         biomarker_id="platelets",
@@ -338,7 +340,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2498-4",
         normalized_unit="ug/dL",
         allowed_specimens=_BLOOD,
-        aliases=("Iron", "Serum Iron", "Fe"),
+        aliases=("Iron", "Serum Iron", "Fe",
+                 "Iron [Mass/volume] in Serum or Plasma"),
     ),
     "ferritin": BiomarkerDefinition(
         biomarker_id="ferritin",
@@ -346,7 +349,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2276-4",
         normalized_unit="ng/mL",
         allowed_specimens=_BLOOD,
-        aliases=("Ferritin", "Serum Ferritin"),
+        aliases=("Ferritin", "Serum Ferritin",
+                 "Ferritin [Mass/volume] in Serum or Plasma"),
     ),
     "magnesium": BiomarkerDefinition(
         biomarker_id="magnesium",
@@ -354,7 +358,9 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="19123-9",
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
-        aliases=("Magnesium", "Mag", "Mg", "Serum Magnesium"),
+        aliases=("Magnesium", "Mag", "Mg", "Serum Magnesium",
+                 "Magnesium [Mass/volume] in Serum or Plasma",
+                 "Magnesium [Mass/volume] in Blood"),
     ),
     # --- Wave 4: CBC sub-components ---
     "rbc": BiomarkerDefinition(
@@ -408,7 +414,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="%",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("RDW", "Red Cell Distribution Width", "RDW-CV",
-                 "Erythrocyte distribution width [Ratio] by Automated count"),
+                 "Erythrocyte distribution width [Ratio] by Automated count",
+                 "Erythrocyte [DistWidth] in Blood by Automated count"),
     ),
     "rdw_sd": BiomarkerDefinition(
         biomarker_id="rdw_sd",
@@ -417,7 +424,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="fL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("RDW-SD",
-                 "Erythrocyte [DistWidth] in Blood by Automated count"),
+                 "Erythrocyte distribution width [Entitic volume] in Blood by Automated count"),
     ),
     "mpv": BiomarkerDefinition(
         biomarker_id="mpv",
@@ -444,7 +451,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="5902-2",
         normalized_unit="sec",
         allowed_specimens=_BLOOD,
-        aliases=("PT", "Prothrombin Time", "Pro Time"),
+        aliases=("PT", "Prothrombin Time", "Pro Time", "Prothrombin time (PT)"),
     ),
     "inr": BiomarkerDefinition(
         biomarker_id="inr",
@@ -462,7 +469,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="sec",
         allowed_specimens=_BLOOD,
         aliases=("PTT", "aPTT", "Partial Thromboplastin Time",
-                 "Activated Partial Thromboplastin Time"),
+                 "Activated Partial Thromboplastin Time",
+                 "aPTT in Blood by Coagulation assay"),
     ),
     # --- Wave 4: Other high-frequency ---
     "anion_gap": BiomarkerDefinition(
@@ -541,7 +549,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2777-1",
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
-        aliases=("Phosphate", "Phosphorus", "Phos", "Inorganic Phosphate"),
+        aliases=("Phosphate", "Phosphorus", "Phos", "Inorganic Phosphate",
+                 "Phosphate [Mass/volume] in Serum or Plasma"),
     ),
     "uric_acid": BiomarkerDefinition(
         biomarker_id="uric_acid",
@@ -663,7 +672,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2744-1",
         normalized_unit="pH",
         allowed_specimens=_BLOOD,
-        aliases=("pH", "Blood pH", "Arterial pH"),
+        aliases=("pH", "Blood pH", "Arterial pH", "pH of Arterial blood",
+                 "pH of Blood", "pH of Venous blood"),
     ),
     "oxygen_saturation": BiomarkerDefinition(
         biomarker_id="oxygen_saturation",
@@ -887,7 +897,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="ng/mL",
         allowed_specimens=_BLOOD,
         aliases=("Troponin I", "Troponin-I", "cTnI", "Cardiac Troponin I",
-                 "Troponin I.cardiac [Mass/volume] in Serum or Plasma"),
+                 "Troponin I.cardiac [Mass/volume] in Serum or Plasma",
+                 "Troponin I.cardiac [Mass/volume] in Serum or Plasma by High sensitivity method"),
     ),
     "bnp": BiomarkerDefinition(
         biomarker_id="bnp",
@@ -905,7 +916,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="33762-6",
         normalized_unit="pg/mL",
         allowed_specimens=_BLOOD,
-        aliases=("NT-proBNP", "NT proBNP", "Pro-BNP", "N-Terminal Pro-BNP",
+        aliases=("NT-proBNP", "NT proBNP", "NTproBNP", "Pro-BNP", "N-Terminal Pro-BNP",
                  "Natriuretic peptide.B prohormone N-Terminal [Mass/volume] in Serum or Plasma"),
     ),
     "d_dimer": BiomarkerDefinition(

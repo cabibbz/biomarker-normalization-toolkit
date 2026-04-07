@@ -1125,14 +1125,13 @@ class NormalizationTests(unittest.TestCase):
             self.assertEqual(record.canonical_biomarker_id, expected[record.source_row_id])
             self.assertEqual(record.normalized_unit, "%")
 
-    def test_bare_neutrophils_with_pct_unit_does_not_silently_map(self) -> None:
-        """Bare 'Neutrophils' with unit '%' should NOT map to neutrophils_pct."""
+    def test_bare_neutrophils_with_pct_unit_redirects_to_pct(self) -> None:
+        """Bare 'Neutrophils' with unit '%' should redirect to neutrophils_pct."""
         rows = [{"source_row_id": "np1", "source_test_name": "Neutrophils", "raw_value": "65",
                  "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""}]
         result = normalize_rows(rows)
-        # Should hit absolute neutrophils (no % conversion) → review_needed
-        self.assertEqual(result.records[0].mapping_status, "review_needed")
-        self.assertEqual(result.records[0].status_reason, "unsupported_unit_for_biomarker")
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "neutrophils_pct")
 
     def test_catalog_count_at_least_89(self) -> None:
         """Verify catalog has grown to expected size with WBC pct differentials."""

@@ -100,6 +100,9 @@ UNIT_SYNONYMS = {
     "kpa": "kPa",
     "pg/dl": "pg/dL",
     "mmol/mol": "mmol/mol",
+    "ng/ml feu": "ng/mL",
+    "ug/ml feu": "ug/mL",
+    "mg/l feu": "mg/L",
 }
 
 
@@ -210,7 +213,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "rbc": {"M/uL": Decimal("1"), "10^12/L": Decimal("1"), "#/uL": Decimal("0.000001")},
     "mcv": {"fL": Decimal("1")},
     "mch": {"pg": Decimal("1")},
-    "mchc": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
+    "mchc": {"g/dL": Decimal("1"), "g/L": Decimal("0.1"), "%": Decimal("1")},
     "rdw": {"%": Decimal("1")},
     # --- Wave 4: Coagulation ---
     "pt": {"sec": Decimal("1")},
