@@ -298,6 +298,30 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     },
     "reticulocytes": {"%": Decimal("1")},
     "procalcitonin": {"ng/mL": Decimal("1"), "ug/L": Decimal("1")},
+    # --- Wave 8: Longevity panel ---
+    "apob": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
+    "bun_creatinine_ratio": {"ratio": Decimal("1"), "": Decimal("1")},
+    "albumin_globulin_ratio": {"ratio": Decimal("1"), "": Decimal("1")},
+    "dhea_s": {"ug/dL": Decimal("1"), "umol/L": Decimal("1") / Decimal("0.02714")},
+    "estradiol": {"pg/mL": Decimal("1"), "pmol/L": Decimal("1") / Decimal("3.671")},
+    "lh": {"mIU/mL": Decimal("1"), "mIU/L": Decimal("1"), "IU/L": Decimal("1")},
+    "fsh": {"mIU/mL": Decimal("1"), "mIU/L": Decimal("1"), "IU/L": Decimal("1")},
+    "homocysteine": {"umol/L": Decimal("1")},
+    "insulin": {"uIU/mL": Decimal("1"), "mIU/L": Decimal("1"), "mIU/mL": Decimal("1"), "pmol/L": Decimal("1") / Decimal("6.945")},
+    "tibc": {"ug/dL": Decimal("1"), "umol/L": Decimal("5.585")},
+    "transferrin_saturation": {"%": Decimal("1")},
+    "lpa": {"nmol/L": Decimal("1"), "mg/dL": Decimal("1") / Decimal("0.4167")},
+    "chol_hdl_ratio": {"ratio": Decimal("1"), "": Decimal("1")},
+    "non_hdl_cholesterol": {"mg/dL": Decimal("1"), "mmol/L": Decimal("38.67")},
+    "psa": {"ng/mL": Decimal("1")},
+    "testosterone_total": {"ng/dL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("0.03467")},
+    "shbg": {"nmol/L": Decimal("1")},
+    "free_testosterone": {"pg/mL": Decimal("1")},
+    "bioavailable_testosterone": {"ng/dL": Decimal("1")},
+    # Urinalysis (qualitative — semi-quantitative or presence-based)
+    "urine_blood": {"": Decimal("1")},
+    "urine_nitrite": {"": Decimal("1")},
+    "urine_leukocyte_esterase": {"": Decimal("1")},
 }
 
 

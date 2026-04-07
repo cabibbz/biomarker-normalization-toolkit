@@ -1205,6 +1205,82 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(result.records[0].mapping_status, "mapped")
         self.assertTrue(any("sodium" in w for w in result.warnings))
 
+    # --- Wave 8: Longevity panel biomarkers ---
+
+    def test_longevity_panel_biomarkers_map(self) -> None:
+        rows = [
+            {"source_row_id": "lp1", "source_test_name": "ApoB", "raw_value": "90",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp2", "source_test_name": "DHEA-S", "raw_value": "200",
+             "source_unit": "ug/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp3", "source_test_name": "Estradiol", "raw_value": "30",
+             "source_unit": "pg/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp4", "source_test_name": "LH", "raw_value": "5.0",
+             "source_unit": "mIU/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp5", "source_test_name": "FSH", "raw_value": "8.0",
+             "source_unit": "mIU/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp6", "source_test_name": "Homocysteine", "raw_value": "10",
+             "source_unit": "umol/L", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp7", "source_test_name": "Fasting Insulin", "raw_value": "8",
+             "source_unit": "uIU/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp8", "source_test_name": "TIBC", "raw_value": "300",
+             "source_unit": "ug/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp9", "source_test_name": "Transferrin Saturation", "raw_value": "30",
+             "source_unit": "%", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp10", "source_test_name": "Lp(a)", "raw_value": "50",
+             "source_unit": "nmol/L", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp11", "source_test_name": "PSA Total", "raw_value": "1.5",
+             "source_unit": "ng/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp12", "source_test_name": "Testosterone Total", "raw_value": "500",
+             "source_unit": "ng/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp13", "source_test_name": "SHBG", "raw_value": "40",
+             "source_unit": "nmol/L", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp14", "source_test_name": "Free Testosterone", "raw_value": "10",
+             "source_unit": "pg/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lp15", "source_test_name": "Non-HDL Cholesterol", "raw_value": "130",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        expected = {
+            "lp1": "apob", "lp2": "dhea_s", "lp3": "estradiol",
+            "lp4": "lh", "lp5": "fsh", "lp6": "homocysteine",
+            "lp7": "insulin", "lp8": "tibc", "lp9": "transferrin_saturation",
+            "lp10": "lpa", "lp11": "psa", "lp12": "testosterone_total",
+            "lp13": "shbg", "lp14": "free_testosterone", "lp15": "non_hdl_cholesterol",
+        }
+        self.assertEqual(result.summary["mapped"], 15, msg=str([(r.source_row_id, r.mapping_status, r.status_reason) for r in result.records if r.mapping_status != "mapped"]))
+        for record in result.records:
+            self.assertEqual(record.canonical_biomarker_id, expected[record.source_row_id],
+                             f"{record.source_row_id} mapped wrong")
+
+    def test_ratios_and_urinalysis_extras_map(self) -> None:
+        rows = [
+            {"source_row_id": "r1", "source_test_name": "BUN/Creatinine Ratio", "raw_value": "15",
+             "source_unit": "", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "r2", "source_test_name": "A/G Ratio", "raw_value": "1.5",
+             "source_unit": "", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "r3", "source_test_name": "TC/HDL Ratio", "raw_value": "3.5",
+             "source_unit": "", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "r4", "source_test_name": "Urine Blood", "raw_value": "0",
+             "source_unit": "", "specimen_type": "urine", "source_reference_range": ""},
+            {"source_row_id": "r5", "source_test_name": "Urine Nitrite", "raw_value": "0",
+             "source_unit": "", "specimen_type": "urine", "source_reference_range": ""},
+            {"source_row_id": "r6", "source_test_name": "Leukocyte Esterase", "raw_value": "0",
+             "source_unit": "", "specimen_type": "urine", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        expected = {
+            "r1": "bun_creatinine_ratio", "r2": "albumin_globulin_ratio",
+            "r3": "chol_hdl_ratio", "r4": "urine_blood",
+            "r5": "urine_nitrite", "r6": "urine_leukocyte_esterase",
+        }
+        self.assertEqual(result.summary["mapped"], 6, msg=str([(r.source_row_id, r.mapping_status, r.status_reason) for r in result.records if r.mapping_status != "mapped"]))
+        for record in result.records:
+            self.assertEqual(record.canonical_biomarker_id, expected[record.source_row_id])
+
+    def test_catalog_count_at_least_111(self) -> None:
+        self.assertGreaterEqual(len(BIOMARKER_CATALOG), 111)
+
 
 if __name__ == "__main__":
     unittest.main()

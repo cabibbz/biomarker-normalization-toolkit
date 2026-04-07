@@ -116,6 +116,26 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "urine_protein":    (Decimal("0"),    Decimal("1000")),
     "urine_ketones":    (Decimal("0"),    Decimal("500")),
     "urine_bilirubin":  (Decimal("0"),    Decimal("20")),
+    # Longevity panel
+    "apob":             (Decimal("10"),   Decimal("300")),
+    "bun_creatinine_ratio": (Decimal("1"), Decimal("100")),
+    "albumin_globulin_ratio": (Decimal("0.1"), Decimal("5")),
+    "dhea_s":           (Decimal("5"),    Decimal("1500")),
+    "estradiol":        (Decimal("0"),    Decimal("10000")),
+    "lh":               (Decimal("0"),    Decimal("200")),
+    "fsh":              (Decimal("0"),    Decimal("200")),
+    "homocysteine":     (Decimal("1"),    Decimal("100")),
+    "insulin":          (Decimal("0"),    Decimal("500")),
+    "tibc":             (Decimal("50"),   Decimal("700")),
+    "transferrin_saturation": (Decimal("0"), Decimal("100")),
+    "lpa":              (Decimal("0"),    Decimal("1000")),
+    "chol_hdl_ratio":   (Decimal("0.5"),  Decimal("20")),
+    "non_hdl_cholesterol": (Decimal("10"), Decimal("600")),
+    "psa":              (Decimal("0"),    Decimal("200")),
+    "testosterone_total": (Decimal("1"),  Decimal("2000")),
+    "shbg":             (Decimal("1"),    Decimal("500")),
+    "free_testosterone": (Decimal("0"),   Decimal("100")),
+    "bioavailable_testosterone": (Decimal("0"), Decimal("500")),
 }
 
 
