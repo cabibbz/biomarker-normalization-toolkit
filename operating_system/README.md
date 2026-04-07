@@ -27,6 +27,13 @@ python .\operating_system\tools\dual_agent_consensus.py .\operating_system\examp
 
 See [multi_agent_consensus.md](/C:/Users/me/Desktop/longevb2b/operating_system/multi_agent_consensus.md) for the config contract and wrapper expectations.
 
+The repo now includes real local wrappers for both CLIs:
+
+- [codex_consensus_wrapper.py](/C:/Users/me/Desktop/longevb2b/operating_system/tools/codex_consensus_wrapper.py)
+- [claude_consensus_wrapper.py](/C:/Users/me/Desktop/longevb2b/operating_system/tools/claude_consensus_wrapper.py)
+
+These wrappers run from the frozen consensus run directory rather than the live workspace so both agents reason from the same snapshot.
+
 6. Execute the derived verification plan and validate the changed system against [functional_test_matrix.md](/C:/Users/me/Desktop/longevb2b/operating_system/functional_test_matrix.md)
 7. If progress crosses a 10% milestone, record a checkpoint in [project_memory/](/C:/Users/me/Desktop/longevb2b/project_memory)
 

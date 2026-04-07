@@ -236,7 +236,7 @@ def main():
     workspace = resolve_path(ROOT, str(config.get("workspace", ".")))
     run_dir_raw = config.get("run_dir")
     if run_dir_raw:
-        run_dir = resolve_path(config_dir, str(run_dir_raw))
+        run_dir = resolve_with_fallbacks(str(run_dir_raw), workspace, config_dir, ROOT)
     else:
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         run_dir = (ROOT / ".agent_consensus" / stamp).resolve()

@@ -1,6 +1,6 @@
 {
-  "current_percent": 160,
-  "latest_checkpoint": "project_memory/checkpoints/160_dual-agent-consensus-orchestration.md",
+  "current_percent": 170,
+  "latest_checkpoint": "project_memory/checkpoints/170_live-cli-wrappers-for-dual-agent-consensus.md",
   "checkpoints": [
     {
       "percent": 10,
@@ -81,6 +81,11 @@
       "percent": 160,
       "title": "dual-agent consensus orchestration",
       "file": "project_memory/checkpoints/160_dual-agent-consensus-orchestration.md"
+    },
+    {
+      "percent": 170,
+      "title": "live cli wrappers for dual-agent consensus",
+      "file": "project_memory/checkpoints/170_live-cli-wrappers-for-dual-agent-consensus.md"
     }
   ]
 }

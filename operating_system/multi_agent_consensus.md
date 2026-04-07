@@ -18,6 +18,18 @@ Run:
 python .\operating_system\tools\dual_agent_consensus.py .\operating_system\examples\dual_agent_consensus_config.json
 ```
 
+The example config now points at the repo-owned wrappers:
+
+- [codex_consensus_wrapper.py](/C:/Users/me/Desktop/longevb2b/operating_system/tools/codex_consensus_wrapper.py)
+- [claude_consensus_wrapper.py](/C:/Users/me/Desktop/longevb2b/operating_system/tools/claude_consensus_wrapper.py)
+
+Both wrappers:
+
+- build the final prompt from the frozen run artifacts under `run_dir`
+- include task, context index, context snapshot contents, and current proposal contents directly in the prompt
+- run from the frozen `run_dir` instead of the live workspace
+- leave implementation and deploy hooks to the operator, because those actions are repo- and environment-specific
+
 Expected config fields:
 
 - `workspace`: working directory for agent and hook commands
@@ -32,6 +44,8 @@ Expected config fields:
   - `implementation_command`
   - `verification_command`
   - `deploy_command`
+
+The example config intentionally omits `execution` hooks. Add them only after you decide what "apply", "verify", and "deploy" mean for your environment.
 
 Supported command placeholders:
 
@@ -48,6 +62,7 @@ Supported command placeholders:
 Relative path resolution:
 
 - `workspace` resolves from the repo root
+- `run_dir` resolves from the workspace first, then the config file directory, then the repo root
 - `task_file` and `context_files` resolve from the workspace first, then the config file directory, then the repo root
 
 ## Agent Wrapper Contract
@@ -104,4 +119,4 @@ Each run writes:
 
 ## Practical Setup
 
-Use this with thin local wrappers around each model CLI. Keep the wrappers small and deterministic: they should translate the prompt file into one JSON response, not try to manage the whole loop themselves.
+This repo already includes thin wrappers for Codex and Claude. Keep any future wrapper changes small and deterministic: they should translate the frozen run context into one JSON response, not try to manage the whole loop themselves.
