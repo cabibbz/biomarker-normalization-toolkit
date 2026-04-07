@@ -105,15 +105,22 @@ def compute_phenoage(
             "missing_inputs": missing,
         }
 
+    # Validate inputs are physiologically plausible
+    if glucose <= 0:
+        return {"phenoage": None, "error": "Glucose must be > 0 for PhenoAge calculation."}
+    if albumin <= 0 or creatinine <= 0 or wbc <= 0:
+        return {"phenoage": None, "error": "Albumin, creatinine, and WBC must be > 0."}
+
     # Convert CRP from mg/L to mg/dL for the formula, then take ln
     crp_mg_dl = crp_mg_l / 10.0
+    # CRP=0 is valid (very healthy). Use minimum detectable level for ln calculation.
+    # Levine 2018 R code uses max(CRP, 0.01 mg/L) = 0.001 mg/dL as floor.
     if crp_mg_dl <= 0:
-        crp_mg_dl = 0.001  # Avoid ln(0)
+        crp_mg_dl = 0.001
     ln_crp = math.log(crp_mg_dl)
 
-    # Compute linear predictor (xb) WITHOUT age term
-    # Levine 2018: glucose enters as ln(glucose_mg_dL) per the Gompertz model
-    ln_glucose = math.log(glucose) if glucose > 0 else 0
+    # Levine 2018: glucose enters as ln(glucose_mg_dL)
+    ln_glucose = math.log(glucose)
 
     xb_no_age = (
         _INTERCEPT
@@ -140,8 +147,9 @@ def compute_phenoage(
 
         # Gompertz parameters from Levine 2018
         gamma = 0.0076927
+        # exp(120 * 0.0076927) - 1 = exp(0.923124) - 1 = 1.51744
         mortality_score = 1.0 - math.exp(
-            -1.51714 * math.exp(xb) / 0.0076927
+            -1.51744 * math.exp(xb) / 0.0076927
         )
 
         # Invert: find the age that would give this mortality score for an
@@ -149,6 +157,8 @@ def compute_phenoage(
         # PhenoAge = 141.50225 + ln(-0.00553 * ln(1 - mortality_score)) / 0.090165
         if mortality_score > 0 and mortality_score < 1:
             phenoage = 141.50225 + math.log(-0.00553 * math.log(1 - mortality_score)) / 0.090165
+            # Clamp to physiologically meaningful range
+            phenoage = max(0, min(phenoage, 200))
         else:
             phenoage = chronological_age  # Edge case
     else:

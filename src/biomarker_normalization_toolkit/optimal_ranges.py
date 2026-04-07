@@ -77,7 +77,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "folate": (Decimal("10"), Decimal("25"), "ng/mL", "> 3 normal; > 10 optimal"),
 
     # Hormones
-    "testosterone_total": (Decimal("500"), Decimal("900"), "ng/dL", "Male: 300-1000 normal; 500-900 optimal"),
+    "testosterone_total": (Decimal("15"), Decimal("900"), "ng/dL", "Unisex range; use sex param for specific ranges"),
     "free_testosterone": (Decimal("10"), Decimal("25"), "pg/mL", "Male: age-dependent; mid-upper optimal"),
     "dhea_s": (Decimal("200"), Decimal("500"), "ug/dL", "Declines with age; higher = younger biological age"),
     "igf1": (Decimal("100"), Decimal("180"), "ng/mL", "U-shaped mortality curve; mid-range optimal"),

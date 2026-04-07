@@ -300,6 +300,9 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
                 unit = high.attrib.get("unit", "").strip()
                 if high.attrib.get("inclusive") == "false":
                     raw_value = f"<{raw_value}"
+        elif xsi_type in ("INT", "REAL"):
+            # Integer or real number
+            raw_value = value_el.attrib.get("value", "").strip()
         elif xsi_type in ("ST", "ED"):
             # String or encapsulated data
             raw_value = (value_el.text or "").strip()
@@ -476,7 +479,7 @@ def read_input_csv(path: Path) -> list[dict[str, str]]:
         if missing:
             raise ValueError(f"Input CSV is missing required columns: {', '.join(missing)}")
 
-        return [{key: value or "" for key, value in row.items()} for row in reader]
+        return [{key: (value or "") for key, value in row.items() if key is not None} for row in reader]
 
 
 def write_result(result: NormalizationResult, output_dir: Path) -> tuple[Path, Path]:

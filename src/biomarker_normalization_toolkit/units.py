@@ -501,6 +501,14 @@ def parse_decimal(value: str | None, *, locale: str = "us") -> Decimal | None:
     # Set locale="eu" to treat all single-comma values as European decimals.
     if re.match(r"^-?\d+,\d{1,2}$", stripped):
         return None  # Ambiguous European decimal — reject rather than corrupt
+    # Reject scientific notation (e.g., "1e3", "2.5E2") — likely OCR/data artifact
+    if re.search(r"[eE]", stripped):
+        return None
+    # Reject mixed comma+dot garbage (e.g., "1.5,2" -> would become "1.52")
+    if "," in stripped and "." in stripped:
+        # Only valid pattern: "1,234.56" (comma before dot as thousands separator)
+        if not re.match(r"^-?\d{1,3}(,\d{3})*\.\d+$", stripped):
+            return None
     # Strip thousands separators (e.g., "250,000" -> "250000")
     cleaned = stripped.replace(",", "")
     try:

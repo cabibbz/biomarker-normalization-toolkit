@@ -49,11 +49,10 @@ UCUM_CODES: dict[str, str] = {
     "uIU/mL": "u[IU]/mL",
     "IU/L": "[IU]/L",
     "mm/hr": "mm/h",
-    "mOsm/kg": "mOsm/kg",
+    "mOsm/kg": "mosm/kg",  # UCUM is case-sensitive: mosm not mOsm
     "mg/g": "mg/g",
     "ug/L": "ug/L",
     "nmol/min/mL": "nmol/min/mL",
-    "ug/mL": "ug/mL",
     "#/hpf": "/[HPF]",
     "U/mL": "U/mL",
     "nm": "nm",

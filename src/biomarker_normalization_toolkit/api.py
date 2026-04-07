@@ -434,9 +434,9 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
                     source_test_name=r.source_test_name, alias_key=r.alias_key,
                     raw_value=r.raw_value, source_unit=r.source_unit,
                     specimen_type=r.specimen_type, source_reference_range=r.source_reference_range,
-                    canonical_biomarker_id=r.canonical_biomarker_id,
-                    canonical_biomarker_name=r.canonical_biomarker_name,
-                    loinc=r.loinc, mapping_status="review_needed",
+                    canonical_biomarker_id="",
+                    canonical_biomarker_name="",
+                    loinc="", mapping_status="review_needed",
                     match_confidence="none",
                     status_reason="biomarker_requires_pro_tier",
                     mapping_rule="", normalized_value="", normalized_unit="",
@@ -545,9 +545,9 @@ def normalize_upload(file: UploadFile = File(...),
                     source_test_name=r.source_test_name, alias_key=r.alias_key,
                     raw_value=r.raw_value, source_unit=r.source_unit,
                     specimen_type=r.specimen_type, source_reference_range=r.source_reference_range,
-                    canonical_biomarker_id=r.canonical_biomarker_id,
-                    canonical_biomarker_name=r.canonical_biomarker_name,
-                    loinc=r.loinc, mapping_status="review_needed",
+                    canonical_biomarker_id="",
+                    canonical_biomarker_name="",
+                    loinc="", mapping_status="review_needed",
                     match_confidence="none",
                     status_reason="biomarker_requires_pro_tier",
                     mapping_rule="", normalized_value="", normalized_unit="",
@@ -634,9 +634,15 @@ def analyze(body: NormalizeRequest, x_api_key: str | None = Header(None, alias="
 def analyze_upload(file: UploadFile = File(...),
                    x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
     license_info = _get_license(x_api_key)
+    rejection = _check_key_validity(license_info, x_api_key)
+    if rejection:
+        return rejection
     rows, error = _read_upload(file)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
+    if len(rows) > license_info["max_rows"]:
+        return JSONResponse(status_code=400, content={
+            "error": f"Row limit exceeded ({license_info['tier']} tier: {license_info['max_rows']} max)."})
     result = normalize_rows(rows, input_file=Path(file.filename or "").name)
     response = _build_analysis(result)
     response["tier"] = license_info["tier"]
@@ -655,6 +661,9 @@ def phenoage_endpoint(body: PhenoAgeRequest,
     rows, error = _validate_rows(body.model_dump())
     if error:
         return JSONResponse(status_code=400, content={"error": error})
+    if len(rows) > license_info["max_rows"]:
+        return JSONResponse(status_code=400, content={
+            "error": f"Row limit exceeded ({license_info['tier']} tier: {license_info['max_rows']} max)."})
     result = normalize_rows(rows)
     pheno = compute_phenoage(result, chronological_age=body.chronological_age)
     return JSONResponse(content=pheno or {"error": "Could not compute PhenoAge"})
@@ -690,6 +699,10 @@ def compare_endpoint(body: CompareRequest,
     if not before_rows or not after_rows:
         return JSONResponse(status_code=400, content={
             "error": 'Provide {"before": {"rows": [...]}, "after": {"rows": [...]}}'})
+    max_rows = license_info["max_rows"]
+    if len(before_rows) > max_rows or len(after_rows) > max_rows:
+        return JSONResponse(status_code=400, content={
+            "error": f"Row limit exceeded ({license_info['tier']} tier: {max_rows} max per set)."})
     before_result = normalize_rows([_coerce_row(r) for r in before_rows])
     after_result = normalize_rows([_coerce_row(r) for r in after_rows])
     comparison = compare_results(before_result, after_result,
