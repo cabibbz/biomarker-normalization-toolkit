@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from biomarker_normalization_toolkit.fhir import build_bundle
@@ -20,12 +21,14 @@ REQUIRED_INPUT_COLUMNS = (
 
 
 def read_input(path: Path) -> list[dict[str, str]]:
-    """Auto-detect format and read input file. Supports CSV, FHIR JSON, and HL7v2."""
+    """Auto-detect format and read input file. Supports CSV, FHIR JSON, HL7v2, and C-CDA XML."""
     suffix = path.suffix.lower()
     if suffix == ".json":
         return read_fhir_input(path)
     if suffix in (".hl7", ".oru"):
         return read_hl7_input(path)
+    if suffix == ".xml":
+        return read_ccda_input(path)
     return read_input_csv(path)
 
 
@@ -185,6 +188,131 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
 
     if not rows:
         raise ValueError("No OBX segments found in HL7 input.")
+
+    return rows
+
+
+_XSI = "{http://www.w3.org/2001/XMLSchema-instance}"
+_LOINC_OID = "2.16.840.1.113883.6.1"
+
+
+def read_ccda_input(path: Path) -> list[dict[str, str]]:
+    """Read a C-CDA XML document or fragment and extract lab observations."""
+    content = path.read_text(encoding="utf-8-sig")
+
+    # C-CDA examples are often fragments — wrap if needed
+    if not content.strip().startswith("<?xml") and "<ClinicalDocument" not in content:
+        content = (
+            '<root xmlns:sdtc="urn:hl7-org:sdtc" '
+            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+            + content
+            + "</root>"
+        )
+
+    root = ET.fromstring(content)
+    rows: list[dict[str, str]] = []
+    row_id = 0
+
+    for obs in root.iter("observation"):
+        code_el = obs.find("code")
+        value_el = obs.find("value")
+        if code_el is None or value_el is None:
+            continue
+
+        # Get test name from code element
+        loinc_code = code_el.attrib.get("code", "")
+        display_name = code_el.attrib.get("displayName", "")
+        # Check translations for LOINC
+        if not display_name:
+            for trans in code_el.findall("translation"):
+                if trans.attrib.get("codeSystem") == _LOINC_OID:
+                    display_name = trans.attrib.get("displayName", "")
+                    if not loinc_code:
+                        loinc_code = trans.attrib.get("code", "")
+
+        test_name = display_name or loinc_code
+        if not test_name:
+            continue
+
+        # Get value based on xsi:type
+        xsi_type = value_el.attrib.get(f"{_XSI}type", "")
+        raw_value = ""
+        unit = ""
+
+        if xsi_type == "PQ":
+            # Physical Quantity: value + unit
+            raw_value = value_el.attrib.get("value", "").strip()
+            unit = value_el.attrib.get("unit", "").strip()
+            # Some C-CDA docs use translation for non-UCUM units
+            if not raw_value:
+                trans = value_el.find("translation")
+                if trans is not None:
+                    raw_value = trans.attrib.get("value", "").strip()
+                    unit = trans.attrib.get("unit", unit).strip()
+        elif xsi_type == "IVL_PQ":
+            # Interval — used for "<10" style values
+            low = value_el.find("low")
+            high = value_el.find("high")
+            if low is not None and low.attrib.get("value"):
+                raw_value = low.attrib.get("value", "").strip()
+                unit = low.attrib.get("unit", "").strip()
+                if low.attrib.get("inclusive") == "false":
+                    raw_value = f">{raw_value}"
+            elif high is not None and high.attrib.get("value"):
+                raw_value = high.attrib.get("value", "").strip()
+                unit = high.attrib.get("unit", "").strip()
+                if high.attrib.get("inclusive") == "false":
+                    raw_value = f"<{raw_value}"
+        elif xsi_type in ("ST", "ED"):
+            # String or encapsulated data
+            raw_value = (value_el.text or "").strip()
+        elif xsi_type in ("CD", "CE", "CO"):
+            # Coded value (qualitative)
+            raw_value = value_el.attrib.get("displayName", "")
+            if not raw_value:
+                raw_value = value_el.attrib.get("code", "")
+
+        if not raw_value:
+            continue
+
+        # Get reference range
+        ref_range = ""
+        ref_el = obs.find(".//referenceRange/observationRange/value")
+        if ref_el is not None:
+            ref_low = ref_el.find("low")
+            ref_high = ref_el.find("high")
+            if ref_low is not None and ref_high is not None:
+                low_val = ref_low.attrib.get("value", "")
+                high_val = ref_high.attrib.get("value", "")
+                ref_unit = ref_low.attrib.get("unit", unit)
+                if low_val and high_val:
+                    ref_range = f"{low_val}-{high_val}"
+                    if ref_unit:
+                        ref_range += f" {ref_unit}"
+
+        # Get interpretation (abnormal flag)
+        interp_el = obs.find("interpretationCode")
+        abnormal_flag = ""
+        if interp_el is not None:
+            abnormal_flag = interp_el.attrib.get("code", "")
+
+        row_id += 1
+        rows.append({
+            "source_row_id": f"ccda_{row_id}",
+            "source_lab_name": "",
+            "source_panel_name": "",
+            "source_test_name": test_name,
+            "raw_value": raw_value,
+            "source_unit": unit,
+            "specimen_type": "",
+            "source_reference_range": ref_range,
+        })
+
+    if not rows:
+        raise ValueError(
+            "No completed observation values found in C-CDA input. "
+            "The document may contain only pending or null-flavored results."
+        )
 
     return rows
 

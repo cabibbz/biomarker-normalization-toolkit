@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG
 from biomarker_normalization_toolkit.fhir import build_bundle
-from biomarker_normalization_toolkit.io_utils import read_fhir_input, read_hl7_input, read_input, read_input_csv
+from biomarker_normalization_toolkit.io_utils import read_ccda_input, read_fhir_input, read_hl7_input, read_input, read_input_csv
 from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_rows, normalize_source_record
 from biomarker_normalization_toolkit.units import convert_to_normalized, is_inequality_value, parse_reference_range
 
@@ -540,6 +540,31 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(by_name[protein_key[0]], "Trace")
         self.assertEqual(len(ketones_key), 1)
         self.assertEqual(by_name[ketones_key[0]], "1+")
+
+    # --- C-CDA ingest ---
+
+    def test_ccda_result_with_lab_location(self) -> None:
+        ccda_path = ROOT / "sample data" / "ccda-examples" / "Result with lab location(C-CDAR2.1).xml"
+        if not ccda_path.exists():
+            self.skipTest("C-CDA example not available")
+        rows = read_ccda_input(ccda_path)
+        self.assertGreater(len(rows), 0)
+        self.assertEqual(rows[0]["raw_value"], "1.015")
+
+    def test_ccda_non_ucum_units(self) -> None:
+        ccda_path = ROOT / "sample data" / "ccda-examples" / "Results Unit Non-UCUM(C-CDA2.1).xml"
+        if not ccda_path.exists():
+            self.skipTest("C-CDA example not available")
+        rows = read_ccda_input(ccda_path)
+        self.assertGreater(len(rows), 0)
+        self.assertEqual(rows[0]["raw_value"], "152")
+
+    def test_read_input_auto_detects_xml(self) -> None:
+        ccda_path = ROOT / "sample data" / "ccda-examples" / "Result with lab location(C-CDAR2.1).xml"
+        if not ccda_path.exists():
+            self.skipTest("C-CDA example not available")
+        rows = read_input(ccda_path)
+        self.assertGreater(len(rows), 0)
 
     def test_read_input_auto_detects_hl7(self) -> None:
         hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_cbc.hl7"
