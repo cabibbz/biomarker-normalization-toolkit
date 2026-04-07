@@ -139,6 +139,17 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "urobilinogen":     (Decimal("0"),    Decimal("20")),
     "haptoglobin":      (Decimal("0"),    Decimal("1000")),
     "transferrin":      (Decimal("50"),   Decimal("600")),
+    "indirect_bilirubin": (Decimal("0"), Decimal("30")),
+    "cortisol":         (Decimal("0.1"), Decimal("100")),
+    "esr":              (Decimal("0"),   Decimal("150")),
+    "osmolality_serum": (Decimal("200"), Decimal("400")),
+    "albumin_urine":    (Decimal("0"),   Decimal("5000")),
+    "albumin_creatinine_ratio": (Decimal("0"), Decimal("10000")),
+    "total_protein_urine": (Decimal("0"), Decimal("5000")),
+    "iga":              (Decimal("10"),  Decimal("1000")),
+    "igg":              (Decimal("100"), Decimal("5000")),
+    "igm":              (Decimal("10"),  Decimal("1000")),
+    "reticulocyte_absolute": (Decimal("0"), Decimal("500")),
 }
 
 

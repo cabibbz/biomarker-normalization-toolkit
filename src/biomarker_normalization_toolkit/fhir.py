@@ -48,6 +48,9 @@ UCUM_CODES: dict[str, str] = {
     "mIU/mL": "m[IU]/mL",
     "uIU/mL": "u[IU]/mL",
     "IU/L": "[IU]/L",
+    "mm/hr": "mm/h",
+    "mOsm/kg": "mOsm/kg",
+    "mg/g": "mg/g",
 }
 
 

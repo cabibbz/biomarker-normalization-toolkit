@@ -103,6 +103,12 @@ UNIT_SYNONYMS = {
     "ng/ml feu": "ng/mL",
     "ug/ml feu": "ug/mL",
     "mg/l feu": "mg/L",
+    "mm/hr": "mm/hr",
+    "mm/h": "mm/hr",
+    "mosm/kg": "mOsm/kg",
+    "mosm/kg h2o": "mOsm/kg",
+    "mg/g": "mg/g",
+    "mg/mmol": "mg/mmol",
 }
 
 
@@ -330,6 +336,18 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "urine_wbc": {"#/uL": Decimal("1")},
     "haptoglobin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "transferrin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
+    # --- Wave 9: Clinical depth ---
+    "indirect_bilirubin": {"mg/dL": Decimal("1"), "umol/L": Decimal("1") / Decimal("17.1")},
+    "cortisol": {"ug/dL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("27.59")},
+    "esr": {"mm/hr": Decimal("1")},
+    "osmolality_serum": {"mOsm/kg": Decimal("1")},
+    "albumin_urine": {"mg/L": Decimal("1"), "mg/dL": Decimal("10"), "ug/mL": Decimal("1")},
+    "albumin_creatinine_ratio": {"mg/g": Decimal("1"), "mg/mmol": Decimal("8.84")},
+    "total_protein_urine": {"mg/dL": Decimal("1"), "mg/L": Decimal("0.1")},
+    "iga": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
+    "igg": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
+    "igm": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
+    "reticulocyte_absolute": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
 }
 
 
