@@ -5,7 +5,7 @@ from importlib import resources
 from pathlib import Path
 import sys
 
-from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG
+from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG, load_custom_aliases
 from biomarker_normalization_toolkit.io_utils import read_input, write_fhir_bundle, write_result, write_summary_report
 from biomarker_normalization_toolkit.normalizer import normalize_rows
 
@@ -46,6 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory where normalized outputs should be written.",
     )
     normalize.add_argument(
+        "--aliases",
+        default=None,
+        help="Path to custom alias JSON file to merge before normalizing.",
+    )
+    normalize.add_argument(
         "--emit-fhir",
         action="store_true",
         help="Also write mapped rows as a FHIR Observation bundle.",
@@ -81,6 +86,11 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Path to input file (CSV or FHIR JSON).",
     )
+    analyze.add_argument(
+        "--aliases",
+        default=None,
+        help="Path to custom alias JSON file to merge before analyzing.",
+    )
 
     return parser
 
@@ -106,7 +116,19 @@ def command_where_left_off(path: str) -> int:
     return 0
 
 
-def command_normalize(input_path: str, output_dir: str, emit_fhir: bool) -> int:
+def _load_aliases(aliases_path: str | None) -> None:
+    if aliases_path:
+        alias_path = Path(aliases_path)
+        if not alias_path.exists():
+            print(f"Alias file does not exist: {alias_path}", file=sys.stderr)
+            return
+        added = load_custom_aliases(alias_path)
+        print(f"Loaded {added} custom aliases from {alias_path}")
+
+
+def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None) -> int:
+    _load_aliases(aliases_path)
+
     source_path = Path(input_path)
     if not source_path.exists():
         print(f"Input file does not exist: {source_path}", file=sys.stderr)
@@ -164,7 +186,9 @@ def command_catalog(fmt: str) -> int:
     return 0
 
 
-def command_analyze(input_path: str) -> int:
+def command_analyze(input_path: str, aliases_path: str | None = None) -> int:
+    _load_aliases(aliases_path)
+
     source_path = Path(input_path)
     if not source_path.exists():
         print(f"Input file does not exist: {source_path}", file=sys.stderr)
@@ -262,13 +286,13 @@ def main() -> int:
     if args.command == "where-left-off":
         return command_where_left_off(args.path)
     if args.command == "normalize":
-        return command_normalize(args.input, args.output_dir, args.emit_fhir)
+        return command_normalize(args.input, args.output_dir, args.emit_fhir, args.aliases)
     if args.command == "demo":
         return command_demo(args.output_dir)
     if args.command == "catalog":
         return command_catalog(args.format)
     if args.command == "analyze":
-        return command_analyze(args.input)
+        return command_analyze(args.input, args.aliases)
 
     parser.error(f"Unknown command: {args.command}")
     return 2

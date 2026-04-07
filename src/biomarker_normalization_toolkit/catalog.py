@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+from pathlib import Path
 import re
 
 
@@ -734,3 +736,28 @@ for biomarker_id, biomarker in BIOMARKER_CATALOG.items():
         candidates = ALIAS_INDEX.setdefault(alias_key, [])
         if biomarker_id not in candidates:
             candidates.append(biomarker_id)
+
+
+def load_custom_aliases(path: Path) -> int:
+    """Load custom alias mappings from a JSON file and merge into ALIAS_INDEX.
+
+    The JSON file should be a dict mapping biomarker_id to a list of alias strings:
+    {
+        "glucose_serum": ["Blood Sugar", "FBG", "Fasting Blood Sugar"],
+        "hba1c": ["GHb", "Glycosylated Hemoglobin"]
+    }
+
+    Returns the number of aliases added.
+    """
+    data = json.loads(path.read_text(encoding="utf-8"))
+    added = 0
+    for biomarker_id, aliases in data.items():
+        if biomarker_id not in BIOMARKER_CATALOG:
+            continue
+        for alias in aliases:
+            alias_key = normalize_key(alias)
+            candidates = ALIAS_INDEX.setdefault(alias_key, [])
+            if biomarker_id not in candidates:
+                candidates.append(biomarker_id)
+                added += 1
+    return added
