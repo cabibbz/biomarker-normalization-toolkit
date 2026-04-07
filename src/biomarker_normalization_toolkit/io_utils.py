@@ -132,16 +132,31 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
 
     rows: list[dict[str, str]] = []
     current_obr_name = ""
+    current_specimen = ""
     row_id = 0
 
     for line in lines:
         fields = line.split(field_sep)
         segment = fields[0] if fields else ""
 
+        if segment == "MSH":
+            # Reset per-message state for batch files
+            current_obr_name = ""
+            current_specimen = ""
+
         if segment == "OBR" and len(fields) > 4:
             # OBR-4: Universal Service Identifier (test/panel name)
             obr4_parts = fields[4].split(comp_sep)
             current_obr_name = obr4_parts[1] if len(obr4_parts) > 1 else obr4_parts[0]
+            # OBR-15: Specimen Source (component 1 = specimen type)
+            if len(fields) > 15 and fields[15]:
+                spec_parts = fields[15].split(comp_sep)
+                current_specimen = spec_parts[0].strip()
+
+        if segment == "SPM" and len(fields) > 4:
+            # SPM-4: Specimen Type (HL7 v2.5+)
+            spm4_parts = fields[4].split(comp_sep)
+            current_specimen = spm4_parts[1] if len(spm4_parts) > 1 else spm4_parts[0]
 
         if segment == "OBX" and len(fields) > 5:
             value_type = fields[2] if len(fields) > 2 else ""  # NM, SN, ST, CE, etc.
@@ -184,7 +199,7 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
                 "source_test_name": test_name,
                 "raw_value": raw_value,
                 "source_unit": unit,
-                "specimen_type": "",
+                "specimen_type": current_specimen,
                 "source_reference_range": ref_range,
             })
 
@@ -197,6 +212,14 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
 _XSI = "{http://www.w3.org/2001/XMLSchema-instance}"
 _HL7V3 = "{urn:hl7-org:v3}"
 _LOINC_OID = "2.16.840.1.113883.6.1"
+
+
+def _ccda_find(parent: ET.Element, tag: str) -> ET.Element | None:
+    """Find a child element, trying without and with HL7v3 namespace."""
+    el = parent.find(tag)
+    if el is None:
+        el = parent.find(f"{_HL7V3}{tag}")
+    return el
 
 
 def read_ccda_input(path: Path) -> list[dict[str, str]]:
@@ -255,14 +278,14 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
             unit = value_el.attrib.get("unit", "").strip()
             # Some C-CDA docs use translation for non-UCUM units
             if not raw_value:
-                trans = value_el.find("translation")
+                trans = _ccda_find(value_el, "translation")
                 if trans is not None:
                     raw_value = trans.attrib.get("value", "").strip()
                     unit = trans.attrib.get("unit", unit).strip()
         elif xsi_type == "IVL_PQ":
             # Interval — used for "<10" style values
-            low = value_el.find("low")
-            high = value_el.find("high")
+            low = _ccda_find(value_el, "low")
+            high = _ccda_find(value_el, "high")
             if low is not None and low.attrib.get("value"):
                 raw_value = low.attrib.get("value", "").strip()
                 unit = low.attrib.get("unit", "").strip()
@@ -291,8 +314,8 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
         if ref_el is None:
             ref_el = obs.find(f".//{_HL7V3}referenceRange/{_HL7V3}observationRange/{_HL7V3}value")
         if ref_el is not None:
-            ref_low = ref_el.find("low")
-            ref_high = ref_el.find("high")
+            ref_low = _ccda_find(ref_el, "low")
+            ref_high = _ccda_find(ref_el, "high")
             if ref_low is not None and ref_high is not None:
                 low_val = ref_low.attrib.get("value", "")
                 high_val = ref_high.attrib.get("value", "")
