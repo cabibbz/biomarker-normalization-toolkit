@@ -166,6 +166,24 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "complement_c3":        (Decimal("10"),   Decimal("400")),
     "complement_c4":        (Decimal("1"),    Decimal("100")),
     "ammonia":              (Decimal("0"),    Decimal("500")),
+    # Longevity-essential
+    "igf1":                 (Decimal("10"),   Decimal("1000")),
+    "cystatin_c":           (Decimal("0.1"),  Decimal("10")),
+    "free_t3":              (Decimal("0.5"),  Decimal("20")),
+    "reverse_t3":           (Decimal("1"),    Decimal("100")),
+    "tpo_antibodies":       (Decimal("0"),    Decimal("10000")),
+    "thyroglobulin_antibodies": (Decimal("0"), Decimal("10000")),
+    "apoa1":                (Decimal("20"),   Decimal("400")),
+    "progesterone":         (Decimal("0"),    Decimal("300")),
+    "amh":                  (Decimal("0"),    Decimal("30")),
+    "vitamin_a":            (Decimal("5"),    Decimal("200")),
+    "vitamin_c":            (Decimal("0"),    Decimal("5")),
+    "vitamin_e":            (Decimal("1"),    Decimal("50")),
+    "zinc":                 (Decimal("20"),   Decimal("300")),
+    "selenium":             (Decimal("20"),   Decimal("500")),
+    "copper":               (Decimal("20"),   Decimal("300")),
+    "fructosamine":         (Decimal("100"),  Decimal("500")),
+    "vldl_cholesterol":     (Decimal("1"),    Decimal("200")),
 }
 
 

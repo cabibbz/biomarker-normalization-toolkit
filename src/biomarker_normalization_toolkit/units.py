@@ -365,6 +365,24 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "complement_c3": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "complement_c4": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "ammonia": {"umol/L": Decimal("1"), "ug/dL": Decimal("1") / Decimal("0.5872")},
+    # --- Wave 11: Longevity-essential ---
+    "igf1": {"ng/mL": Decimal("1")},
+    "cystatin_c": {"mg/L": Decimal("1"), "nmol/L": Decimal("1") / Decimal("75.19")},
+    "free_t3": {"pg/mL": Decimal("1"), "pmol/L": Decimal("1") / Decimal("1.536")},
+    "reverse_t3": {"ng/dL": Decimal("1")},
+    "tpo_antibodies": {"IU/mL": Decimal("1")},
+    "thyroglobulin_antibodies": {"IU/mL": Decimal("1")},
+    "apoa1": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
+    "progesterone": {"ng/mL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("3.18")},
+    "amh": {"ng/mL": Decimal("1"), "pmol/L": Decimal("1") / Decimal("7.143")},
+    "vitamin_a": {"ug/dL": Decimal("1"), "umol/L": Decimal("1") / Decimal("0.03491")},
+    "vitamin_c": {"mg/dL": Decimal("1"), "umol/L": Decimal("1") / Decimal("56.78")},
+    "vitamin_e": {"mg/L": Decimal("1"), "umol/L": Decimal("1") / Decimal("2.322")},
+    "zinc": {"ug/dL": Decimal("1"), "umol/L": Decimal("6.536")},
+    "selenium": {"ug/L": Decimal("1"), "umol/L": Decimal("78.96")},
+    "copper": {"ug/dL": Decimal("1"), "umol/L": Decimal("6.355")},
+    "fructosamine": {"umol/L": Decimal("1")},
+    "vldl_cholesterol": {"mg/dL": Decimal("1"), "mmol/L": Decimal("38.67")},
 }
 
 
