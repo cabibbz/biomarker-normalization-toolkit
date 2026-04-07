@@ -230,7 +230,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="3016-3",
         normalized_unit="mIU/L",
         allowed_specimens=_BLOOD,
-        aliases=("TSH", "Thyroid Stimulating Hormone", "Thyrotropin"),
+        aliases=("TSH", "Thyroid Stimulating Hormone", "Thyrotropin",
+                 "Thyrotropin [Units/volume] in Serum or Plasma"),
     ),
     "free_t4": BiomarkerDefinition(
         biomarker_id="free_t4",
@@ -239,7 +240,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="ng/dL",
         allowed_specimens=_BLOOD,
         aliases=("Free T4", "FT4", "Thyroxine Free", "Free Thyroxine",
-                 "Thyroxine (T4), Free", "T4, Free"),
+                 "Thyroxine (T4), Free", "T4, Free",
+                 "Thyroxine (T4) free [Mass/volume] in Serum or Plasma"),
     ),
     # --- Wave 2: Renal expansion ---
     "bun": BiomarkerDefinition(
@@ -267,7 +269,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="1988-5",
         normalized_unit="mg/L",
         allowed_specimens=_BLOOD,
-        aliases=("CRP", "C-Reactive Protein"),
+        aliases=("CRP", "C-Reactive Protein",
+                 "C reactive protein [Mass/volume] in Serum or Plasma"),
     ),
     # --- Wave 2: CBC ---
     "wbc": BiomarkerDefinition(
@@ -484,7 +487,9 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="33037-3",
         normalized_unit="mEq/L",
         allowed_specimens=_BLOOD,
-        aliases=("Anion Gap", "AG"),
+        aliases=("Anion Gap", "AG",
+                 "Anion gap in Serum or Plasma",
+                 "Anion gap in Serum or Plasma by calculation"),
     ),
     "lactate": BiomarkerDefinition(
         biomarker_id="lactate",
@@ -572,7 +577,9 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2532-0",
         normalized_unit="U/L",
         allowed_specimens=_BLOOD,
-        aliases=("LDH", "Lactate Dehydrogenase", "Lactate Dehydrogenase (LD)", "LD"),
+        aliases=("LDH", "Lactate Dehydrogenase", "Lactate Dehydrogenase (LD)", "LD",
+                 "Lactate dehydrogenase [Enzymatic activity/volume] in Serum or Plasma",
+                 "Lactate dehydrogenase [Enzymatic activity/volume] in Serum or Plasma by Lactate to pyruvate reaction"),
     ),
     "lipase": BiomarkerDefinition(
         biomarker_id="lipase",
@@ -588,7 +595,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2157-6",
         normalized_unit="U/L",
         allowed_specimens=_BLOOD,
-        aliases=("CK", "Creatine Kinase", "Creatine Kinase (CK)", "CPK"),
+        aliases=("CK", "Creatine Kinase", "Creatine Kinase (CK)", "CPK",
+                 "Creatine kinase [Enzymatic activity/volume] in Serum or Plasma"),
     ),
     "ck_mb": BiomarkerDefinition(
         biomarker_id="ck_mb",
@@ -800,7 +808,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Neutrophils Percent", "Neutrophil Percent", "Neut Pct",
                  "Neutrophils/100 leukocytes",
                  "Neutrophils/100 leukocytes in Blood",
-                 "Neutrophils/100 leukocytes in Blood by Automated count"),
+                 "Neutrophils/100 leukocytes in Blood by Automated count",
+                 "Neutrophils/Leukocytes in Blood by Automated count"),
     ),
     "lymphocytes_pct": BiomarkerDefinition(
         biomarker_id="lymphocytes_pct",
@@ -811,7 +820,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Lymphocytes Percent", "Lymphocyte Percent", "Lymph Pct",
                  "Lymphocytes/100 leukocytes",
                  "Lymphocytes/100 leukocytes in Blood",
-                 "Lymphocytes/100 leukocytes in Blood by Automated count"),
+                 "Lymphocytes/100 leukocytes in Blood by Automated count",
+                 "Lymphocytes/Leukocytes in Blood by Automated count"),
     ),
     "monocytes_pct": BiomarkerDefinition(
         biomarker_id="monocytes_pct",
@@ -822,7 +832,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Monocytes Percent", "Monocyte Percent", "Mono Pct",
                  "Monocytes/100 leukocytes",
                  "Monocytes/100 leukocytes in Blood",
-                 "Monocytes/100 leukocytes in Blood by Automated count"),
+                 "Monocytes/100 leukocytes in Blood by Automated count",
+                 "Monocytes/Leukocytes in Blood by Automated count"),
     ),
     "eosinophils_pct": BiomarkerDefinition(
         biomarker_id="eosinophils_pct",
@@ -833,7 +844,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Eosinophils Percent", "Eosinophil Percent", "Eos Pct",
                  "Eosinophils/100 leukocytes",
                  "Eosinophils/100 leukocytes in Blood",
-                 "Eosinophils/100 leukocytes in Blood by Automated count"),
+                 "Eosinophils/100 leukocytes in Blood by Automated count",
+                 "Eosinophils/Leukocytes in Blood by Automated count"),
     ),
     "basophils_pct": BiomarkerDefinition(
         biomarker_id="basophils_pct",
@@ -844,7 +856,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Basophils Percent", "Basophil Percent", "Baso Pct",
                  "Basophils/100 leukocytes",
                  "Basophils/100 leukocytes in Blood",
-                 "Basophils/100 leukocytes in Blood by Automated count"),
+                 "Basophils/100 leukocytes in Blood by Automated count",
+                 "Basophils/Leukocytes in Blood by Automated count"),
     ),
     # --- Wave 5: Other ---
     "total_protein": BiomarkerDefinition(

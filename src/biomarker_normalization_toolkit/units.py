@@ -109,6 +109,7 @@ UNIT_SYNONYMS = {
     "mosm/kg h2o": "mOsm/kg",
     "mg/g": "mg/g",
     "mg/mmol": "mg/mmol",
+    "{presence}": "",
 }
 
 
@@ -210,7 +211,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
         "ug/dL": Decimal("1"),
         "umol/L": Decimal("5.585"),
     },
-    "ferritin": {"ng/mL": Decimal("1")},
+    "ferritin": {"ng/mL": Decimal("1"), "ug/L": Decimal("1")},
     "magnesium": {
         "mg/dL": Decimal("1"),
         "mmol/L": Decimal("2.431"),

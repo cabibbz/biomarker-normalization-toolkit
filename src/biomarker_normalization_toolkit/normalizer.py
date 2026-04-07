@@ -145,23 +145,23 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
 
     normalized_value = convert_to_normalized(source.raw_value, candidate.biomarker_id, source.source_unit)
     if normalized_value is None:
-        # Fallback: if unit is "%" and a _pct sibling exists, redirect
-        pct_id = candidate.biomarker_id + "_pct"
-        if source.source_unit == "%" and pct_id in BIOMARKER_CATALOG:
-            pct_candidate = BIOMARKER_CATALOG[pct_id]
-            pct_value = convert_to_normalized(source.raw_value, pct_id, source.source_unit)
-            if pct_value is not None:
-                candidate = pct_candidate
-                normalized_value = pct_value
-        # Similarly: if unit suggests absolute but mapped to _pct, try base
-        if normalized_value is None and candidate.biomarker_id.endswith("_pct"):
-            base_id = candidate.biomarker_id.removesuffix("_pct")
-            if base_id in BIOMARKER_CATALOG:
-                base_candidate = BIOMARKER_CATALOG[base_id]
-                base_value = convert_to_normalized(source.raw_value, base_id, source.source_unit)
-                if base_value is not None:
-                    candidate = base_candidate
-                    normalized_value = base_value
+        # Try sibling biomarkers with related suffixes (_pct, _sd, _absolute, _urine, _serum)
+        base = candidate.biomarker_id
+        # Strip known suffixes to find base, then try all siblings
+        for suffix in ("_pct", "_sd", "_absolute", "_urine", "_serum"):
+            if base.endswith(suffix):
+                base = base.removesuffix(suffix)
+                break
+        sibling_ids = [
+            sid for sid in BIOMARKER_CATALOG
+            if (sid.startswith(base + "_") or sid == base) and sid != candidate.biomarker_id
+        ]
+        for sib_id in sibling_ids:
+            sib_value = convert_to_normalized(source.raw_value, sib_id, source.source_unit)
+            if sib_value is not None:
+                candidate = BIOMARKER_CATALOG[sib_id]
+                normalized_value = sib_value
+                break
     if normalized_value is None:
         return _empty_record(
             source,
