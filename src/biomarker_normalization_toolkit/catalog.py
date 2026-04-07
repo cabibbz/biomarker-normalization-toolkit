@@ -73,7 +73,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="53328-1",
         normalized_unit="mg/dL",
         allowed_specimens=_URINE,
-        aliases=("Glucose", "Urine Glucose", "GLU"),
+        aliases=("Glucose", "Urine Glucose", "GLU",
+                 "Glucose [Mass/volume] in Urine by Test strip"),
     ),
     "hba1c": BiomarkerDefinition(
         biomarker_id="hba1c",
