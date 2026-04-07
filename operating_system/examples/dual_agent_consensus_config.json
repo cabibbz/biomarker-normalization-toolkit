@@ -1,0 +1,57 @@
+{
+  "workspace": ".",
+  "run_dir": ".agent_consensus/latest",
+  "task_text": "Decide the exact change to make, reach consensus, then execute the configured hooks.",
+  "context_files": [
+    "project_memory/current_context.md",
+    "docs/build_workflow.md",
+    "operating_system/constraints.md"
+  ],
+  "max_rounds": 6,
+  "agents": [
+    {
+      "name": "codex",
+      "command": [
+        "python",
+        ".\\local_tools\\codex_wrapper.py",
+        "--prompt-file",
+        "{prompt_file}",
+        "--response-file",
+        "{response_file}",
+        "--proposal-file",
+        "{proposal_file}"
+      ]
+    },
+    {
+      "name": "claude",
+      "command": [
+        "python",
+        ".\\local_tools\\claude_wrapper.py",
+        "--prompt-file",
+        "{prompt_file}",
+        "--response-file",
+        "{response_file}",
+        "--proposal-file",
+        "{proposal_file}"
+      ]
+    }
+  ],
+  "execution": {
+    "implementation_command": [
+      "python",
+      ".\\local_tools\\apply_consensus.py",
+      "--proposal-file",
+      "{proposal_file}"
+    ],
+    "verification_command": [
+      "pytest",
+      "-q"
+    ],
+    "deploy_command": [
+      "python",
+      ".\\local_tools\\deploy_consensus.py",
+      "--proposal-file",
+      "{proposal_file}"
+    ]
+  }
+}

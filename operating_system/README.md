@@ -19,6 +19,14 @@ python .\operating_system\tools\evaluate_proposal.py .\operating_system\examples
 python .\operating_system\tools\derive_verification_plan.py .\operating_system\examples\ui_and_api_change.json
 ```
 
+Optional for high-risk or ambiguous changes: run the two-agent consensus loop so Codex and Claude work from the same context snapshot and bounce a shared proposal until one agent accepts the other's plan.
+
+```powershell
+python .\operating_system\tools\dual_agent_consensus.py .\operating_system\examples\dual_agent_consensus_config.json
+```
+
+See [multi_agent_consensus.md](/C:/Users/me/Desktop/longevb2b/operating_system/multi_agent_consensus.md) for the config contract and wrapper expectations.
+
 6. Execute the derived verification plan and validate the changed system against [functional_test_matrix.md](/C:/Users/me/Desktop/longevb2b/operating_system/functional_test_matrix.md)
 7. If progress crosses a 10% milestone, record a checkpoint in [project_memory/](/C:/Users/me/Desktop/longevb2b/project_memory)
 

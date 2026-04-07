@@ -11,13 +11,14 @@ This is the operational workflow for all future work in this repo.
 ## During Work
 
 1. State what is being changed
-2. Record the changed surfaces
-3. Derive a verification plan from actual context
-4. Implement
-5. Create the phase-specific verification record for that exact slice
-6. Run the derived verification, including UI click-through and backend behavior if relevant
-7. When the public CLI or packaging surface changes, prefer verifying the installed entry point instead of only `python -m`
-8. When FHIR output changes or expanded biomarker coverage affects FHIR output, run the external FHIR validator tool
+2. If the change is ambiguous or high-risk, you may run the dual-agent consensus loop before implementation so both agents reason from the same frozen context and converge on one proposal
+3. Record the changed surfaces
+4. Derive a verification plan from actual context
+5. Implement
+6. Create the phase-specific verification record for that exact slice
+7. Run the derived verification, including UI click-through and backend behavior if relevant
+8. When the public CLI or packaging surface changes, prefer verifying the installed entry point instead of only `python -m`
+9. When FHIR output changes or expanded biomarker coverage affects FHIR output, run the external FHIR validator tool
 
 ## Before Marking Done
 

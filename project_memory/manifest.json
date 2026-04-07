@@ -1,6 +1,6 @@
 {
-  "current_percent": 150,
-  "latest_checkpoint": "project_memory/checkpoints/150_catalog-integrity-and-71-biomarker-hardening.md",
+  "current_percent": 160,
+  "latest_checkpoint": "project_memory/checkpoints/160_dual-agent-consensus-orchestration.md",
   "checkpoints": [
     {
       "percent": 10,
@@ -76,6 +76,11 @@
       "percent": 150,
       "title": "catalog integrity and 71-biomarker hardening",
       "file": "project_memory/checkpoints/150_catalog-integrity-and-71-biomarker-hardening.md"
+    },
+    {
+      "percent": 160,
+      "title": "dual-agent consensus orchestration",
+      "file": "project_memory/checkpoints/160_dual-agent-consensus-orchestration.md"
     }
   ]
 }

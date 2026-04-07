@@ -11,3 +11,4 @@ build/
 *.pyo
 *.pyd
 sample data/
+.agent_consensus/

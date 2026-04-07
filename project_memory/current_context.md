@@ -1,11 +1,11 @@
 # Current Context
 
-Latest checkpoint: `150_catalog-integrity-and-71-biomarker-hardening.md`
-Progress: `150%`
+Latest checkpoint: `160_dual-agent-consensus-orchestration.md`
+Progress: `160%`
 
 ## Compressed State
 
-Expanded catalog to 71 biomarkers across metabolic, lipid, renal, liver, thyroid, inflammation, CBC, differential, coagulation, blood gas, cardiac, and urinalysis panels. Corrected catalog LOINC metadata, preserved blank-unit urinalysis reference ranges, and aligned customer-facing docs with the validated 84.7% combined mapping rate on 128K rows.
+Expanded the repo workflow with a dual-agent consensus orchestrator that snapshots shared context, alternates proposal and review rounds between two agents, and only runs implementation, verification, and deployment hooks after consensus. The biomarker toolkit remains at the hardened 71-biomarker baseline with corrected catalog metadata and 49 passing tests.
 
 ## Locked Decisions
 
@@ -15,14 +15,16 @@ Expanded catalog to 71 biomarkers across metabolic, lipid, renal, liver, thyroid
 - Sample data excluded from git via .gitignore
 - Blank-unit reference ranges are valid for unitless biomarkers and should be preserved
 - Catalog LOINC edits require regression checks, not just spot inspection
+- Dual-agent consensus runs from frozen context snapshots, not live mutable files
+- Deploy hooks only run after one agent accepts the other agent's current proposal
 
 ## Immediate Next Steps
 
+- Add real Codex and Claude wrapper scripts around the consensus tool
 - Re-run large-sample validation after the 71-biomarker hardening pass
 - Consider HL7v2 ingest for enterprise customers
-- Expand vendor alias coverage with real customer data
 - Add broader metadata sanity checks for future catalog expansion waves
 
 ## Resume From
 
-Start from project_memory/current_context.md. The toolkit now has 71 biomarkers, corrected LOINC metadata, preserved urinalysis range handling, and synced docs/project memory. Next focus should be broader validation and the next customer-driven coverage wave.
+Start from project_memory/current_context.md. The repo now includes a tested dual-agent consensus workflow plus the hardened 71-biomarker toolkit baseline. Next focus should be wiring real agent wrappers and continuing customer-driven validation and coverage expansion.
