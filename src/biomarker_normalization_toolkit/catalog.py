@@ -423,6 +423,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("RDW", "Red Cell Distribution Width", "RDW-CV",
                  "Erythrocyte distribution width [Ratio] by Automated count",
+                 "Erythrocyte [DistWidth] in Blood",
                  "Erythrocyte [DistWidth] in Blood by Automated count"),
     ),
     "rdw_sd": BiomarkerDefinition(
@@ -730,7 +731,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2514-8",
         normalized_unit="mg/dL",
         allowed_specimens=_URINE,
-        aliases=("Ketones", "Urine Ketones",
+        aliases=("Ketones", "Ketone", "Urine Ketones",
                  "Ketones [Mass/volume] in Urine by Test strip"),
     ),
     "urine_bilirubin": BiomarkerDefinition(

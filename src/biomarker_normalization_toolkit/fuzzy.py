@@ -12,6 +12,21 @@ _ALIAS_CHOICES: list[str] = []
 _ALIAS_BIO_IDS: list[list[str]] = []
 _BUILT = False
 
+# Known false-positive pairs: (query_substring, biomarker_id) that should never fuzzy-match.
+# These are semantically distinct tests that happen to have similar names.
+_BLOCKLIST: set[tuple[str, str]] = {
+    # Hemoglobin electrophoresis variants are NOT HbA1c
+    ("hemoglobin c", "hba1c"),
+    ("hemoglobin s", "hba1c"),
+    ("hemoglobin f", "hba1c"),
+    ("hemogloblin a", "hba1c"),
+    ("hemogloblin s", "hba1c"),
+    ("hemoglobin a2", "hba1c"),
+    # ALT and ALP are different liver enzymes
+    ("alt", "alp"),
+    ("alp", "alt"),
+}
+
 
 def _build_index() -> None:
     global _BUILT
@@ -48,5 +63,8 @@ def fuzzy_match(query: str, threshold: float = 0.70) -> list[tuple[str, str, flo
     out: list[tuple[str, str, float]] = []
     for match_str, score, idx in results:
         for bio_id in _ALIAS_BIO_IDS[idx]:
+            # Check blocklist
+            if (query, bio_id) in _BLOCKLIST:
+                continue
             out.append((match_str, bio_id, score / 100.0))
     return sorted(out, key=lambda x: -x[2])

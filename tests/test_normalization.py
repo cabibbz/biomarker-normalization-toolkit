@@ -1277,8 +1277,99 @@ class NormalizationTests(unittest.TestCase):
         for record in result.records:
             self.assertEqual(record.canonical_biomarker_id, expected[record.source_row_id])
 
-    def test_catalog_count_at_least_111(self) -> None:
-        self.assertGreaterEqual(len(BIOMARKER_CATALOG), 111)
+    def test_catalog_count_at_least_141(self) -> None:
+        self.assertGreaterEqual(len(BIOMARKER_CATALOG), 141)
+
+    # --- Fuzzy matching safety: blocklist prevents false positives ---
+
+    def test_fuzzy_blocklist_prevents_hemoglobin_c_to_hba1c(self) -> None:
+        """Hemoglobin C (electrophoresis variant) must NOT fuzzy-match to HbA1c."""
+        rows = [{"source_row_id": "bl1", "source_test_name": "Hemoglobin C", "raw_value": "0",
+                 "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows, fuzzy_threshold=0.85)
+        # Should NOT map to hba1c
+        self.assertNotEqual(result.records[0].canonical_biomarker_id, "hba1c")
+
+    def test_ketone_maps_as_exact_alias(self) -> None:
+        """'Ketone' should map via exact alias, not fuzzy."""
+        rows = [{"source_row_id": "k1", "source_test_name": "Ketone", "raw_value": "5",
+                 "source_unit": "mg/dL", "specimen_type": "urine", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "urine_ketones")
+        self.assertEqual(result.records[0].match_confidence, "high")
+
+    # --- Coverage: reporting module ---
+
+    def test_summary_report_generation(self) -> None:
+        from biomarker_normalization_toolkit.reporting import build_summary_report
+        rows = [
+            {"source_row_id": "rp1", "source_test_name": "Glucose", "raw_value": "100",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": "70-99 mg/dL"},
+            {"source_row_id": "rp2", "source_test_name": "Unknown", "raw_value": "42",
+             "source_unit": "U/L", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        report = build_summary_report(result)
+        self.assertIn("# Normalization Summary", report)
+        self.assertIn("Mapped: 1", report)
+        self.assertIn("Unmapped: 1", report)
+        self.assertIn("Glucose", report)
+
+    # --- Coverage: edge cases in normalizer ---
+
+    def test_empty_source_test_name_unmapped(self) -> None:
+        rows = [{"source_row_id": "e1", "source_test_name": "", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "unmapped")
+
+    def test_none_raw_value_review_needed(self) -> None:
+        rows = [{"source_row_id": "n1", "source_test_name": "Glucose", "raw_value": "",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "review_needed")
+        self.assertEqual(result.records[0].status_reason, "invalid_raw_value")
+
+    def test_csv_write_and_read_roundtrip(self) -> None:
+        import tempfile
+        from biomarker_normalization_toolkit.io_utils import write_result
+        rows = [{"source_row_id": "wr1", "source_test_name": "Glucose", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": "70-99 mg/dL"}]
+        result = normalize_rows(rows, input_file="test.csv")
+        with tempfile.TemporaryDirectory() as td:
+            json_path, csv_path = write_result(result, Path(td))
+            self.assertTrue(json_path.exists())
+            self.assertTrue(csv_path.exists())
+            # Verify JSON is valid
+            import json
+            data = json.loads(json_path.read_text(encoding="utf-8"))
+            self.assertEqual(data["summary"]["mapped"], 1)
+
+    # --- Coverage: sibling redirect edge cases ---
+
+    def test_sibling_redirect_rdw_fl_to_rdw_sd(self) -> None:
+        """RDW alias with fL unit should redirect to rdw_sd."""
+        rows = [{"source_row_id": "sr1",
+                 "source_test_name": "Erythrocyte [DistWidth] in Blood",
+                 "raw_value": "45.5", "source_unit": "fL",
+                 "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "rdw_sd")
+
+    # --- Performance sanity check ---
+
+    def test_normalize_1000_rows_under_1_second(self) -> None:
+        import time
+        rows = [{"source_row_id": str(i), "source_test_name": "Glucose", "raw_value": str(100+i%50),
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": "70-99 mg/dL"}
+                for i in range(1000)]
+        start = time.perf_counter()
+        result = normalize_rows(rows)
+        elapsed = time.perf_counter() - start
+        self.assertEqual(result.summary["mapped"], 1000)
+        self.assertLess(elapsed, 1.0, f"1000 rows took {elapsed:.2f}s, expected < 1s")
 
 
 if __name__ == "__main__":
