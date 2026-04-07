@@ -13,7 +13,7 @@ import traceback
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, Query, Request, UploadFile
+from fastapi import FastAPI, File, Header, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -21,6 +21,7 @@ from biomarker_normalization_toolkit import __version__
 from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG
 from biomarker_normalization_toolkit.fhir import build_bundle
 from biomarker_normalization_toolkit.io_utils import read_input
+from biomarker_normalization_toolkit.licensing import validate_api_key
 from biomarker_normalization_toolkit.normalizer import normalize_rows
 
 logger = logging.getLogger("bnt.api")
@@ -157,35 +158,55 @@ def normalize(
     body: dict[str, Any],
     emit_fhir: bool = Query(False, description="Include FHIR Bundle in response"),
     fuzzy_threshold: float = Query(0.0, description="Fuzzy matching threshold (0=disabled, 0.85=recommended)"),
+    x_api_key: str | None = Header(None, alias="X-API-Key"),
 ) -> JSONResponse:
+    # Validate API key and determine tier
+    license_info = validate_api_key(x_api_key)
+    features = license_info["features"]
+
     rows, error = _validate_rows(body)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
+    if len(rows) > license_info["max_rows"]:
+        return JSONResponse(status_code=400, content={
+            "error": f"Row limit exceeded. Your tier ({license_info['tier']}) allows {license_info['max_rows']} rows. Upgrade for more.",
+        })
+
+    # Gate fuzzy matching to pro tier
+    if fuzzy_threshold > 0 and not features.get("fuzzy"):
+        fuzzy_threshold = 0.0
+
     input_file = Path(str(body.get("input_file", ""))).name
     result = normalize_rows(rows, input_file=input_file, fuzzy_threshold=fuzzy_threshold)
     response = result.to_json_dict()
+    response["tier"] = license_info["tier"]
 
     if emit_fhir:
         response["fhir_bundle"] = build_bundle(result)
 
-    # Longevity intelligence (always included when data is available)
+    # Derived metrics (available on all tiers)
     from biomarker_normalization_toolkit.derived import compute_derived_metrics
-    from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges, summarize_optimal
     derived = compute_derived_metrics(result)
-    if derived:
+    if derived and features.get("derived_metrics"):
         response["derived_metrics"] = derived
-    optimal = evaluate_optimal_ranges(result)
-    if optimal:
-        response["optimal_ranges"] = summarize_optimal(optimal)
 
-    # PhenoAge if age provided
+    # Optimal ranges (pro/enterprise only)
+    if features.get("optimal_ranges"):
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges, summarize_optimal
+        optimal = evaluate_optimal_ranges(result)
+        if optimal:
+            response["optimal_ranges"] = summarize_optimal(optimal)
+
+    # PhenoAge (pro/enterprise only)
     age = body.get("chronological_age")
-    if age is not None:
+    if age is not None and features.get("phenoage"):
         from biomarker_normalization_toolkit.phenoage import compute_phenoage
         pheno = compute_phenoage(result, chronological_age=float(age))
         if pheno:
             response["phenoage"] = pheno
+    elif age is not None and not features.get("phenoage"):
+        response["phenoage"] = {"error": "PhenoAge requires Pro tier. Upgrade at https://bnt.dev/pricing"}
 
     return JSONResponse(content=response)
 
