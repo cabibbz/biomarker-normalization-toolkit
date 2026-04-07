@@ -151,7 +151,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "alt": BiomarkerDefinition(
         biomarker_id="alt",
         canonical_name="ALT",
-        loinc="1744-1",
+        loinc="1742-6",
         normalized_unit="U/L",
         allowed_specimens=_BLOOD,
         aliases=("ALT", "SGPT", "Alanine Aminotransferase", "ALT/SGPT",

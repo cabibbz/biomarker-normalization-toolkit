@@ -179,7 +179,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "rbc": {"M/uL": Decimal("1"), "10^12/L": Decimal("1")},
     "mcv": {"fL": Decimal("1")},
     "mch": {"pg": Decimal("1")},
-    "mchc": {"g/dL": Decimal("1"), "g/L": Decimal("0.1"), "%": Decimal("1")},
+    "mchc": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
     "rdw": {"%": Decimal("1")},
     # --- Wave 4: Coagulation ---
     "pt": {"sec": Decimal("1")},
@@ -295,7 +295,7 @@ def parse_reference_range(text: str, fallback_unit: str) -> RangeValue | None:
         return None
 
     match = re.match(
-        r"^\s*(?P<low>-?\d+(?:\.\d+)?)\s*(?:to|–|—|-)\s*(?P<high>-?\d+(?:\.\d+)?)\s*(?P<unit>[a-zA-Z/%μµ].*?)?\s*$",
+        r"^\s*(?P<low>-?\d+(?:\.\d+)?)\s*(?:to|–|—|-)\s*(?P<high>-?\d+(?:\.\d+)?)(?:\s+(?P<unit>\S.*))?$",
         stripped,
     )
     if not match:
