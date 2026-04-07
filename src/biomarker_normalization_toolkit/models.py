@@ -47,14 +47,14 @@ class NormalizedRecord:
     canonical_biomarker_id: str
     canonical_biomarker_name: str
     loinc: str
-    mapping_status: str
-    match_confidence: str
+    mapping_status: MappingStatus
+    match_confidence: MatchConfidence
     status_reason: str
     mapping_rule: str
     normalized_value: str
     normalized_unit: str
     normalized_reference_range: str
-    provenance: dict[str, Any]
+    provenance: dict[str, Any]  # Frozen via convention — callers must not mutate
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
@@ -120,8 +120,12 @@ class NormalizationResult:
             object.__setattr__(self, "warnings", tuple(self.warnings))
 
     def to_json_dict(self) -> dict[str, Any]:
+        import datetime
+        from biomarker_normalization_toolkit import __version__
         result: dict[str, Any] = {
-            "schema_version": "0.1.0",
+            "schema_version": "0.2.0",
+            "bnt_version": __version__,
+            "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "input_file": self.input_file,
             "summary": self.summary,
             "records": [record.to_json_dict() for record in self.records],

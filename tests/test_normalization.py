@@ -30,7 +30,12 @@ class NormalizationTests(unittest.TestCase):
         result = normalize_rows(rows, input_file=input_path.name)
 
         actual = result.to_json_dict()
+        # Strip non-deterministic fields for comparison
+        actual.pop("generated_at", None)
+        actual.pop("bnt_version", None)
         expected = json.loads(expected_path.read_text(encoding="utf-8"))
+        expected.pop("generated_at", None)
+        expected.pop("bnt_version", None)
         self.assertEqual(actual, expected)
 
     def test_unsupported_unit_requires_review(self) -> None:

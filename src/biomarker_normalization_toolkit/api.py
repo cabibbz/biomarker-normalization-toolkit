@@ -113,9 +113,11 @@ _rate_limiter = RateLimiter(max_requests=RATE_LIMIT_REQUESTS, window_seconds=RAT
 # ─── Metrics Collector ────────────────────────────────────
 
 class MetricsCollector:
-    """Simple in-memory metrics for /metrics endpoint."""
+    """Thread-safe in-memory metrics for /metrics endpoint."""
 
     def __init__(self) -> None:
+        import threading
+        self._lock = threading.Lock()
         self.request_count: int = 0
         self.error_count: int = 0
         self.total_rows_processed: int = 0
@@ -125,13 +127,14 @@ class MetricsCollector:
         self.start_time: float = time.time()
 
     def record(self, endpoint: str, status: int, latency_ms: float, rows: int = 0) -> None:
-        self.request_count += 1
-        self.endpoint_counts[endpoint] += 1
-        self.status_counts[status] += 1
-        self.total_latency_ms += latency_ms
-        self.total_rows_processed += rows
-        if status >= 400:
-            self.error_count += 1
+        with self._lock:
+            self.request_count += 1
+            self.endpoint_counts[endpoint] += 1
+            self.status_counts[status] += 1
+            self.total_latency_ms += latency_ms
+            self.total_rows_processed += rows
+            if status >= 400:
+                self.error_count += 1
 
     def to_dict(self) -> dict[str, Any]:
         uptime = time.time() - self.start_time

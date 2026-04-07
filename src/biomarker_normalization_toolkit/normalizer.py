@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from pathlib import Path
 
 from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, BIOMARKER_CATALOG, normalize_key, normalize_specimen
@@ -7,6 +8,8 @@ from biomarker_normalization_toolkit.models import NormalizationResult, Normaliz
 from biomarker_normalization_toolkit.plausibility import check_plausibility
 from biomarker_normalization_toolkit.units import convert_to_normalized, format_decimal, format_range, is_inequality_value, normalize_unit, parse_decimal, parse_reference_range
 
+# Keys from source input that are safe to include in provenance output.
+# Prevents arbitrary/sensitive fields from leaking into normalized records.
 _SAFE_RAW_SOURCE_KEYS = frozenset({
     "source_row_id", "source_test_name", "raw_value", "source_unit",
     "specimen_type", "source_reference_range", "source_lab_name", "source_panel_name",
@@ -251,7 +254,6 @@ def normalize_rows(rows: list[dict[str, str]], input_file: str = "", fuzzy_thres
     # Plausibility checks on mapped records
     for record in normalized_records:
         if record.mapping_status == "mapped" and record.normalized_value:
-            from decimal import Decimal
             try:
                 val = Decimal(record.normalized_value)
             except Exception:
@@ -277,6 +279,6 @@ def normalize_rows(rows: list[dict[str, str]], input_file: str = "", fuzzy_thres
         input_file=Path(input_file).name if input_file else "",
         summary=summary,
         records=normalized_records,
-        warnings=warnings,
+        warnings=tuple(warnings),
     )
 

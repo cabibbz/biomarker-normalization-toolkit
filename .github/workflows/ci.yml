@@ -24,10 +24,13 @@ jobs:
       - name: Install package
         run: |
           pip install --no-cache-dir -e ".[all]"
-          pip install pytest
+          pip install pytest httpx
 
-      - name: Run tests
+      - name: Run normalization tests
         run: pytest tests/test_normalization.py -v
+
+      - name: Run API tests
+        run: pytest tests/test_api.py -v
 
       - name: Verify CLI
         run: |

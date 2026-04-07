@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.3.0 (Unreleased)
+
+### Added
+- **183 biomarkers** (from 75): longevity panel, hormones, heavy metals, advanced lipids, cytokines, aging markers
+- **PhenoAge biological age** (Levine 2018) from 9 standard biomarkers
+- **Optimal longevity ranges** for 68 biomarkers (Attia/Function Health evidence-based)
+- **12 derived metrics**: HOMA-IR, TG/HDL, ApoB/ApoA1, NLR, AIP, De Ritis, FIB-4, TyG, UIBC
+- **Longitudinal tracking**: before/after comparison with deltas, trends, velocity
+- **Fuzzy matching** with medical safety blocklist (opt-in `--fuzzy-threshold`)
+- **Smart sibling unit redirect**: "Neutrophils" with "%" auto-routes to neutrophils_pct
+- **Plausibility checks** calibrated on 4.65M real rows (zero false positives)
+- **API licensing**: free/pro/enterprise tiers with biomarker and feature gating
+- **10 API endpoints** with /v1/ versioning, rate limiting, Prometheus /metrics
+- **LOINC code lookup**: test names that are LOINC codes resolve directly
+- **BSL 1.1 license**, medical disclaimer, release automation
+- **Docker**: multi-stage build, non-root user, healthcheck
+- JSON output includes `bnt_version`, `generated_at`, `schema_version: 0.2.0`
+
+### Fixed
+- PhenoAge glucose formula (was /18, now ln(glucose) per Levine 2018)
+- Upload endpoint bypassed licensing tier gate
+- API key timing attack (hmac.compare_digest)
+- HL7 specimen leak, UCUM round-trip, European decimals, FHIR effectiveDateTime
+- Sibling redirect now marked (confidence=medium, reason=sibling_unit_redirect)
+- Content-length crash, CORS wildcard default, rate limiter memory
+
+### Validated
+- 4.65M rows across 20+ datasets (NHANES 11 cycles, MIMIC-IV, eICU, Synthea, HAPI FHIR, Cerner)
+- Lab-only mapping rate: 99.9%
+- Quality audit: 10/10, API rating: 9.7/10
+
 ## 0.2.1
 
 ### Critical Bug Fixes

@@ -6,11 +6,14 @@ Falls back gracefully to empty results when rapidfuzz is not installed.
 
 from __future__ import annotations
 
+import threading
+
 from biomarker_normalization_toolkit.catalog import ALIAS_INDEX
 
 _ALIAS_CHOICES: list[str] = []
 _ALIAS_BIO_IDS: list[list[str]] = []
 _BUILT = False
+_LOCK = threading.Lock()
 
 # Known false-positive pairs: (query_substring, biomarker_id) that should never fuzzy-match.
 # These are semantically distinct tests that happen to have similar names.
@@ -41,12 +44,13 @@ _QUERY_BLOCKLIST_PATTERNS: list[str] = [
 
 def _build_index() -> None:
     global _BUILT
-    if _BUILT:
-        return
-    for alias_key, bio_ids in ALIAS_INDEX.items():
-        _ALIAS_CHOICES.append(alias_key)
-        _ALIAS_BIO_IDS.append(bio_ids)
-    _BUILT = True
+    with _LOCK:
+        if _BUILT:
+            return
+        for alias_key, bio_ids in ALIAS_INDEX.items():
+            _ALIAS_CHOICES.append(alias_key)
+            _ALIAS_BIO_IDS.append(bio_ids)
+        _BUILT = True
 
 
 def fuzzy_match(query: str, threshold: float = 0.70) -> list[tuple[str, str, float]]:
@@ -79,8 +83,12 @@ def fuzzy_match(query: str, threshold: float = 0.70) -> list[tuple[str, str, flo
     out: list[tuple[str, str, float]] = []
     for match_str, score, idx in results:
         for bio_id in _ALIAS_BIO_IDS[idx]:
-            # Check blocklist
-            if (query, bio_id) in _BLOCKLIST:
+            # Check blocklist (substring matching — blocks "hemoglobin c disease" → hba1c)
+            blocked = any(
+                substr in query and bio_id == blocked_bio
+                for substr, blocked_bio in _BLOCKLIST
+            )
+            if blocked:
                 continue
             out.append((match_str, bio_id, score / 100.0))
     return sorted(out, key=lambda x: -x[2])

@@ -6,6 +6,7 @@ All formulas are published, peer-reviewed, and widely used in clinical practice.
 
 from __future__ import annotations
 
+import math
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
@@ -81,7 +82,7 @@ def compute_derived_metrics(result: NormalizationResult) -> dict[str, Any]:
 
     if tg and glucose and tg > 0 and glucose > 0:
         # TyG Index: ln(TG[mg/dL] * Glucose[mg/dL] / 2)
-        import math
+
         tyg = Decimal(str(math.log(float(tg * glucose / Decimal("2")))))
         metrics["tyg_index"] = {
             "name": "TyG Index",
@@ -144,7 +145,7 @@ def compute_derived_metrics(result: NormalizationResult) -> dict[str, Any]:
         }
 
     if tg and hdl and hdl > 0:
-        import math
+
         # AIP = log10(TG/HDL) in mmol/L
         tg_mmol = tg / Decimal("88.57")
         hdl_mmol = hdl / Decimal("38.67")
@@ -175,12 +176,12 @@ def compute_derived_metrics(result: NormalizationResult) -> dict[str, Any]:
         }
 
     if ast and alt and platelets and platelets > 0 and alt > 0:
-        import math
+
         # FIB-4 requires age — we don't have it, but include formula without age
-        fib4_partial = (ast / (platelets * Decimal(str(math.sqrt(float(alt))))))
-        metrics["fib4_partial"] = {
+        fib4_no_age = (ast / (platelets * Decimal(str(math.sqrt(float(alt))))))
+        metrics["fib4_no_age"] = {
             "name": "FIB-4 Index (age-adjusted)",
-            "value": _fmt(fib4_partial, 3),
+            "value": _fmt(fib4_no_age, 3),
             "formula": "(Age x AST) / (Platelets x sqrt(ALT)) — multiply by patient age",
             "inputs": {"ast": str(ast), "alt": str(alt), "platelets": str(platelets)},
             "unit": "",
