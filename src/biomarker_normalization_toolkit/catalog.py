@@ -445,7 +445,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="21000-5",
         normalized_unit="fL",
         allowed_specimens=_WHOLE_BLOOD,
-        aliases=("RDW-SD",
+        aliases=("RDW-SD", "RDW SD", "RDW Standard Deviation",
                  "Erythrocyte distribution width [Entitic volume] in Blood by Automated count"),
     ),
     "mpv": BiomarkerDefinition(
@@ -584,7 +584,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="3084-1",
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
-        aliases=("Uric Acid", "Urate"),
+        aliases=("Uric Acid", "Urate", "Uric Acid, Serum",
+                 "Urate [Mass/volume] in Serum or Plasma"),
     ),
     # --- Wave 6: Enzymes ---
     "ldh": BiomarkerDefinition(
@@ -603,7 +604,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="3040-3",
         normalized_unit="U/L",
         allowed_specimens=_BLOOD,
-        aliases=("Lipase",),
+        aliases=("Lipase", "Serum Lipase", "Lipase, Serum",
+                 "Lipase [Enzymatic activity/volume] in Serum or Plasma"),
     ),
     "ck": BiomarkerDefinition(
         biomarker_id="ck",
@@ -670,7 +672,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="10834-0",
         normalized_unit="g/dL",
         allowed_specimens=_BLOOD,
-        aliases=("Globulin", "Globulin [Mass/volume] in Serum by calculation"),
+        aliases=("Globulin", "Serum Globulin", "Total Globulin",
+                 "Globulin [Mass/volume] in Serum by calculation"),
     ),
     "ionized_calcium": BiomarkerDefinition(
         biomarker_id="ionized_calcium",
@@ -694,7 +697,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="27353-2",
         normalized_unit="mg/dL",
         allowed_specimens=_WHOLE_BLOOD,
-        aliases=("eAG", "Estimated Average Glucose"),
+        aliases=("eAG", "Estimated Average Glucose", "Estimated Avg Glucose", "EAG"),
     ),
     "blood_ph": BiomarkerDefinition(
         biomarker_id="blood_ph",
@@ -1854,7 +1857,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2897-7",
         normalized_unit="ng/dL",
         allowed_specimens=_BLOOD,
-        aliases=("Pregnenolone", "Pregnenolone, Serum"),
+        aliases=("Pregnenolone", "Pregnenolone, Serum", "Serum Pregnenolone",
+                 "Pregnenolone [Mass/volume] in Serum or Plasma"),
     ),
     "glycomark": BiomarkerDefinition(
         biomarker_id="glycomark",
@@ -1878,7 +1882,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2015-6",
         normalized_unit="pg/mL",
         allowed_specimens=_BLOOD,
-        aliases=("Estrone", "E1"),
+        aliases=("Estrone", "E1", "Estrone, Serum",
+                 "Estrone [Mass/volume] in Serum or Plasma"),
     ),
     "cortisol_free": BiomarkerDefinition(
         biomarker_id="cortisol_free",
