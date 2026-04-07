@@ -462,7 +462,7 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
             warnings=result.warnings,
         )
 
-    _metrics.record("normalize_rows", 200, 0, rows=len(rows))  # Track via thread-safe method
+    # Row count tracked via middleware record() call — no double-counting
     response = result.to_json_dict()
     response["tier"] = license_info["tier"]
     if emit_fhir:
@@ -656,6 +656,9 @@ def phenoage_endpoint(body: PhenoAgeRequest,
                       x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
     """Compute PhenoAge biological age. Requires 9 biomarkers + chronological_age."""
     license_info = _get_license(x_api_key)
+    rejection = _check_key_validity(license_info, x_api_key)
+    if rejection:
+        return rejection
     if not license_info["features"].get("phenoage"):
         return JSONResponse(status_code=403, content={"error": "PhenoAge requires Pro tier."})
     rows, error = _validate_rows(body.model_dump())
@@ -676,11 +679,17 @@ def optimal_ranges_endpoint(body: NormalizeRequest,
                             x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
     """Evaluate biomarker values against longevity-optimal ranges."""
     license_info = _get_license(x_api_key)
+    rejection = _check_key_validity(license_info, x_api_key)
+    if rejection:
+        return rejection
     if not license_info["features"].get("optimal_ranges"):
         return JSONResponse(status_code=403, content={"error": "Optimal ranges require Pro tier."})
     rows, error = _validate_rows(body.model_dump())
     if error:
         return JSONResponse(status_code=400, content={"error": error})
+    if len(rows) > license_info["max_rows"]:
+        return JSONResponse(status_code=400, content={
+            "error": f"Row limit exceeded ({license_info['tier']} tier: {license_info['max_rows']} max)."})
     result = normalize_rows(rows)
     return JSONResponse(content=summarize_optimal(evaluate_optimal_ranges(result)))
 
@@ -692,6 +701,9 @@ def compare_endpoint(body: CompareRequest,
                      x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
     """Compare before/after lab results for longitudinal tracking."""
     license_info = _get_license(x_api_key)
+    rejection = _check_key_validity(license_info, x_api_key)
+    if rejection:
+        return rejection
     if not license_info["features"].get("optimal_ranges"):
         return JSONResponse(status_code=403, content={"error": "Longitudinal tracking requires Pro tier."})
     before_rows = body.before.get("rows", [])

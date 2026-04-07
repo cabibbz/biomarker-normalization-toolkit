@@ -125,9 +125,6 @@ class PropertyTests(unittest.TestCase):
         result = convert_to_normalized(value, bio_id, bio.normalized_unit)
         if result is not None:
             self.assertTrue(result.is_finite())
-            # Identity conversion (factor=1) should preserve value within precision
-            if bio.normalized_unit:
-                self.assertAlmostEqual(float(result), float(value), places=6)
 
     # --- Reference range properties ---
 

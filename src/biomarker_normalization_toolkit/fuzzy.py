@@ -83,9 +83,9 @@ def fuzzy_match(query: str, threshold: float = 0.70) -> list[tuple[str, str, flo
     out: list[tuple[str, str, float]] = []
     for match_str, score, idx in results:
         for bio_id in _ALIAS_BIO_IDS[idx]:
-            # Check blocklist (substring matching — blocks "hemoglobin c disease" → hba1c)
+            # Check blocklist (case-insensitive substring matching)
             blocked = any(
-                substr in query and bio_id == blocked_bio
+                substr in query.lower() and bio_id == blocked_bio
                 for substr, blocked_bio in _BLOCKLIST
             )
             if blocked:

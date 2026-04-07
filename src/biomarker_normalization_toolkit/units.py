@@ -379,7 +379,8 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "t4_total": {"ug/dL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("12.87")},
     "complement_c3": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "complement_c4": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
-    "ammonia": {"umol/L": Decimal("1"), "ug/dL": Decimal("1") / Decimal("0.5872")},
+    # Ammonia: 1 ug/dL = 0.5872 umol/L (MW 17.031, factor = 10/17.031)
+    "ammonia": {"umol/L": Decimal("1"), "ug/dL": Decimal("0.5872")},
     # --- Wave 11: Longevity-essential ---
     "igf1": {"ng/mL": Decimal("1")},
     "cystatin_c": {"mg/L": Decimal("1"), "nmol/L": Decimal("1") / Decimal("75.19")},
@@ -412,7 +413,8 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "il6": {"pg/mL": Decimal("1")},
     "tnf_alpha": {"pg/mL": Decimal("1")},
     "leptin": {"ng/mL": Decimal("1")},
-    "c_peptide": {"ng/mL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("3.021")},
+    # C-peptide: 1 nmol/L = 3.021 ng/mL (MW 3020, 1 ng/mL = 0.331 nmol/L)
+    "c_peptide": {"ng/mL": Decimal("1"), "nmol/L": Decimal("3.021")},
     "prolactin": {"ng/mL": Decimal("1"), "mIU/L": Decimal("1") / Decimal("21.2")},
     "free_psa": {"ng/mL": Decimal("1")},
     "psa_free_pct": {"%": Decimal("1")},
