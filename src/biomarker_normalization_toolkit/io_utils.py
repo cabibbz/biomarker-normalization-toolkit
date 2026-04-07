@@ -444,9 +444,20 @@ def read_excel_input(path: Path) -> list[dict[str, str]]:
     return rows
 
 
+def _detect_csv_dialect(path: Path) -> csv.Dialect | None:
+    """Auto-detect CSV delimiter by sniffing the first line."""
+    with path.open("r", encoding="utf-8-sig") as f:
+        sample = f.read(4096)
+    try:
+        return csv.Sniffer().sniff(sample, delimiters=",;\t|")
+    except csv.Error:
+        return None
+
+
 def read_input_csv(path: Path) -> list[dict[str, str]]:
+    dialect = _detect_csv_dialect(path)
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
+        reader = csv.DictReader(handle, dialect=dialect) if dialect else csv.DictReader(handle)
         if reader.fieldnames is None:
             raise ValueError("Input CSV has no header row.")
 
