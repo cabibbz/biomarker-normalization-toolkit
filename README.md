@@ -12,6 +12,10 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 - Assigns LOINC codes
 - Preserves full provenance (original values always kept alongside normalized output)
 - Flags ambiguous or unknown tests as `review_needed` / `unmapped` — never guesses
+- Optional fuzzy matching for typos/misspellings (with medical safety guards)
+- Physiological plausibility checks (warns on likely data entry errors)
+- LOINC code lookup (resolves test names that are LOINC codes)
+- Smart unit redirect (e.g., "Neutrophils" with % unit auto-redirects to percentage biomarker)
 
 ## What It Does NOT Do
 
@@ -21,28 +25,32 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ## Coverage
 
-71 biomarkers across major preventive health, inpatient, and urinalysis panels:
+141 biomarkers across preventive health, inpatient, longevity, and specialty panels:
 
 | Panel | Biomarkers |
 |-------|-----------|
-| Metabolic | Glucose, HbA1c, BUN, Calcium, Ionized Calcium, Phosphate, Uric Acid |
-| Lipid | Total Cholesterol, LDL, HDL, Triglycerides |
-| Renal | Creatinine (serum + urine), eGFR |
-| Liver | ALT, AST, ALP, Bilirubin, Albumin, LDH, Globulin |
-| Thyroid | TSH, Free T4 |
-| Inflammation | hs-CRP |
-| CBC | WBC, RBC, Hemoglobin, Hematocrit, Platelets, MCV, MCH, MCHC, RDW, RDW-SD, MPV, PDW |
-| WBC Differential | Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils |
-| Coagulation | PT, INR, PTT |
+| Metabolic | Glucose, HbA1c, BUN, Calcium, Ionized Calcium, Phosphate, Uric Acid, Insulin, Homocysteine, Ammonia |
+| Lipid | Total Cholesterol, LDL, HDL, Triglycerides, ApoB, Lp(a), Non-HDL Cholesterol, Chol/HDL Ratio |
+| Renal | Creatinine (serum + urine), eGFR, BUN/Creatinine Ratio, Osmolality, Urine Albumin, ACR |
+| Liver | ALT, AST, ALP, GGT, Total/Direct/Indirect Bilirubin, Albumin, A/G Ratio, LDH, Globulin, Amylase, Lipase |
+| Thyroid | TSH, Free T4, T3 Total, T4 Total |
+| Hormones | DHEA-S, Estradiol, LH, FSH, Testosterone (total/free/bioavailable), SHBG, Cortisol, PTH |
+| Inflammation | hs-CRP, CRP, ESR, Procalcitonin |
+| CBC | WBC, RBC, Hemoglobin, Hematocrit, Platelets, MCV, MCH, MCHC, RDW, RDW-SD, MPV, PDW, Reticulocytes |
+| WBC Differential | Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils (absolute + percentage) |
+| ICU Hematology | Bands, Immature Granulocytes, Nucleated RBC |
+| Coagulation | PT, INR, PTT, Fibrinogen, D-Dimer |
+| Cardiac | Troponin T, Troponin I, BNP, NT-proBNP, CK, CK-MB |
 | Electrolytes | Sodium, Potassium, Chloride, Bicarbonate |
-| Vitamins | D, B12, Folate |
-| Minerals | Iron, Ferritin, Magnesium |
-| Cardiac | Troponin T, CK, CK-MB |
-| Blood Gas | pO2, pCO2, Base Excess, Oxygen Saturation |
-| Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin |
-| Other | Anion Gap, Lactate, Lipase, Total Protein |
+| Vitamins | D (25-OH), B12, Folate |
+| Minerals | Iron, Ferritin, TIBC, Transferrin, Transferrin Saturation, Magnesium |
+| Immunology | IgA, IgG, IgM, Complement C3, C4, Haptoglobin |
+| Blood Gas | pH, pO2, pCO2, Base Excess, Oxygen Saturation, Lactate |
+| Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin, Blood, Nitrite, Leukocyte Esterase, Urobilinogen, RBC, WBC |
+| Cancer Screening | PSA |
+| Urine Chemistry | Sodium, Potassium, Chloride, BUN, Albumin, Total Protein, Osmolality, Creatinine |
 
-84.7% combined mapping rate tested against 128K real-world lab events from MIMIC-IV and Synthea.
+**95.8% combined mapping rate** tested against 124K real-world lab events from MIMIC-IV (94.8%) and Synthea (99.0%). 100% on simulated Quest/LabCorp longevity panel data.
 
 ## Input Formats
 
@@ -62,10 +70,30 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 ## Quick Start
 
 ```bash
-pip install -e .
-bnt status
-bnt catalog
-bnt demo --output-dir demo_out
+pip install biomarker-normalization-toolkit
+bnt status       # Shows 141 biomarkers, supported formats
+bnt catalog      # Lists all biomarkers with LOINC codes
+bnt demo --output-dir demo_out  # Run on bundled sample data
+```
+
+### Python API
+
+```python
+from biomarker_normalization_toolkit import normalize, normalize_file
+
+# Normalize a list of rows
+result = normalize([
+    {"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL",
+     "specimen_type": "serum", "source_row_id": "1", "source_reference_range": "70-99 mg/dL"},
+])
+for record in result.records:
+    print(record.canonical_biomarker_name, record.normalized_value, record.normalized_unit)
+
+# Normalize a file (CSV, FHIR, HL7, C-CDA, or Excel — auto-detected)
+result = normalize_file("labs.csv")
+
+# Enable fuzzy matching for typo tolerance
+result = normalize_file("labs.csv", fuzzy_threshold=0.85)
 ```
 
 ## Usage
@@ -94,6 +122,9 @@ bnt normalize --input labs.csv --output-dir out --aliases custom_aliases.json
 
 # Normalize with FHIR output
 bnt normalize --input labs.csv --output-dir out --emit-fhir
+
+# Enable fuzzy matching (recommended: 0.85 threshold)
+bnt normalize --input labs.csv --output-dir out --fuzzy-threshold 0.85
 
 # Show all supported biomarkers
 bnt catalog
@@ -146,8 +177,15 @@ open http://localhost:8000/docs
 
 ```bash
 docker build -t bnt .
-docker run -p 8000:8000 bnt serve
+
+# Run API server
+docker run -p 8000:8000 bnt serve --host 0.0.0.0
+
+# Normalize a local file
 docker run -v /path/to/data:/data bnt normalize --input /data/labs.csv --output-dir /data/out
+
+# Batch process a directory
+docker run -v /path/to/data:/data bnt batch --input-dir /data/labs --output-dir /data/normalized --emit-fhir
 ```
 
 ## Output Schema
@@ -161,8 +199,36 @@ Each normalized record contains:
 | `canonical_biomarker_name` | Human-readable name (e.g., `Glucose`) |
 | `loinc` | LOINC code |
 | `mapping_status` | `mapped`, `review_needed`, or `unmapped` |
+| `match_confidence` | `high` (exact), `medium` (fuzzy), `low`, or `none` |
 | `status_reason` | Why the row was mapped/flagged |
 | `raw_value` | Original value |
 | `normalized_value` | Converted value in canonical unit |
 | `normalized_unit` | Canonical unit |
 | `provenance` | Full source traceability |
+
+## Custom Aliases
+
+When your lab uses test names not in the built-in catalog, create a JSON alias file:
+
+```json
+{
+  "glucose_serum": ["Blood Sugar Level", "Gluc Fasting", "FBG"],
+  "hba1c": ["Glycated Hemoglobin A1C", "A1C Panel"],
+  "ldl_cholesterol": ["LDL Direct", "LDL-C Direct"]
+}
+```
+
+Then pass it with `--aliases`:
+
+```bash
+bnt normalize --input labs.csv --output-dir out --aliases my_aliases.json
+```
+
+Use `bnt analyze --input labs.csv` to find which test names are unmapped and need aliases.
+
+## Performance
+
+- **37,000 rows/sec** on standard hardware (without fuzzy matching)
+- **33,000 rows/sec** with fuzzy matching enabled
+- Tested on 124K real-world lab events (MIMIC-IV + Synthea)
+- Zero false-positive plausibility warnings across 124K rows
