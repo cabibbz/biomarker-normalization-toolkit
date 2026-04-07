@@ -4,11 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "biomarker-normalization-toolkit"
-version = "0.1.0"
-description = "Customer-run toolkit for biomarker normalization and canonical output."
+version = "0.2.0"
+description = "Customer-run toolkit that normalizes messy lab data into canonical machine-readable output."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
+
+[project.optional-dependencies]
+excel = ["openpyxl>=3.1"]
+fhir-validation = ["fhir.resources"]
+all = ["openpyxl>=3.1", "fhir.resources"]
 
 [project.scripts]
 bnt = "biomarker_normalization_toolkit.cli:main"
