@@ -70,10 +70,14 @@ UNIT_SYNONYMS = {
     "ml/min": "mL/min",
     "ph": "pH",
     "units": "units",
+    "{nominal}": "",
+    "{sg}": "",
+    "[ph]": "pH",
     "mmhg": "mmHg",
     "mm hg": "mmHg",
     "mm[hg]": "mmHg",
     "#/ul": "#/uL",
+    "cells/ul": "#/uL",
 }
 
 
@@ -143,7 +147,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
         "mg/dL": Decimal("10"),
     },
     # --- Wave 2: CBC ---
-    "wbc": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
+    "wbc": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
     "hemoglobin": {
         "g/dL": Decimal("1"),
         "g/L": Decimal("0.1"),
@@ -152,7 +156,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
         "%": Decimal("1"),
         "L/L": Decimal("100"),
     },
-    "platelets": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
+    "platelets": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
     # --- Wave 3: Vitamins ---
     "vitamin_d": {
         "ng/mL": Decimal("1"),
@@ -177,7 +181,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
         "mmol/L": Decimal("2.431"),
     },
     # --- Wave 4: CBC sub-components ---
-    "rbc": {"M/uL": Decimal("1"), "10^12/L": Decimal("1")},
+    "rbc": {"M/uL": Decimal("1"), "10^12/L": Decimal("1"), "#/uL": Decimal("0.000001")},
     "mcv": {"fL": Decimal("1")},
     "mch": {"pg": Decimal("1")},
     "mchc": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
@@ -207,11 +211,11 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
         "umol/L": Decimal("1") / Decimal("59.48"),
     },
     # --- Wave 5: WBC differentials ---
-    "neutrophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
-    "lymphocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
-    "monocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
-    "eosinophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
-    "basophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1")},
+    "neutrophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "lymphocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "monocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "eosinophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "basophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
     # --- Wave 5: Other ---
     "total_protein": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
     "rdw_sd": {"fL": Decimal("1")},
