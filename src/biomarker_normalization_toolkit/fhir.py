@@ -134,7 +134,7 @@ def build_observation(record: NormalizedRecord, input_file: str = "", effective_
             ],
             "text": record.canonical_biomarker_name,
         },
-        "effectiveDateTime": effective_datetime or "1970-01-01T00:00:00Z",
+        **({"effectiveDateTime": effective_datetime} if effective_datetime else {}),
         "valueQuantity": _build_value_quantity(record),
         "note": [
             {

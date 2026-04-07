@@ -1599,15 +1599,18 @@ class NormalizationTests(unittest.TestCase):
 
     # --- FHIR effectiveDateTime ---
 
-    def test_fhir_observation_has_effective_datetime(self) -> None:
+    def test_fhir_observation_effective_datetime(self) -> None:
         from biomarker_normalization_toolkit.fhir import build_observation
         from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_source_record
         rows = [{"source_row_id": "dt1", "source_test_name": "TSH", "raw_value": "2.5",
                  "source_unit": "mIU/L", "specimen_type": "", "source_reference_range": ""}]
         record = normalize_source_record(build_source_records(rows)[0])
+        # Without datetime param: field is omitted (not fake epoch)
         obs = build_observation(record)
-        self.assertIsNotNone(obs)
-        self.assertIn("effectiveDateTime", obs)
+        self.assertNotIn("effectiveDateTime", obs)
+        # With datetime param: field is included
+        obs2 = build_observation(record, effective_datetime="2024-01-15T10:00:00Z")
+        self.assertEqual(obs2["effectiveDateTime"], "2024-01-15T10:00:00Z")
 
     # --- Startup validation ---
 

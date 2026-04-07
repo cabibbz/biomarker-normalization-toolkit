@@ -89,33 +89,32 @@ class PhenoAgeRequest(BaseModel):
 # ─── Rate Limiter ─────────────────────────────────────────
 
 class RateLimiter:
-    """In-memory sliding window rate limiter per API key with bounded memory."""
+    """Thread-safe in-memory sliding window rate limiter per API key."""
 
-    MAX_KEYS = 10_000  # Prevent unbounded growth from unique key flooding
+    MAX_KEYS = 10_000
 
     def __init__(self, max_requests: int = 60, window_seconds: int = 60):
+        import threading
         self.max_requests = max_requests
         self.window = window_seconds
         self._requests: dict[str, list[float]] = defaultdict(list)
+        self._lock = threading.Lock()
 
     def check(self, key: str) -> tuple[bool, int]:
-        """Returns (allowed, remaining). Cleans expired entries."""
         now = time.time()
         cutoff = now - self.window
-
-        # Periodic cleanup: evict stale keys when approaching limit
-        if len(self._requests) > self.MAX_KEYS:
-            stale = [k for k, v in self._requests.items() if not v or v[-1] < cutoff]
-            for k in stale:
-                del self._requests[k]
-
-        entries = self._requests[key]
-        self._requests[key] = [t for t in entries if t > cutoff]
-        entries = self._requests[key]
-        if len(entries) >= self.max_requests:
-            return False, 0
-        entries.append(now)
-        return True, self.max_requests - len(entries)
+        with self._lock:
+            if len(self._requests) > self.MAX_KEYS:
+                stale = [k for k, v in self._requests.items() if not v or v[-1] < cutoff]
+                for k in stale:
+                    del self._requests[k]
+            entries = self._requests[key]
+            self._requests[key] = [t for t in entries if t > cutoff]
+            entries = self._requests[key]
+            if len(entries) >= self.max_requests:
+                return False, 0
+            entries.append(now)
+            return True, self.max_requests - len(entries)
 
 
 _rate_limiter = RateLimiter(max_requests=RATE_LIMIT_REQUESTS, window_seconds=RATE_LIMIT_WINDOW)
@@ -463,7 +462,7 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
             warnings=result.warnings,
         )
 
-    _metrics.total_rows_processed += len(rows)
+    _metrics.record("normalize_rows", 200, 0, rows=len(rows))  # Track via thread-safe method
     response = result.to_json_dict()
     response["tier"] = license_info["tier"]
     if emit_fhir:

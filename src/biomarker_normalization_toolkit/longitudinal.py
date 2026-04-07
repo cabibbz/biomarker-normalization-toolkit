@@ -97,7 +97,7 @@ def compare_results(
             "before": str(old),
             "after": str(new),
             "absolute_delta": str(abs_delta),
-            "percent_delta": round(pct_delta, 1),
+            "percent_delta": round(pct_delta, 1) if pct_delta is not None else None,
             "direction": direction,
         }
 
