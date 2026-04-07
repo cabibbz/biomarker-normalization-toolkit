@@ -212,7 +212,7 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "acth":                 (Decimal("0"),    Decimal("500")),
     "pregnenolone":         (Decimal("0"),    Decimal("1000")),
     "glycomark":            (Decimal("1"),    Decimal("50")),
-    "coq10":                (Decimal("0.1"),  Decimal("5")),
+    "coq10":                (Decimal("0.1"),  Decimal("15")),  # Supplemented patients reach 5-10+
     "estrone":              (Decimal("0"),    Decimal("500")),
     "cortisol_free":        (Decimal("0"),    Decimal("10")),
     "igfbp3":               (Decimal("500"),  Decimal("10000")),

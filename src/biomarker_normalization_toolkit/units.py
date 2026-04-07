@@ -325,10 +325,12 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "albumin_globulin_ratio": {"ratio": Decimal("1"), "": Decimal("1")},
     "dhea_s": {"ug/dL": Decimal("1"), "umol/L": Decimal("1") / Decimal("0.02714")},
     "estradiol": {"pg/mL": Decimal("1"), "pmol/L": Decimal("1") / Decimal("3.671")},
-    "lh": {"mIU/mL": Decimal("1"), "mIU/L": Decimal("1"), "IU/L": Decimal("1")},
-    "fsh": {"mIU/mL": Decimal("1"), "mIU/L": Decimal("1"), "IU/L": Decimal("1")},
+    # LH/FSH: normalized to mIU/mL. 1 IU/L = 1 mIU/mL. 1 mIU/L = 0.001 mIU/mL.
+    "lh": {"mIU/mL": Decimal("1"), "mIU/L": Decimal("0.001"), "IU/L": Decimal("1")},
+    "fsh": {"mIU/mL": Decimal("1"), "mIU/L": Decimal("0.001"), "IU/L": Decimal("1")},
     "homocysteine": {"umol/L": Decimal("1")},
-    "insulin": {"uIU/mL": Decimal("1"), "mIU/L": Decimal("1"), "mIU/mL": Decimal("1"), "pmol/L": Decimal("1") / Decimal("6.945")},
+    # Insulin: normalized to uIU/mL. 1 mIU/L = 1 uIU/mL. 1 mIU/mL = 1000 uIU/mL.
+    "insulin": {"uIU/mL": Decimal("1"), "mIU/L": Decimal("1"), "mIU/mL": Decimal("1000"), "pmol/L": Decimal("1") / Decimal("6.945")},
     "tibc": {"ug/dL": Decimal("1"), "umol/L": Decimal("5.585")},
     "transferrin_saturation": {"%": Decimal("1")},
     "lpa": {"nmol/L": Decimal("1"), "mg/dL": Decimal("1") / Decimal("0.4167")},
@@ -361,11 +363,12 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "igm": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "reticulocyte_absolute": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "M/uL": Decimal("1000")},
     # --- Wave 10: ICU + urine chemistry + endocrine ---
-    # Bands/IG/NRBC accept both absolute and % — many labs report only as percentage.
-    # When unit is %, the value IS the percentage (not convertible to K/uL without total WBC).
-    "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "%": Decimal("1")},
-    "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "%": Decimal("1")},
-    "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000"), "%": Decimal("1")},
+    # Bands/IG/NRBC: absolute counts only. Percentage values are dimensionally
+    # incompatible (cannot convert % to K/uL without total WBC count).
+    # % inputs will get status="review_needed" with reason="unsupported_unit_for_biomarker".
+    "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000")},
     "osmolality_urine": {"mOsm/kg": Decimal("1")},
     "sodium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     "potassium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},

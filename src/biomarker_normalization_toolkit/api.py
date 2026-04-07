@@ -176,8 +176,8 @@ class MetricsCollector:
         lines.append(f"# TYPE bnt_avg_latency_ms gauge")
         lines.append(f"bnt_avg_latency_ms {avg:.2f}")
         for ep, count in self.endpoint_counts.items():
-            safe_ep = ep.replace("/", "_").strip("_")
-            lines.append(f'bnt_endpoint_requests{{endpoint="{ep}"}} {count}')
+            safe_ep = ep.replace("/", "_").strip("_").replace('"', '').replace("\n", "")
+            lines.append(f'bnt_endpoint_requests{{endpoint="{safe_ep}"}} {count}')
         return "\n".join(lines) + "\n"
 
 
@@ -615,9 +615,15 @@ def _build_analysis(result: Any) -> dict[str, Any]:
 @app.post("/analyze")
 def analyze(body: NormalizeRequest, x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
     license_info = _get_license(x_api_key)
+    rejection = _check_key_validity(license_info, x_api_key)
+    if rejection:
+        return rejection
     rows, error = _validate_rows(body.model_dump())
     if error:
         return JSONResponse(status_code=400, content={"error": error})
+    if len(rows) > license_info["max_rows"]:
+        return JSONResponse(status_code=400, content={
+            "error": f"Row limit exceeded ({license_info['tier']} tier: {license_info['max_rows']} max)."})
     result = normalize_rows(rows, input_file=Path(body.input_file).name if body.input_file else "")
     response = _build_analysis(result)
     response["tier"] = license_info["tier"]

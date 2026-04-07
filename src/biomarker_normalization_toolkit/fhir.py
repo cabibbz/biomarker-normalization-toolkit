@@ -180,7 +180,6 @@ def build_bundle(result: NormalizationResult) -> dict:
     return {
         "resourceType": "Bundle",
         "type": "collection",
-        "total": len(entries),
         "meta": {"profile": ["http://hl7.org/fhir/StructureDefinition/Bundle"]},
         "identifier": {
             "system": "urn:input-file",

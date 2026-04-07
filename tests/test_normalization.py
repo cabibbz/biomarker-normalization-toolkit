@@ -927,14 +927,16 @@ class NormalizationTests(unittest.TestCase):
 
     # --- Scrutiny pass: FHIR bundle includes total (Fix #7) ---
 
-    def test_fhir_bundle_has_total(self) -> None:
+    def test_fhir_bundle_structure(self) -> None:
         from biomarker_normalization_toolkit.fhir import build_bundle
         rows = [{"source_row_id": "t1", "source_test_name": "Glucose", "raw_value": "100",
                  "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
         result = normalize_rows(rows, input_file="total_test.csv")
         bundle = build_bundle(result)
-        self.assertIn("total", bundle)
-        self.assertEqual(bundle["total"], len(bundle["entry"]))
+        # R4: collection bundles should NOT have total (bdl-1 invariant)
+        self.assertNotIn("total", bundle)
+        self.assertEqual(bundle["type"], "collection")
+        self.assertGreater(len(bundle["entry"]), 0)
 
     # --- Scrutiny pass: API validates non-dict rows (Fix #7) ---
 

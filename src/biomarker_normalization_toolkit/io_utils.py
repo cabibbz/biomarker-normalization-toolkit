@@ -266,6 +266,11 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
         if not test_name:
             continue
 
+        # Skip nullFlavor values that have no usable data
+        nf = value_el.attrib.get("nullFlavor")
+        if nf and not value_el.attrib.get("value") and _ccda_find(value_el, "translation") is None:
+            continue
+
         # Get value based on xsi:type
         xsi_type = value_el.attrib.get(f"{_XSI}type", "")
         raw_value = ""
@@ -522,7 +527,7 @@ def write_fhir_bundle(result: NormalizationResult, output_dir: Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     fhir_path = output_dir / "fhir_observations.json"
     fhir_path.write_text(
-        json.dumps(build_bundle(result), indent=2) + "\n",
+        json.dumps(build_bundle(result), indent=2, allow_nan=False) + "\n",
         encoding="utf-8",
     )
     return fhir_path
