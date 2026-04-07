@@ -1729,7 +1729,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="10886-0",
         normalized_unit="ng/mL",
         allowed_specimens=_BLOOD,
-        aliases=("Free PSA", "PSA Free", "PSA, Free",
+        aliases=("Free PSA", "PSA, Free",
                  "Prostate specific Ag Free [Mass/volume] in Serum or Plasma"),
     ),
     "psa_free_pct": BiomarkerDefinition(
@@ -1738,7 +1738,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="12841-3",
         normalized_unit="%",
         allowed_specimens=_BLOOD,
-        aliases=("PSA % Free", "Free PSA Percent", "Percent Free PSA",
+        aliases=("PSA % Free", "PSA Free Percent", "Free PSA Percent", "Percent Free PSA",
                  "Prostate specific Ag Free/Prostate specific Ag.total in Serum or Plasma"),
     ),
     "rheumatoid_factor": BiomarkerDefinition(
