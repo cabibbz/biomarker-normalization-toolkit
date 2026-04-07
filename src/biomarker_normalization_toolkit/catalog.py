@@ -543,7 +543,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
                  "Bicarbonate [Moles/volume] in Venous blood",
                  "Carbon dioxide total [Moles/volume] in Blood",
                  "Carbon dioxide  total [Moles/volume] in Blood",
-                 "Carbon dioxide  total [Moles/volume] in Serum or Plasma"),
+                 "Carbon dioxide  total [Moles/volume] in Serum or Plasma",
+                 "Carbon dioxide  total [Moles/volume] in Venous blood"),
     ),
     "calcium": BiomarkerDefinition(
         biomarker_id="calcium",
@@ -636,7 +637,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_BLOOD,
         aliases=("pO2", "PO2", "Oxygen Partial Pressure",
                  "Oxygen [Partial pressure] in Arterial blood",
-                 "Oxygen [Partial pressure] in Blood"),
+                 "Oxygen [Partial pressure] in Blood",
+                 "Oxygen [Partial pressure] in Venous blood"),
     ),
     "base_excess": BiomarkerDefinition(
         biomarker_id="base_excess",
@@ -889,7 +891,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="U/L",
         allowed_specimens=_BLOOD,
         aliases=("GGT", "Gamma GT", "Gamma-Glutamyl Transferase", "Gamma Glutamyl Transpeptidase",
-                 "GGTP", "Gamma-GT",
+                 "Gamma Glutamyltransferase", "GGTP", "Gamma-GT",
                  "Gamma glutamyl transferase [Enzymatic activity/volume] in Serum or Plasma"),
     ),
     "amylase": BiomarkerDefinition(

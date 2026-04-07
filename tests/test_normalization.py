@@ -1299,6 +1299,31 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(result.records[0].canonical_biomarker_id, "urine_ketones")
         self.assertEqual(result.records[0].match_confidence, "high")
 
+    def test_fuzzy_blocklist_rejects_presence_tests(self) -> None:
+        """Qualitative [Presence] tests must never fuzzy-match quantitative biomarkers."""
+        rows = [{"source_row_id": "bp1", "source_test_name": "Glucose [Presence] in Urine",
+                 "raw_value": "1", "source_unit": "", "specimen_type": "urine",
+                 "source_reference_range": ""}]
+        result = normalize_rows(rows, fuzzy_threshold=0.85)
+        # Must NOT fuzzy-match to glucose_urine or any other biomarker
+        self.assertEqual(result.records[0].mapping_status, "unmapped")
+
+    def test_venous_blood_gas_aliases_map(self) -> None:
+        rows = [
+            {"source_row_id": "vg1", "source_test_name": "Oxygen [Partial pressure] in Venous blood",
+             "raw_value": "40", "source_unit": "mmHg", "specimen_type": "whole blood",
+             "source_reference_range": ""},
+            {"source_row_id": "vg2",
+             "source_test_name": "Carbon dioxide  total [Moles/volume] in Venous blood",
+             "raw_value": "24", "source_unit": "mmol/L", "specimen_type": "whole blood",
+             "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "po2")
+        self.assertEqual(result.records[1].mapping_status, "mapped")
+        self.assertEqual(result.records[1].canonical_biomarker_id, "bicarbonate")
+
     # --- Coverage: reporting module ---
 
     def test_summary_report_generation(self) -> None:

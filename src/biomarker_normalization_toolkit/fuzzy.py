@@ -27,6 +27,17 @@ _BLOCKLIST: set[tuple[str, str]] = {
     ("alp", "alt"),
 }
 
+# Query patterns that should NEVER fuzzy-match at all.
+# Qualitative "[Presence]" tests must not match quantitative biomarkers.
+_QUERY_BLOCKLIST_PATTERNS: list[str] = [
+    "presence",
+    "ige ab",
+    "antibod",
+    "blood pressure",
+    "ejection fraction",
+    "ventilator",
+]
+
 
 def _build_index() -> None:
     global _BUILT
@@ -47,6 +58,11 @@ def fuzzy_match(query: str, threshold: float = 0.70) -> list[tuple[str, str, flo
     try:
         from rapidfuzz import fuzz, process
     except ImportError:
+        return []
+
+    # Reject queries that contain blocklisted patterns
+    query_lower = query.lower()
+    if any(pat in query_lower for pat in _QUERY_BLOCKLIST_PATTERNS):
         return []
 
     _build_index()
