@@ -162,14 +162,23 @@ def format_command(template: list[str], values: dict[str, str]) -> list[str]:
     return [part.format(**values) for part in template]
 
 
+AGENT_TIMEOUT_SECONDS = 300
+
+
 def run_command(command: list[str], cwd: Path, stdout_path: Path, stderr_path: Path) -> int:
-    result = subprocess.run(
-        command,
-        cwd=str(cwd),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            command,
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=AGENT_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        stdout_path.write_text("", encoding="utf-8")
+        stderr_path.write_text(f"Agent timed out after {AGENT_TIMEOUT_SECONDS}s\n", encoding="utf-8")
+        return 1
     stdout_path.write_text(result.stdout, encoding="utf-8")
     stderr_path.write_text(result.stderr, encoding="utf-8")
     return result.returncode

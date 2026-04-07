@@ -26,8 +26,8 @@ python .\operating_system\tools\run_live_consensus_smoke_test.py --attempts 2
 
 The example config now points at the repo-owned wrappers:
 
-- [codex_consensus_wrapper.py](/C:/Users/me/Desktop/longevb2b/operating_system/tools/codex_consensus_wrapper.py)
-- [claude_consensus_wrapper.py](/C:/Users/me/Desktop/longevb2b/operating_system/tools/claude_consensus_wrapper.py)
+- [codex_consensus_wrapper.py](operating_system/tools/codex_consensus_wrapper.py)
+- [claude_consensus_wrapper.py](operating_system/tools/claude_consensus_wrapper.py)
 
 Both wrappers:
 
