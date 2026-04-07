@@ -748,7 +748,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2885-2",
         normalized_unit="g/dL",
         allowed_specimens=_BLOOD,
-        aliases=("Total Protein", "Protein, Total", "TP",
+        aliases=("Total Protein", "Protein, Total", "Protein", "TP",
                  "Protein [Mass/volume] in Serum or Plasma"),
     ),
     "egfr": BiomarkerDefinition(

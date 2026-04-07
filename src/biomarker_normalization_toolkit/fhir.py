@@ -72,15 +72,25 @@ def _build_reference_range(record: NormalizedRecord) -> list[dict]:
     ]
 
 
-def _observation_uuid(source_row_id: str) -> str:
-    return str(uuid.uuid5(_BNT_NAMESPACE, f"observation-{source_row_id}"))
+def _build_value_quantity(record: NormalizedRecord) -> dict:
+    vq: dict = {"value": float(record.normalized_value)}
+    if record.normalized_unit:
+        vq["unit"] = record.normalized_unit
+        vq["system"] = "http://unitsofmeasure.org"
+        vq["code"] = _ucum_code(record.normalized_unit)
+    return vq
+
+
+def _observation_uuid(record: NormalizedRecord) -> str:
+    key = record.source_row_id or f"row-{record.source_row_number}"
+    return str(uuid.uuid5(_BNT_NAMESPACE, f"observation-{key}"))
 
 
 def build_observation(record: NormalizedRecord) -> dict | None:
     if record.mapping_status != "mapped":
         return None
 
-    obs_id = _observation_uuid(record.source_row_id)
+    obs_id = _observation_uuid(record)
     observation = {
         "resourceType": "Observation",
         "id": obs_id,
@@ -107,12 +117,7 @@ def build_observation(record: NormalizedRecord) -> dict | None:
             ],
             "text": record.canonical_biomarker_name,
         },
-        "valueQuantity": {
-            "value": float(record.normalized_value),
-            "unit": record.normalized_unit,
-            "system": "http://unitsofmeasure.org",
-            "code": _ucum_code(record.normalized_unit),
-        },
+        "valueQuantity": _build_value_quantity(record),
         "note": [
             {
                 "text": (

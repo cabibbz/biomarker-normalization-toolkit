@@ -180,14 +180,10 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
                 unit_parts = fields[6].split(comp_sep)
                 unit = unit_parts[0]
 
-            # OBX-7: Reference Range
-            ref_range = ""
-            if len(fields) > 7 and fields[7]:
-                rr = fields[7]
-                if unit:
-                    ref_range = f"{rr} {unit}"
-                else:
-                    ref_range = rr
+            # OBX-7: Reference Range (don't append unit — normalizer uses
+            # source_unit as fallback, and appending breaks numeric-prefix units
+            # like 10*3/uL)
+            ref_range = fields[7].strip() if len(fields) > 7 else ""
 
             # OBX-8: Abnormal Flags
             abnormal_flag = fields[8].strip() if len(fields) > 8 else ""
