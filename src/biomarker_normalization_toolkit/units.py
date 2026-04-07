@@ -95,6 +95,11 @@ UNIT_SYNONYMS = {
     "/ul": "#/uL",
     "x10e9/l": "10^9/L",
     "x10e12/l": "10^12/L",
+    "thous/mcl": "K/uL",
+    "thous/ul": "K/uL",
+    "kpa": "kPa",
+    "pg/dl": "pg/dL",
+    "mmol/mol": "mmol/mol",
 }
 
 
@@ -254,8 +259,8 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     # --- Wave 6: Cardiac ---
     "troponin_t": {"ng/mL": Decimal("1"), "ng/L": Decimal("0.001"), "pg/mL": Decimal("0.001")},
     # --- Wave 6: Blood gases ---
-    "pco2": {"mmHg": Decimal("1")},
-    "po2": {"mmHg": Decimal("1")},
+    "pco2": {"mmHg": Decimal("1"), "kPa": Decimal("7.50062")},
+    "po2": {"mmHg": Decimal("1"), "kPa": Decimal("7.50062")},
     "base_excess": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     # --- Wave 6: Other ---
     "globulin": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
@@ -270,6 +275,23 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "urine_protein": {"mg/dL": Decimal("1")},
     "urine_ketones": {"mg/dL": Decimal("1")},
     "urine_bilirubin": {"mg/dL": Decimal("1")},
+    # --- Wave 7: New biomarkers ---
+    "ggt": {"U/L": Decimal("1")},
+    "amylase": {"U/L": Decimal("1")},
+    "direct_bilirubin": {
+        "mg/dL": Decimal("1"),
+        "umol/L": Decimal("1") / Decimal("17.1"),
+    },
+    "troponin_i": {"ng/mL": Decimal("1"), "ng/L": Decimal("0.001"), "pg/mL": Decimal("0.001")},
+    "bnp": {"pg/mL": Decimal("1"), "ng/L": Decimal("1"), "pg/dL": Decimal("0.01")},
+    "nt_probnp": {"pg/mL": Decimal("1"), "ng/L": Decimal("1")},
+    "d_dimer": {
+        "ng/mL": Decimal("1"),
+        "ug/mL": Decimal("1000"),
+        "mg/L": Decimal("1000"),
+    },
+    "reticulocytes": {"%": Decimal("1")},
+    "procalcitonin": {"ng/mL": Decimal("1"), "ug/L": Decimal("1")},
 }
 
 

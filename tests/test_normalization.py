@@ -1014,5 +1014,84 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(data["input_file"], "passwd.csv")
 
 
+    # --- Deep scrutiny pass 3: New biomarker coverage ---
+
+    def test_new_wave7_biomarkers_map(self) -> None:
+        rows = [
+            {"source_row_id": "w7_1", "source_test_name": "GGT", "raw_value": "45",
+             "source_unit": "U/L", "specimen_type": "serum", "source_reference_range": "9-48 U/L"},
+            {"source_row_id": "w7_2", "source_test_name": "Amylase", "raw_value": "80",
+             "source_unit": "U/L", "specimen_type": "serum", "source_reference_range": "28-100 U/L"},
+            {"source_row_id": "w7_3", "source_test_name": "Direct Bilirubin", "raw_value": "0.2",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": "0-0.3 mg/dL"},
+            {"source_row_id": "w7_4", "source_test_name": "Troponin I", "raw_value": "0.01",
+             "source_unit": "ng/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "w7_5", "source_test_name": "BNP", "raw_value": "50",
+             "source_unit": "pg/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "w7_6", "source_test_name": "NT-proBNP", "raw_value": "125",
+             "source_unit": "pg/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "w7_7", "source_test_name": "D-Dimer", "raw_value": "250",
+             "source_unit": "ng/mL", "specimen_type": "plasma", "source_reference_range": ""},
+            {"source_row_id": "w7_8", "source_test_name": "Reticulocyte Count", "raw_value": "1.5",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": "0.5-2.5 %"},
+            {"source_row_id": "w7_9", "source_test_name": "Procalcitonin", "raw_value": "0.1",
+             "source_unit": "ng/mL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        expected = {
+            "w7_1": "ggt", "w7_2": "amylase", "w7_3": "direct_bilirubin",
+            "w7_4": "troponin_i", "w7_5": "bnp", "w7_6": "nt_probnp",
+            "w7_7": "d_dimer", "w7_8": "reticulocytes", "w7_9": "procalcitonin",
+        }
+        self.assertEqual(result.summary["mapped"], 9)
+        for record in result.records:
+            self.assertEqual(record.mapping_status, "mapped",
+                             f"{record.source_row_id} should be mapped")
+            self.assertEqual(record.canonical_biomarker_id, expected[record.source_row_id])
+
+    def test_pco2_kpa_converts_to_mmhg(self) -> None:
+        result = convert_to_normalized(Decimal("5.3"), "pco2", "kPa")
+        self.assertIsNotNone(result)
+        # 5.3 kPa * 7.50062 = 39.75 mmHg
+        self.assertAlmostEqual(float(result), 39.75, places=0)
+
+    def test_po2_kpa_converts_to_mmhg(self) -> None:
+        result = convert_to_normalized(Decimal("13.0"), "po2", "kPa")
+        self.assertIsNotNone(result)
+        # 13.0 kPa * 7.50062 = 97.5 mmHg
+        self.assertAlmostEqual(float(result), 97.5, places=0)
+
+    def test_synthea_truncated_loinc_names_map(self) -> None:
+        """Synthea uses LOINC display names without 'by Automated count' suffix."""
+        rows = [
+            {"source_row_id": "s1", "source_test_name": "Leukocytes [#/volume] in Blood",
+             "raw_value": "7.0", "source_unit": "10^9/L", "specimen_type": "whole blood",
+             "source_reference_range": ""},
+            {"source_row_id": "s2", "source_test_name": "Erythrocytes [#/volume] in Blood",
+             "raw_value": "4.5", "source_unit": "10^12/L", "specimen_type": "whole blood",
+             "source_reference_range": ""},
+            {"source_row_id": "s3",
+             "source_test_name": "Bilirubin.total [Mass/volume] in Blood",
+             "raw_value": "1.0", "source_unit": "mg/dL", "specimen_type": "serum",
+             "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "wbc")
+        self.assertEqual(result.records[1].mapping_status, "mapped")
+        self.assertEqual(result.records[1].canonical_biomarker_id, "rbc")
+        self.assertEqual(result.records[2].mapping_status, "mapped")
+        self.assertEqual(result.records[2].canonical_biomarker_id, "total_bilirubin")
+
+    def test_catalog_count_at_least_83(self) -> None:
+        """Verify catalog has grown to expected size after wave 7."""
+        self.assertGreaterEqual(len(BIOMARKER_CATALOG), 83)
+
+    def test_thous_mcl_unit_normalizes(self) -> None:
+        from biomarker_normalization_toolkit.units import normalize_unit
+        self.assertEqual(normalize_unit("THOUS/MCL"), "K/uL")
+        self.assertEqual(normalize_unit("thous/ul"), "K/uL")
+
+
 if __name__ == "__main__":
     unittest.main()
