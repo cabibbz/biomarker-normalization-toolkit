@@ -113,6 +113,8 @@ UNIT_SYNONYMS = {
     "1": "",
     "#/hpf": "#/hpf",
     "ml/min/1.73 m2": "mL/min/1.73m2",
+    "ml/min/1.73 m\u00b2": "mL/min/1.73m2",
+    "ml/min/1.73m\u00b2": "mL/min/1.73m2",
 }
 
 
@@ -351,7 +353,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "iga": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "igg": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "igm": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
-    "reticulocyte_absolute": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "reticulocyte_absolute": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "M/uL": Decimal("1000")},
     # --- Wave 10: ICU + urine chemistry + endocrine ---
     "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "%": Decimal("1")},
     "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "%": Decimal("1")},
