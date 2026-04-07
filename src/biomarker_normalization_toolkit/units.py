@@ -252,15 +252,18 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
 def normalize_unit(value: str | None) -> str:
     if value is None:
         return ""
-    key = re.sub(r"\s+", " ", value.strip().lower())
-    return UNIT_SYNONYMS.get(key, value.strip())
+    stripped = value.strip()
+    # Collapse whitespace, remove spaces around slashes (e.g., "mg / dL" -> "mg/dl")
+    key = re.sub(r"\s+", " ", stripped.lower())
+    key = re.sub(r"\s*/\s*", "/", key)
+    return UNIT_SYNONYMS.get(key, stripped)
 
 
 def format_decimal(value: Decimal | None) -> str:
     if value is None:
         return ""
 
-    quantized = value.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+    quantized = value.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
     text = format(quantized, "f").rstrip("0").rstrip(".")
     return text or "0"
 

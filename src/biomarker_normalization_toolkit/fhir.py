@@ -113,7 +113,6 @@ def build_observation(record: NormalizedRecord) -> dict | None:
             "system": "http://unitsofmeasure.org",
             "code": _ucum_code(record.normalized_unit),
         },
-        "referenceRange": _build_reference_range(record),
         "note": [
             {
                 "text": (
@@ -129,6 +128,10 @@ def build_observation(record: NormalizedRecord) -> dict | None:
             }
         ],
     }
+
+    ref_range = _build_reference_range(record)
+    if ref_range:
+        observation["referenceRange"] = ref_range
 
     if record.specimen_type:
         observation["specimen"] = {"display": record.specimen_type}

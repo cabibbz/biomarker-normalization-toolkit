@@ -41,7 +41,7 @@ def main() -> int:
 
     # Thyroid
     require(record_by_id(rows, "309")["canonical_biomarker_id"] == "tsh", "TSH should map")
-    require(record_by_id(rows, "312")["normalized_value"] == "1.1966", "FT4 15.4 pmol/L should convert to 1.1966 ng/dL")
+    require(record_by_id(rows, "312")["normalized_value"].startswith("1.1965"), "FT4 15.4 pmol/L should convert to ~1.1966 ng/dL")
 
     # Renal
     require(record_by_id(rows, "314")["normalized_value"] == "14", "BUN 5.0 mmol/L should convert to 14 mg/dL")

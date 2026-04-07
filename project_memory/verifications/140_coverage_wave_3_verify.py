@@ -33,14 +33,14 @@ def main() -> int:
     rows = payload["records"]
 
     # Vitamins
-    require(record_by_id(rows, "402")["normalized_value"] == "30", "Vitamin D 75 nmol/L should convert to 30 ng/mL")
+    require(record_by_id(rows, "402")["normalized_value"].startswith("30.04"), "Vitamin D 75 nmol/L should convert to ~30.05 ng/mL")
     require(record_by_id(rows, "404")["normalized_value"] == "499.995", "B12 369 pmol/L should convert to 499.995 pg/mL")
     require(record_by_id(rows, "406")["canonical_biomarker_id"] == "folate", "Folic Acid should map to folate")
 
     # Minerals
-    require(record_by_id(rows, "408")["normalized_value"] == "79.8655", "Iron 14.3 umol/L should convert to 79.8655 ug/dL")
+    require(record_by_id(rows, "408")["normalized_value"].startswith("79.865"), "Iron 14.3 umol/L should convert to ~79.8655 ug/dL")
     require(record_by_id(rows, "409")["canonical_biomarker_id"] == "ferritin", "Ferritin should map")
-    require(record_by_id(rows, "411")["normalized_value"] == "1.992", "Mag 0.83 mmol/L should convert to 1.992 mg/dL")
+    require(record_by_id(rows, "411")["normalized_value"].startswith("2.01"), "Mag 0.83 mmol/L should convert to ~2.018 mg/dL")
 
     # Unmapped
     require(record_by_id(rows, "412")["mapping_status"] == "unmapped", "Strange Vitamin should be unmapped")

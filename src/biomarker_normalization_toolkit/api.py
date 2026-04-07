@@ -6,19 +6,30 @@ Or: uvicorn biomarker_normalization_toolkit.api:app --host 0.0.0.0 --port 8000
 
 from __future__ import annotations
 
+import logging
+import os
 import tempfile
+import traceback
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, Query, UploadFile
+from fastapi import FastAPI, File, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from biomarker_normalization_toolkit import __version__
-from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG, load_custom_aliases
+from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG
 from biomarker_normalization_toolkit.fhir import build_bundle
 from biomarker_normalization_toolkit.io_utils import read_input
 from biomarker_normalization_toolkit.normalizer import normalize_rows
 
+logger = logging.getLogger("bnt.api")
+
+MAX_ROWS = 100_000
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+ALLOWED_EXTENSIONS = {".csv", ".json", ".hl7", ".oru", ".xml", ".xlsx", ".xls"}
+
+CORS_ORIGINS = os.environ.get("BNT_CORS_ORIGINS", "*").split(",")
 
 app = FastAPI(
     title="Biomarker Normalization Toolkit",
@@ -28,10 +39,16 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=CORS_ORIGINS,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error("Unhandled error: %s\n%s", exc, traceback.format_exc())
+    return JSONResponse(status_code=500, content={"error": "Internal server error"})
 
 
 # --- Health ---
@@ -67,26 +84,70 @@ def catalog(search: str | None = Query(None, description="Filter by name, LOINC,
     return {"biomarkers": entries, "count": len(entries)}
 
 
+# --- Helpers ---
+
+def _coerce_row(row: Any) -> dict[str, str]:
+    """Coerce a row dict to string values, handling non-string inputs."""
+    if not isinstance(row, dict):
+        return {}
+    return {str(k): str(v) if v is not None else "" for k, v in row.items()}
+
+
+def _validate_rows(body: dict[str, Any]) -> tuple[list[dict[str, str]], str | None]:
+    """Extract and validate rows from request body. Returns (rows, error_message)."""
+    rows = body.get("rows")
+    if not isinstance(rows, list) or not rows:
+        return [], "No rows provided. Send {\"rows\": [{...}, ...]}"
+    if len(rows) > MAX_ROWS:
+        return [], f"Too many rows ({len(rows)}). Maximum is {MAX_ROWS}."
+    return [_coerce_row(r) for r in rows], None
+
+
+def _read_upload(file: UploadFile) -> tuple[list[dict[str, str]], str | None]:
+    """Read an uploaded file with size and extension validation. Returns (rows, error_message)."""
+    filename = file.filename or "upload.csv"
+    suffix = Path(filename).suffix.lower()
+    if suffix not in ALLOWED_EXTENSIONS:
+        return [], f"Unsupported file type: {suffix}. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+
+    # Read with size limit
+    content = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        return [], f"File too large. Maximum is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB."
+
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = Path(tmp.name)
+        rows = read_input(tmp_path)
+        return rows, None
+    except Exception as exc:
+        return [], f"Failed to parse file: {exc}"
+    finally:
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
+
+
 # --- Normalize (JSON body) ---
 
 @app.post("/normalize")
 def normalize(
     body: dict[str, Any],
     emit_fhir: bool = Query(False, description="Include FHIR Bundle in response"),
-) -> dict[str, Any]:
-    rows = body.get("rows", [])
-    input_file = body.get("input_file", "")
+) -> JSONResponse:
+    rows, error = _validate_rows(body)
+    if error:
+        return JSONResponse(status_code=400, content={"error": error})
 
-    if not rows:
-        return {"error": "No rows provided. Send {\"rows\": [...]}"}
-
+    input_file = str(body.get("input_file", ""))
     result = normalize_rows(rows, input_file=input_file)
     response = result.to_json_dict()
 
     if emit_fhir:
         response["fhir_bundle"] = build_bundle(result)
 
-    return response
+    return JSONResponse(content=response)
 
 
 # --- Normalize (file upload) ---
@@ -95,54 +156,41 @@ def normalize(
 def normalize_upload(
     file: UploadFile = File(...),
     emit_fhir: bool = Query(False, description="Include FHIR Bundle in response"),
-) -> dict[str, Any]:
-    suffix = Path(file.filename or "upload.csv").suffix
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        content = file.file.read()
-        tmp.write(content)
-        tmp_path = Path(tmp.name)
+) -> JSONResponse:
+    rows, error = _read_upload(file)
+    if error:
+        return JSONResponse(status_code=400, content={"error": error})
 
-    try:
-        rows = read_input(tmp_path)
-        result = normalize_rows(rows, input_file=file.filename or "")
-        response = result.to_json_dict()
-        if emit_fhir:
-            response["fhir_bundle"] = build_bundle(result)
-        return response
-    finally:
-        tmp_path.unlink(missing_ok=True)
+    result = normalize_rows(rows, input_file=file.filename or "")
+    response = result.to_json_dict()
+    if emit_fhir:
+        response["fhir_bundle"] = build_bundle(result)
+    return JSONResponse(content=response)
 
 
 # --- Analyze (JSON body) ---
 
 @app.post("/analyze")
-def analyze(body: dict[str, Any]) -> dict[str, Any]:
-    rows = body.get("rows", [])
-    input_file = body.get("input_file", "")
+def analyze(body: dict[str, Any]) -> JSONResponse:
+    rows, error = _validate_rows(body)
+    if error:
+        return JSONResponse(status_code=400, content={"error": error})
 
-    if not rows:
-        return {"error": "No rows provided. Send {\"rows\": [...]}"}
-
+    input_file = str(body.get("input_file", ""))
     result = normalize_rows(rows, input_file=input_file)
-    return _build_analysis(result)
+    return JSONResponse(content=_build_analysis(result))
 
 
 # --- Analyze (file upload) ---
 
 @app.post("/analyze/upload")
-def analyze_upload(file: UploadFile = File(...)) -> dict[str, Any]:
-    suffix = Path(file.filename or "upload.csv").suffix
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        content = file.file.read()
-        tmp.write(content)
-        tmp_path = Path(tmp.name)
+def analyze_upload(file: UploadFile = File(...)) -> JSONResponse:
+    rows, error = _read_upload(file)
+    if error:
+        return JSONResponse(status_code=400, content={"error": error})
 
-    try:
-        rows = read_input(tmp_path)
-        result = normalize_rows(rows, input_file=file.filename or "")
-        return _build_analysis(result)
-    finally:
-        tmp_path.unlink(missing_ok=True)
+    result = normalize_rows(rows, input_file=file.filename or "")
+    return JSONResponse(content=_build_analysis(result))
 
 
 def _build_analysis(result: Any) -> dict[str, Any]:

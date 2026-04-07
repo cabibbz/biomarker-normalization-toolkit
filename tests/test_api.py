@@ -71,9 +71,26 @@ class APITests(unittest.TestCase):
 
     def test_normalize_empty_rows(self) -> None:
         response = client.post("/normalize", json={"rows": []})
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         data = response.json()
         self.assertIn("error", data)
+
+    def test_normalize_non_string_values_coerced(self) -> None:
+        response = client.post("/normalize", json={
+            "rows": [{"source_test_name": 123, "raw_value": 100, "source_unit": "mg/dL",
+                      "specimen_type": "serum", "source_row_id": 1, "source_reference_range": ""}],
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["summary"]["total_rows"], 1)
+
+    def test_upload_rejects_unsupported_extension(self) -> None:
+        response = client.post(
+            "/normalize/upload",
+            files={"file": ("malware.exe", b"not a lab file", "application/octet-stream")},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Unsupported file type", response.json()["error"])
 
     def test_normalize_upload_csv(self) -> None:
         csv_path = FIXTURES / "input" / "v0_sample.csv"
