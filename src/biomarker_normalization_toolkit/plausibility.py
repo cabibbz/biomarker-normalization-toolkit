@@ -13,7 +13,7 @@ from decimal import Decimal
 # (min, max) in normalized units. Ranges are 2-5x wider than clinical reference ranges.
 PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     # Endocrine
-    "glucose_serum":    (Decimal("1"),    Decimal("1500")),
+    "glucose_serum":    (Decimal("0"),    Decimal("1500")),
     "glucose_urine":    (Decimal("0"),    Decimal("5000")),
     "hba1c":            (Decimal("2"),    Decimal("20")),
     "eag":              (Decimal("20"),   Decimal("600")),
