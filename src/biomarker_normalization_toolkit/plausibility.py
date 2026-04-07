@@ -136,6 +136,9 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "shbg":             (Decimal("1"),    Decimal("500")),
     "free_testosterone": (Decimal("0"),   Decimal("100")),
     "bioavailable_testosterone": (Decimal("0"), Decimal("500")),
+    "urobilinogen":     (Decimal("0"),    Decimal("20")),
+    "haptoglobin":      (Decimal("0"),    Decimal("1000")),
+    "transferrin":      (Decimal("50"),   Decimal("600")),
 }
 
 

@@ -325,6 +325,11 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "urine_blood": {"": Decimal("1")},
     "urine_nitrite": {"": Decimal("1")},
     "urine_leukocyte_esterase": {"": Decimal("1")},
+    "urobilinogen": {"mg/dL": Decimal("1")},
+    "urine_rbc": {"#/uL": Decimal("1")},
+    "urine_wbc": {"#/uL": Decimal("1")},
+    "haptoglobin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
+    "transferrin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
 }
 
 
