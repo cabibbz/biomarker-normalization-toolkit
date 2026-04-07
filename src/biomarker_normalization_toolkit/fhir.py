@@ -51,6 +51,7 @@ UCUM_CODES: dict[str, str] = {
     "mm/hr": "mm/h",
     "mOsm/kg": "mOsm/kg",
     "mg/g": "mg/g",
+    "ug/L": "ug/L",
 }
 
 

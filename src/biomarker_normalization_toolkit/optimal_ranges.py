@@ -97,6 +97,22 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "zinc": (Decimal("80"), Decimal("120"), "ug/dL", "60-120 normal; 80-120 optimal for immune function"),
     "selenium": (Decimal("110"), Decimal("150"), "ug/L", "70-150 normal; 110-150 optimal for thyroid/antioxidant"),
     "copper": (Decimal("70"), Decimal("120"), "ug/dL", "70-155 normal; copper/zinc ratio matters"),
+
+    # Advanced longevity (Wave 12)
+    "ldl_particle_number": (Decimal("500"), Decimal("1000"), "nmol/L", "Attia: < 1000; < 700 ideal for primary prevention"),
+    "small_dense_ldl": (Decimal("0"), Decimal("20"), "mg/dL", "< 30 normal; < 20 optimal"),
+    "oxidized_ldl": (Decimal("0"), Decimal("40"), "U/L", "< 60 normal; < 40 optimal"),
+    "lp_pla2": (Decimal("0"), Decimal("175"), "nmol/min/mL", "< 200 normal; < 175 optimal"),
+    "il6": (Decimal("0"), Decimal("1.8"), "pg/mL", "< 7 normal; < 1.8 longevity optimal"),
+    "tnf_alpha": (Decimal("0"), Decimal("4"), "pg/mL", "< 8.1 normal; < 4 optimal"),
+    "leptin": (Decimal("1"), Decimal("6"), "ng/mL", "Male: 2-5.6; lower = more insulin sensitive"),
+    "c_peptide": (Decimal("0.8"), Decimal("1.8"), "ng/mL", "0.8-3.1 normal; < 1.8 optimal insulin sensitivity"),
+    "omega3_index": (Decimal("8"), Decimal("12"), "%", "< 4% deficient; 8-12% optimal (cardioprotective)"),
+    "gdf15": (Decimal("0"), Decimal("750"), "pg/mL", "Age-dependent; < 750 associated with slower aging"),
+    "tmao": (Decimal("0"), Decimal("4"), "umol/L", "< 6.2 normal; < 4 optimal (gut-heart axis)"),
+    "methylmalonic_acid": (Decimal("0"), Decimal("200"), "nmol/L", "73-271 normal; < 200 suggests adequate B12"),
+    "dht": (Decimal("30"), Decimal("85"), "ng/dL", "Male: 30-85; mid-range optimal"),
+    "adiponectin": (Decimal("5"), Decimal("20"), "ug/mL", "Higher = better insulin sensitivity"),
 }
 
 

@@ -49,6 +49,10 @@ def compute_derived_metrics(result: NormalizationResult) -> dict[str, Any]:
     platelets = _get_value(result, "platelets")
     albumin = _get_value(result, "albumin")
     creatinine = _get_value(result, "creatinine")
+    neutrophils_val = _get_value(result, "neutrophils")
+    lymphocytes_val = _get_value(result, "lymphocytes")
+    iron_val = _get_value(result, "iron")
+    tibc_val = _get_value(result, "tibc")
 
     # --- Metabolic ---
 
@@ -195,6 +199,33 @@ def compute_derived_metrics(result: NormalizationResult) -> dict[str, Any]:
             "inputs": {"albumin": str(albumin), "creatinine": str(creatinine)},
             "unit": "ratio",
             "category": "kidney",
+        }
+
+    # --- Inflammation ---
+
+    if neutrophils_val and lymphocytes_val and lymphocytes_val > 0:
+        nlr = neutrophils_val / lymphocytes_val
+        metrics["nlr"] = {
+            "name": "Neutrophil-to-Lymphocyte Ratio (NLR)",
+            "value": _fmt(nlr),
+            "formula": "Neutrophils / Lymphocytes (absolute counts)",
+            "inputs": {"neutrophils": str(neutrophils_val), "lymphocytes": str(lymphocytes_val)},
+            "unit": "ratio",
+            "category": "inflammation",
+            "optimal_range": "1.0-2.0 (longevity optimal), < 3.0 (normal)",
+        }
+
+    # --- Iron ---
+
+    if iron_val and tibc_val and tibc_val > 0:
+        uibc = tibc_val - iron_val
+        metrics["uibc"] = {
+            "name": "UIBC (Unsaturated Iron Binding Capacity)",
+            "value": _fmt(uibc),
+            "formula": "TIBC - Iron",
+            "inputs": {"tibc": str(tibc_val), "iron": str(iron_val)},
+            "unit": "ug/dL",
+            "category": "iron",
         }
 
     return metrics

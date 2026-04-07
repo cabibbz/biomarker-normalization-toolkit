@@ -188,6 +188,26 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "lead":                 (Decimal("0"),    Decimal("100")),
     "arsenic":              (Decimal("0"),    Decimal("500")),
     "cadmium":              (Decimal("0"),    Decimal("50")),
+    # Advanced longevity
+    "ldl_particle_number":  (Decimal("200"),  Decimal("3000")),
+    "small_dense_ldl":      (Decimal("0"),    Decimal("100")),
+    "oxidized_ldl":         (Decimal("0"),    Decimal("200")),
+    "lp_pla2":              (Decimal("0"),    Decimal("500")),
+    "il6":                  (Decimal("0"),    Decimal("100")),
+    "tnf_alpha":            (Decimal("0"),    Decimal("50")),
+    "leptin":               (Decimal("0"),    Decimal("100")),
+    "c_peptide":            (Decimal("0"),    Decimal("20")),
+    "prolactin":            (Decimal("0"),    Decimal("200")),
+    "free_psa":             (Decimal("0"),    Decimal("50")),
+    "psa_free_pct":         (Decimal("0"),    Decimal("100")),
+    "rheumatoid_factor":    (Decimal("0"),    Decimal("500")),
+    "methylmalonic_acid":   (Decimal("0"),    Decimal("2000")),
+    "adiponectin":          (Decimal("0"),    Decimal("50")),
+    "tmao":                 (Decimal("0"),    Decimal("50")),
+    "gdf15":                (Decimal("0"),    Decimal("10000")),
+    "dht":                  (Decimal("0"),    Decimal("500")),
+    "omega3_index":         (Decimal("0"),    Decimal("20")),
+    "ige_total":            (Decimal("0"),    Decimal("5000")),
 }
 
 

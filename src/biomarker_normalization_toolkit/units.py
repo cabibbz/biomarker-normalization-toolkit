@@ -111,6 +111,8 @@ UNIT_SYNONYMS = {
     "mg/mmol": "mg/mmol",
     "{presence}": "",
     "1": "",
+    "#/hpf": "#/hpf",
+    "ml/min/1.73 m2": "mL/min/1.73m2",
 }
 
 
@@ -334,8 +336,8 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "urine_nitrite": {"": Decimal("1")},
     "urine_leukocyte_esterase": {"": Decimal("1")},
     "urobilinogen": {"mg/dL": Decimal("1")},
-    "urine_rbc": {"#/uL": Decimal("1")},
-    "urine_wbc": {"#/uL": Decimal("1")},
+    "urine_rbc": {"#/uL": Decimal("1"), "#/hpf": Decimal("1")},
+    "urine_wbc": {"#/uL": Decimal("1"), "#/hpf": Decimal("1")},
     "haptoglobin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "transferrin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     # --- Wave 9: Clinical depth ---
@@ -351,9 +353,9 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "igm": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "reticulocyte_absolute": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
     # --- Wave 10: ICU + urine chemistry + endocrine ---
-    "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
-    "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
-    "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000")},
+    "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "%": Decimal("1")},
+    "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "%": Decimal("1")},
+    "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000"), "%": Decimal("1")},
     "osmolality_urine": {"mOsm/kg": Decimal("1")},
     "sodium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     "potassium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
@@ -388,6 +390,27 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "lead": {"ug/dL": Decimal("1"), "umol/L": Decimal("1") / Decimal("0.04826")},
     "arsenic": {"ug/L": Decimal("1")},
     "cadmium": {"ug/L": Decimal("1"), "nmol/L": Decimal("1") / Decimal("8.897")},
+    # --- Wave 12: Advanced longevity ---
+    "ldl_particle_number": {"nmol/L": Decimal("1")},
+    "small_dense_ldl": {"mg/dL": Decimal("1")},
+    "oxidized_ldl": {"U/L": Decimal("1")},
+    "lp_pla2": {"nmol/min/mL": Decimal("1"), "ng/mL": Decimal("1")},
+    "il6": {"pg/mL": Decimal("1")},
+    "tnf_alpha": {"pg/mL": Decimal("1")},
+    "leptin": {"ng/mL": Decimal("1")},
+    "c_peptide": {"ng/mL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("3.021")},
+    "prolactin": {"ng/mL": Decimal("1"), "mIU/L": Decimal("1") / Decimal("21.2")},
+    "free_psa": {"ng/mL": Decimal("1")},
+    "psa_free_pct": {"%": Decimal("1")},
+    "rheumatoid_factor": {"IU/mL": Decimal("1")},
+    "ana_screen": {"": Decimal("1")},
+    "methylmalonic_acid": {"nmol/L": Decimal("1")},
+    "adiponectin": {"ug/mL": Decimal("1"), "mg/L": Decimal("1")},
+    "tmao": {"umol/L": Decimal("1")},
+    "gdf15": {"pg/mL": Decimal("1"), "ng/L": Decimal("1")},
+    "dht": {"ng/dL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("0.0344")},
+    "omega3_index": {"%": Decimal("1")},
+    "ige_total": {"IU/mL": Decimal("1")},
 }
 
 
