@@ -523,7 +523,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2823-3",
         normalized_unit="mEq/L",
         allowed_specimens=_BLOOD,
-        aliases=("Potassium", "K", "Serum Potassium", "Potassium, Whole Blood",
+        aliases=("Potassium", "K", "Serum Potassium", "Potassium Level", "Potassium, Whole Blood",
                  "Potassium [Moles/volume] in Blood",
                  "Potassium [Moles/volume] in Serum or Plasma"),
     ),
@@ -1253,6 +1253,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mm/hr",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("ESR", "Sed Rate", "Sedimentation Rate", "Erythrocyte Sedimentation Rate",
+                 "ESR Westergren", "Westergren ESR",
                  "Erythrocyte sedimentation rate by Westergren method"),
     ),
     "osmolality_serum": BiomarkerDefinition(
