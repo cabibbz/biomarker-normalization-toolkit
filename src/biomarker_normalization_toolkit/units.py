@@ -230,10 +230,13 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     # --- Wave 6: Other ---
     "globulin": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
     "ionized_calcium": {"mmol/L": Decimal("1"), "mg/dL": Decimal("1") / Decimal("4.008")},
+    "fibrinogen": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
+    "eag": {"mg/dL": Decimal("1")},
+    "blood_ph": {"pH": Decimal("1"), "units": Decimal("1"), "": Decimal("1")},
     "oxygen_saturation": {"%": Decimal("1")},
     # --- Urinalysis ---
     "urine_specific_gravity": {"": Decimal("1")},
-    "urine_ph": {"pH": Decimal("1"), "": Decimal("1")},
+    "urine_ph": {"pH": Decimal("1"), "": Decimal("1"), "units": Decimal("1")},
     "urine_protein": {"mg/dL": Decimal("1")},
     "urine_ketones": {"mg/dL": Decimal("1")},
     "urine_bilirubin": {"mg/dL": Decimal("1")},

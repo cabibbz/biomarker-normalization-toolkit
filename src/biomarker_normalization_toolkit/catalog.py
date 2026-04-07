@@ -145,7 +145,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2161-8",
         normalized_unit="mg/dL",
         allowed_specimens=_URINE,
-        aliases=("Creatinine", "Urine Creatinine", "Creat", "Crea"),
+        aliases=("Creatinine", "Urine Creatinine", "Creat", "Crea", "Creatinine, Urine"),
     ),
     # --- Wave 2: Liver panel ---
     "alt": BiomarkerDefinition(
@@ -257,6 +257,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="%",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Hematocrit", "Hct", "HCT", "PCV", "Packed Cell Volume",
+                 "Hematocrit, Calculated",
                  "Hematocrit [Volume Fraction] of Blood by Automated count"),
     ),
     "platelets": BiomarkerDefinition(
@@ -596,6 +597,30 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mmol/L",
         allowed_specimens=_BLOOD,
         aliases=("Ionized Calcium", "Free Calcium", "Calcium Ionized", "iCa"),
+    ),
+    "fibrinogen": BiomarkerDefinition(
+        biomarker_id="fibrinogen",
+        canonical_name="Fibrinogen",
+        loinc="3255-7",
+        normalized_unit="mg/dL",
+        allowed_specimens=_BLOOD,
+        aliases=("Fibrinogen", "Fibrinogen, Functional", "Fibrinogen Activity"),
+    ),
+    "eag": BiomarkerDefinition(
+        biomarker_id="eag",
+        canonical_name="Estimated Average Glucose",
+        loinc="27353-2",
+        normalized_unit="mg/dL",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=("eAG", "Estimated Average Glucose"),
+    ),
+    "blood_ph": BiomarkerDefinition(
+        biomarker_id="blood_ph",
+        canonical_name="Blood pH",
+        loinc="2744-1",
+        normalized_unit="pH",
+        allowed_specimens=_BLOOD,
+        aliases=("pH", "Blood pH", "Arterial pH"),
     ),
     "oxygen_saturation": BiomarkerDefinition(
         biomarker_id="oxygen_saturation",
