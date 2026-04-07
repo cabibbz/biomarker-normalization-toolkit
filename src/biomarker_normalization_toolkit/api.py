@@ -11,12 +11,15 @@ import os
 import tempfile
 import time
 import traceback
+import uuid
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, Header, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from biomarker_normalization_toolkit import __version__
@@ -33,11 +36,133 @@ from biomarker_normalization_toolkit.phenoage import compute_phenoage
 logger = logging.getLogger("bnt.api")
 
 MAX_ROWS = 100_000
-MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
-MAX_JSON_BODY_BYTES = 50 * 1024 * 1024  # 50 MB
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+MAX_JSON_BODY_BYTES = 50 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".csv", ".json", ".hl7", ".oru", ".xml", ".xlsx", ".xls"}
-
 CORS_ORIGINS = os.environ.get("BNT_CORS_ORIGINS", "*").split(",")
+RATE_LIMIT_REQUESTS = int(os.environ.get("BNT_RATE_LIMIT", "60"))  # per minute per key
+RATE_LIMIT_WINDOW = 60  # seconds
+
+
+# ─── Pydantic Models ─────────────────────────────────────
+
+class LabRow(BaseModel):
+    source_row_id: str = ""
+    source_test_name: str
+    raw_value: str
+    source_unit: str = ""
+    specimen_type: str = ""
+    source_reference_range: str = ""
+    source_lab_name: str = ""
+    source_panel_name: str = ""
+
+
+class NormalizeRequest(BaseModel):
+    rows: list[dict[str, Any]] = Field(..., description="List of lab result row objects")
+    input_file: str = ""
+    chronological_age: float | None = Field(None, description="Patient age for PhenoAge (Pro tier)")
+
+
+class CompareRequest(BaseModel):
+    before: dict[str, Any] = Field(..., description='{"rows": [...]} for baseline results')
+    after: dict[str, Any] = Field(..., description='{"rows": [...]} for follow-up results')
+    days_between: float | None = Field(None, description="Days between the two tests")
+
+
+class PhenoAgeRequest(BaseModel):
+    rows: list[dict[str, Any]] = Field(..., description="Lab result rows (need 9 biomarkers)")
+    chronological_age: float = Field(..., description="Patient age in years")
+
+
+# ─── Rate Limiter ─────────────────────────────────────────
+
+class RateLimiter:
+    """Simple in-memory sliding window rate limiter per API key."""
+
+    def __init__(self, max_requests: int = 60, window_seconds: int = 60):
+        self.max_requests = max_requests
+        self.window = window_seconds
+        self._requests: dict[str, list[float]] = defaultdict(list)
+
+    def check(self, key: str) -> tuple[bool, int]:
+        """Returns (allowed, remaining). Cleans expired entries."""
+        now = time.time()
+        cutoff = now - self.window
+        entries = self._requests[key]
+        # Prune old entries
+        self._requests[key] = [t for t in entries if t > cutoff]
+        entries = self._requests[key]
+        if len(entries) >= self.max_requests:
+            return False, 0
+        entries.append(now)
+        return True, self.max_requests - len(entries)
+
+
+_rate_limiter = RateLimiter(max_requests=RATE_LIMIT_REQUESTS, window_seconds=RATE_LIMIT_WINDOW)
+
+
+# ─── Metrics Collector ────────────────────────────────────
+
+class MetricsCollector:
+    """Simple in-memory metrics for /metrics endpoint."""
+
+    def __init__(self) -> None:
+        self.request_count: int = 0
+        self.error_count: int = 0
+        self.total_rows_processed: int = 0
+        self.total_latency_ms: float = 0.0
+        self.endpoint_counts: dict[str, int] = defaultdict(int)
+        self.status_counts: dict[int, int] = defaultdict(int)
+        self.start_time: float = time.time()
+
+    def record(self, endpoint: str, status: int, latency_ms: float, rows: int = 0) -> None:
+        self.request_count += 1
+        self.endpoint_counts[endpoint] += 1
+        self.status_counts[status] += 1
+        self.total_latency_ms += latency_ms
+        self.total_rows_processed += rows
+        if status >= 400:
+            self.error_count += 1
+
+    def to_dict(self) -> dict[str, Any]:
+        uptime = time.time() - self.start_time
+        avg_latency = self.total_latency_ms / self.request_count if self.request_count else 0
+        return {
+            "uptime_seconds": round(uptime, 1),
+            "total_requests": self.request_count,
+            "total_errors": self.error_count,
+            "error_rate": round(self.error_count / self.request_count * 100, 2) if self.request_count else 0,
+            "total_rows_processed": self.total_rows_processed,
+            "avg_latency_ms": round(avg_latency, 2),
+            "requests_per_endpoint": dict(self.endpoint_counts),
+            "status_code_counts": dict(self.status_counts),
+        }
+
+    def to_prometheus(self) -> str:
+        lines = []
+        lines.append(f"# HELP bnt_requests_total Total API requests")
+        lines.append(f"# TYPE bnt_requests_total counter")
+        lines.append(f"bnt_requests_total {self.request_count}")
+        lines.append(f"# HELP bnt_errors_total Total API errors")
+        lines.append(f"# TYPE bnt_errors_total counter")
+        lines.append(f"bnt_errors_total {self.error_count}")
+        lines.append(f"# HELP bnt_rows_processed_total Total lab rows processed")
+        lines.append(f"# TYPE bnt_rows_processed_total counter")
+        lines.append(f"bnt_rows_processed_total {self.total_rows_processed}")
+        avg = self.total_latency_ms / self.request_count if self.request_count else 0
+        lines.append(f"# HELP bnt_avg_latency_ms Average request latency")
+        lines.append(f"# TYPE bnt_avg_latency_ms gauge")
+        lines.append(f"bnt_avg_latency_ms {avg:.2f}")
+        for ep, count in self.endpoint_counts.items():
+            safe_ep = ep.replace("/", "_").strip("_")
+            lines.append(f'bnt_endpoint_requests{{endpoint="{ep}"}} {count}')
+        return "\n".join(lines) + "\n"
+
+
+_metrics = MetricsCollector()
+
+
+# ─── App Setup ────────────────────────────────────────────
 
 app = FastAPI(
     title="Biomarker Normalization Toolkit",
@@ -57,22 +182,34 @@ app.add_middleware(
 )
 
 
-class BodySizeLimitMiddleware(BaseHTTPMiddleware):
+class RequestMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
         content_length = request.headers.get("content-length")
         if content_length and int(content_length) > MAX_JSON_BODY_BYTES:
-            return JSONResponse(
-                status_code=413,
-                content={"error": f"Request body too large. Maximum is {MAX_JSON_BODY_BYTES // (1024 * 1024)} MB."},
-            )
+            return JSONResponse(status_code=413, content={
+                "error": f"Request body too large. Maximum is {MAX_JSON_BODY_BYTES // (1024 * 1024)} MB."})
+
+        # Rate limiting
+        api_key = request.headers.get("x-api-key", "anonymous")
+        allowed, remaining = _rate_limiter.check(api_key)
+        if not allowed:
+            return JSONResponse(status_code=429, content={
+                "error": f"Rate limit exceeded. Maximum {RATE_LIMIT_REQUESTS} requests per minute."
+            }, headers={"Retry-After": str(RATE_LIMIT_WINDOW), "X-RateLimit-Remaining": "0"})
+
         start = time.perf_counter()
         response = await call_next(request)
-        elapsed = time.perf_counter() - start
-        response.headers["X-Request-Duration-Ms"] = str(round(elapsed * 1000, 1))
+        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        response.headers["X-Request-Duration-Ms"] = str(round(elapsed_ms, 1))
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        response.headers["X-Request-Id"] = str(uuid.uuid4())
+
+        _metrics.record(request.url.path, response.status_code, elapsed_ms)
         return response
 
 
-app.add_middleware(BodySizeLimitMiddleware)
+app.add_middleware(RequestMiddleware)
 
 
 @app.exception_handler(Exception)
@@ -126,16 +263,13 @@ def _enrich_response(
     result: Any, response: dict[str, Any], features: dict[str, bool],
     chronological_age: float | None = None,
 ) -> None:
-    """Add derived metrics, optimal ranges, and PhenoAge to a response dict."""
     derived = compute_derived_metrics(result)
     if derived and features.get("derived_metrics"):
         response["derived_metrics"] = derived
-
     if features.get("optimal_ranges"):
         optimal = evaluate_optimal_ranges(result)
         if optimal:
             response["optimal_ranges"] = summarize_optimal(optimal)
-
     if chronological_age is not None and features.get("phenoage"):
         pheno = compute_phenoage(result, chronological_age=chronological_age)
         if pheno:
@@ -148,15 +282,20 @@ def _get_license(x_api_key: str | None) -> dict[str, Any]:
     return validate_api_key(x_api_key)
 
 
-# ─── Health ───────────────────────────────────────────────
+# ─── Health + Metrics ─────────────────────────────────────
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    return {
-        "status": "ok",
-        "version": __version__,
-        "biomarkers": len(BIOMARKER_CATALOG),
-    }
+    return {"status": "ok", "version": __version__, "biomarkers": len(BIOMARKER_CATALOG)}
+
+
+@app.get("/metrics")
+def metrics(accept: str = Header("application/json")) -> Any:
+    """Prometheus-compatible metrics endpoint."""
+    if "text/plain" in accept or "prometheus" in accept.lower():
+        from starlette.responses import PlainTextResponse
+        return PlainTextResponse(_metrics.to_prometheus(), media_type="text/plain")
+    return _metrics.to_dict()
 
 
 # ─── Catalog ──────────────────────────────────────────────
@@ -187,7 +326,7 @@ def catalog(
     return {"biomarkers": page, "count": len(page), "total": total, "offset": offset}
 
 
-# ─── Lookup (lightweight single-biomarker check) ─────────
+# ─── Lookup ───────────────────────────────────────────────
 
 @app.get("/lookup")
 def lookup(
@@ -210,200 +349,82 @@ def lookup(
     return {"matched": True, "test_name": test_name, "alias_key": key, "candidates": results}
 
 
-# ─── Normalize (JSON body) ───────────────────────────────
+# ─── V1 Router (versioned) ───────────────────────────────
+# All endpoints are also available under /v1/ prefix for API versioning.
 
-@app.post("/normalize")
-def normalize(
-    body: dict[str, Any],
-    emit_fhir: bool = Query(False, description="Include FHIR Bundle in response"),
-    fuzzy_threshold: float = Query(0.0, description="Fuzzy matching threshold (0=disabled, 0.85=recommended)"),
-    x_api_key: str | None = Header(None, alias="X-API-Key"),
-) -> JSONResponse:
+from fastapi import APIRouter
+v1 = APIRouter(prefix="/v1", tags=["v1"])
+
+
+# ─── Normalize ────────────────────────────────────────────
+
+def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: float,
+                      x_api_key: str | None) -> JSONResponse:
     license_info = _get_license(x_api_key)
     features = license_info["features"]
-
     rows, error = _validate_rows(body)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
     if len(rows) > license_info["max_rows"]:
         return JSONResponse(status_code=400, content={
-            "error": f"Row limit exceeded ({license_info['tier']} tier: {license_info['max_rows']} max).",
-        })
-
+            "error": f"Row limit exceeded ({license_info['tier']} tier: {license_info['max_rows']} max)."})
     if fuzzy_threshold > 0 and not features.get("fuzzy"):
         fuzzy_threshold = 0.0
-
     input_file = Path(str(body.get("input_file", ""))).name
     result = normalize_rows(rows, input_file=input_file, fuzzy_threshold=fuzzy_threshold)
+    _metrics.total_rows_processed += len(rows)
     response = result.to_json_dict()
     response["tier"] = license_info["tier"]
-
     if emit_fhir:
         response["fhir_bundle"] = build_bundle(result)
-
     _enrich_response(result, response, features, chronological_age=body.get("chronological_age"))
     return JSONResponse(content=response)
 
 
-# ─── Normalize (file upload) ─────────────────────────────
+@app.post("/normalize")
+def normalize(body: NormalizeRequest,
+              emit_fhir: bool = Query(False), fuzzy_threshold: float = Query(0.0),
+              x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    return _handle_normalize(body.model_dump(), emit_fhir, fuzzy_threshold, x_api_key)
+
+
+@v1.post("/normalize")
+def normalize_v1(body: NormalizeRequest,
+                 emit_fhir: bool = Query(False), fuzzy_threshold: float = Query(0.0),
+                 x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    return _handle_normalize(body.model_dump(), emit_fhir, fuzzy_threshold, x_api_key)
+
+
+# ─── Normalize Upload ────────────────────────────────────
 
 @app.post("/normalize/upload")
-def normalize_upload(
-    file: UploadFile = File(...),
-    emit_fhir: bool = Query(False, description="Include FHIR Bundle in response"),
-    fuzzy_threshold: float = Query(0.0, description="Fuzzy matching threshold"),
-    x_api_key: str | None = Header(None, alias="X-API-Key"),
-) -> JSONResponse:
+def normalize_upload(file: UploadFile = File(...),
+                     emit_fhir: bool = Query(False), fuzzy_threshold: float = Query(0.0),
+                     x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
     license_info = _get_license(x_api_key)
     features = license_info["features"]
-
     rows, error = _read_upload(file)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
-
     if fuzzy_threshold > 0 and not features.get("fuzzy"):
         fuzzy_threshold = 0.0
-
     safe_name = Path(file.filename or "").name
     result = normalize_rows(rows, input_file=safe_name, fuzzy_threshold=fuzzy_threshold)
     response = result.to_json_dict()
     response["tier"] = license_info["tier"]
-
     if emit_fhir:
         response["fhir_bundle"] = build_bundle(result)
-
     _enrich_response(result, response, features)
     return JSONResponse(content=response)
 
 
 # ─── Analyze ──────────────────────────────────────────────
 
-@app.post("/analyze")
-def analyze(
-    body: dict[str, Any],
-    x_api_key: str | None = Header(None, alias="X-API-Key"),
-) -> JSONResponse:
-    license_info = _get_license(x_api_key)
-    rows, error = _validate_rows(body)
-    if error:
-        return JSONResponse(status_code=400, content={"error": error})
-
-    input_file = Path(str(body.get("input_file", ""))).name
-    result = normalize_rows(rows, input_file=input_file)
-    response = _build_analysis(result)
-    response["tier"] = license_info["tier"]
-    return JSONResponse(content=response)
-
-
-@app.post("/analyze/upload")
-def analyze_upload(
-    file: UploadFile = File(...),
-    x_api_key: str | None = Header(None, alias="X-API-Key"),
-) -> JSONResponse:
-    license_info = _get_license(x_api_key)
-    rows, error = _read_upload(file)
-    if error:
-        return JSONResponse(status_code=400, content={"error": error})
-
-    safe_name = Path(file.filename or "").name
-    result = normalize_rows(rows, input_file=safe_name)
-    response = _build_analysis(result)
-    response["tier"] = license_info["tier"]
-    return JSONResponse(content=response)
-
-
-# ─── PhenoAge (dedicated endpoint) ───────────────────────
-
-@app.post("/phenoage")
-def phenoage_endpoint(
-    body: dict[str, Any],
-    x_api_key: str | None = Header(None, alias="X-API-Key"),
-) -> JSONResponse:
-    """Compute PhenoAge biological age from biomarker values.
-
-    Required: chronological_age (number) and rows with at least
-    albumin, creatinine, glucose, CRP, lymphocytes %, MCV, RDW, ALP, WBC.
-    """
-    license_info = _get_license(x_api_key)
-    if not license_info["features"].get("phenoage"):
-        return JSONResponse(status_code=403, content={"error": "PhenoAge requires Pro tier."})
-
-    age = body.get("chronological_age")
-    if age is None:
-        return JSONResponse(status_code=400, content={"error": "chronological_age is required."})
-
-    rows, error = _validate_rows(body)
-    if error:
-        return JSONResponse(status_code=400, content={"error": error})
-
-    result = normalize_rows(rows)
-    pheno = compute_phenoage(result, chronological_age=float(age))
-    return JSONResponse(content=pheno or {"error": "Could not compute PhenoAge"})
-
-
-# ─── Optimal Ranges (dedicated endpoint) ─────────────────
-
-@app.post("/optimal-ranges")
-def optimal_ranges_endpoint(
-    body: dict[str, Any],
-    x_api_key: str | None = Header(None, alias="X-API-Key"),
-) -> JSONResponse:
-    """Evaluate biomarker values against longevity-optimal ranges."""
-    license_info = _get_license(x_api_key)
-    if not license_info["features"].get("optimal_ranges"):
-        return JSONResponse(status_code=403, content={"error": "Optimal ranges require Pro tier."})
-
-    rows, error = _validate_rows(body)
-    if error:
-        return JSONResponse(status_code=400, content={"error": error})
-
-    result = normalize_rows(rows)
-    evals = evaluate_optimal_ranges(result)
-    return JSONResponse(content=summarize_optimal(evals))
-
-
-# ─── Compare (longitudinal tracking) ─────────────────────
-
-@app.post("/compare")
-def compare_endpoint(
-    body: dict[str, Any],
-    x_api_key: str | None = Header(None, alias="X-API-Key"),
-) -> JSONResponse:
-    """Compare two sets of lab results (before/after) for longitudinal tracking.
-
-    Body: {"before": {"rows": [...]}, "after": {"rows": [...]}, "days_between": 90}
-    """
-    license_info = _get_license(x_api_key)
-    if not license_info["features"].get("optimal_ranges"):
-        return JSONResponse(status_code=403, content={"error": "Longitudinal tracking requires Pro tier."})
-
-    before_data = body.get("before", {})
-    after_data = body.get("after", {})
-
-    before_rows = before_data.get("rows", [])
-    after_rows = after_data.get("rows", [])
-
-    if not before_rows or not after_rows:
-        return JSONResponse(status_code=400, content={
-            "error": 'Provide {"before": {"rows": [...]}, "after": {"rows": [...]}}',
-        })
-
-    before_result = normalize_rows([_coerce_row(r) for r in before_rows])
-    after_result = normalize_rows([_coerce_row(r) for r in after_rows])
-
-    days = body.get("days_between")
-    comparison = compare_results(before_result, after_result, days_between=float(days) if days else None)
-    return JSONResponse(content=comparison)
-
-
-# ─── Analysis helper ──────────────────────────────────────
-
 def _build_analysis(result: Any) -> dict[str, Any]:
     mapped_biomarkers: dict[str, int] = {}
     unmapped_tests: dict[str, int] = {}
     review_reasons: dict[str, int] = {}
     unsupported_units: dict[str, int] = {}
-
     for r in result.records:
         if r.mapping_status == "mapped":
             mapped_biomarkers[r.canonical_biomarker_name] = mapped_biomarkers.get(r.canonical_biomarker_name, 0) + 1
@@ -415,13 +436,10 @@ def _build_analysis(result: Any) -> dict[str, Any]:
             if r.status_reason == "unsupported_unit_for_biomarker":
                 ukey = f"{r.source_test_name}: {r.source_unit}"
                 unsupported_units[ukey] = unsupported_units.get(ukey, 0) + 1
-
     total = result.summary["total_rows"]
     mapped_pct = result.summary["mapped"] / total * 100 if total else 0
-
     return {
-        "input_file": result.input_file,
-        "summary": result.summary,
+        "input_file": result.input_file, "summary": result.summary,
         "mapping_rate": round(mapped_pct, 1),
         "mapped_biomarkers": dict(sorted(mapped_biomarkers.items(), key=lambda x: -x[1])),
         "unmapped_tests": dict(sorted(unmapped_tests.items(), key=lambda x: -x[1])),
@@ -429,6 +447,90 @@ def _build_analysis(result: Any) -> dict[str, Any]:
         "unsupported_units": dict(sorted(unsupported_units.items(), key=lambda x: -x[1])),
         "warnings": list(result.warnings),
     }
+
+
+@app.post("/analyze")
+def analyze(body: NormalizeRequest, x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    license_info = _get_license(x_api_key)
+    rows, error = _validate_rows(body.model_dump())
+    if error:
+        return JSONResponse(status_code=400, content={"error": error})
+    result = normalize_rows(rows, input_file=Path(body.input_file).name if body.input_file else "")
+    response = _build_analysis(result)
+    response["tier"] = license_info["tier"]
+    return JSONResponse(content=response)
+
+
+@app.post("/analyze/upload")
+def analyze_upload(file: UploadFile = File(...),
+                   x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    license_info = _get_license(x_api_key)
+    rows, error = _read_upload(file)
+    if error:
+        return JSONResponse(status_code=400, content={"error": error})
+    result = normalize_rows(rows, input_file=Path(file.filename or "").name)
+    response = _build_analysis(result)
+    response["tier"] = license_info["tier"]
+    return JSONResponse(content=response)
+
+
+# ─── PhenoAge ─────────────────────────────────────────────
+
+@app.post("/phenoage")
+def phenoage_endpoint(body: PhenoAgeRequest,
+                      x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    """Compute PhenoAge biological age. Requires 9 biomarkers + chronological_age."""
+    license_info = _get_license(x_api_key)
+    if not license_info["features"].get("phenoage"):
+        return JSONResponse(status_code=403, content={"error": "PhenoAge requires Pro tier."})
+    rows, error = _validate_rows(body.model_dump())
+    if error:
+        return JSONResponse(status_code=400, content={"error": error})
+    result = normalize_rows(rows)
+    pheno = compute_phenoage(result, chronological_age=body.chronological_age)
+    return JSONResponse(content=pheno or {"error": "Could not compute PhenoAge"})
+
+
+# ─── Optimal Ranges ───────────────────────────────────────
+
+@app.post("/optimal-ranges")
+def optimal_ranges_endpoint(body: NormalizeRequest,
+                            x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    """Evaluate biomarker values against longevity-optimal ranges."""
+    license_info = _get_license(x_api_key)
+    if not license_info["features"].get("optimal_ranges"):
+        return JSONResponse(status_code=403, content={"error": "Optimal ranges require Pro tier."})
+    rows, error = _validate_rows(body.model_dump())
+    if error:
+        return JSONResponse(status_code=400, content={"error": error})
+    result = normalize_rows(rows)
+    return JSONResponse(content=summarize_optimal(evaluate_optimal_ranges(result)))
+
+
+# ─── Compare (Longitudinal) ──────────────────────────────
+
+@app.post("/compare")
+def compare_endpoint(body: CompareRequest,
+                     x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    """Compare before/after lab results for longitudinal tracking."""
+    license_info = _get_license(x_api_key)
+    if not license_info["features"].get("optimal_ranges"):
+        return JSONResponse(status_code=403, content={"error": "Longitudinal tracking requires Pro tier."})
+    before_rows = body.before.get("rows", [])
+    after_rows = body.after.get("rows", [])
+    if not before_rows or not after_rows:
+        return JSONResponse(status_code=400, content={
+            "error": 'Provide {"before": {"rows": [...]}, "after": {"rows": [...]}}'})
+    before_result = normalize_rows([_coerce_row(r) for r in before_rows])
+    after_result = normalize_rows([_coerce_row(r) for r in after_rows])
+    comparison = compare_results(before_result, after_result,
+                                days_between=body.days_between)
+    return JSONResponse(content=comparison)
+
+
+# ─── Register v1 router ──────────────────────────────────
+
+app.include_router(v1)
 
 
 # ─── Entry point ──────────────────────────────────────────
