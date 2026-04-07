@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG
 from biomarker_normalization_toolkit.fhir import build_bundle
-from biomarker_normalization_toolkit.io_utils import read_fhir_input, read_input, read_input_csv
+from biomarker_normalization_toolkit.io_utils import read_fhir_input, read_hl7_input, read_input, read_input_csv
 from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_rows, normalize_source_record
 from biomarker_normalization_toolkit.units import convert_to_normalized, is_inequality_value, parse_reference_range
 
@@ -497,6 +497,56 @@ class NormalizationTests(unittest.TestCase):
             self.skipTest("FHIR example file not available")
         rows = read_input(fhir_path)
         self.assertEqual(len(rows), 1)
+
+    # --- HL7v2 ingest ---
+
+    def test_hl7_cbc_ingest(self) -> None:
+        hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_cbc.hl7"
+        if not hl7_path.exists():
+            self.skipTest("HL7 CBC sample not available")
+        rows = read_hl7_input(hl7_path)
+        self.assertEqual(len(rows), 14)
+        result = normalize_rows(rows)
+        self.assertGreater(result.summary["mapped"], 0)
+
+    def test_hl7_cmp_ingest(self) -> None:
+        hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_cmp.hl7"
+        if not hl7_path.exists():
+            self.skipTest("HL7 CMP sample not available")
+        rows = read_hl7_input(hl7_path)
+        self.assertEqual(len(rows), 16)
+        result = normalize_rows(rows)
+        self.assertGreaterEqual(result.summary["mapped"], 13)
+
+    def test_hl7_sn_inequality_parsing(self) -> None:
+        hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_edge_cases.hl7"
+        if not hl7_path.exists():
+            self.skipTest("HL7 edge cases sample not available")
+        rows = read_hl7_input(hl7_path)
+        # Find the glucose row with SN value <^10
+        glucose_rows = [r for r in rows if "Glucose" in r["source_test_name"] and r["raw_value"] == "<10"]
+        self.assertEqual(len(glucose_rows), 1)
+        self.assertEqual(glucose_rows[0]["raw_value"], "<10")
+
+    def test_hl7_qualitative_values_preserved(self) -> None:
+        hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_edge_cases.hl7"
+        if not hl7_path.exists():
+            self.skipTest("HL7 edge cases sample not available")
+        rows = read_hl7_input(hl7_path)
+        by_name = {r["source_test_name"]: r["raw_value"] for r in rows}
+        protein_key = [k for k in by_name if "Protein [Presence]" in k]
+        ketones_key = [k for k in by_name if "Ketones [Presence]" in k]
+        self.assertEqual(len(protein_key), 1)
+        self.assertEqual(by_name[protein_key[0]], "Trace")
+        self.assertEqual(len(ketones_key), 1)
+        self.assertEqual(by_name[ketones_key[0]], "1+")
+
+    def test_read_input_auto_detects_hl7(self) -> None:
+        hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_cbc.hl7"
+        if not hl7_path.exists():
+            self.skipTest("HL7 sample not available")
+        rows = read_input(hl7_path)
+        self.assertEqual(len(rows), 14)
 
 
 if __name__ == "__main__":

@@ -48,6 +48,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 - **CSV** with columns: `source_row_id`, `source_test_name`, `raw_value`, `source_unit`, `specimen_type`, `source_reference_range`
 - **FHIR R4 JSON** — Bundle or individual Observation resources (auto-detected)
+- **HL7 v2.x** — ORU^R01 messages with OBX segments (auto-detected by `.hl7` extension)
 
 ## Output Formats
 
@@ -73,6 +74,9 @@ bnt normalize --input labs.csv --output-dir out
 
 # Normalize a FHIR Bundle
 bnt normalize --input fhir_bundle.json --output-dir out
+
+# Normalize an HL7 v2.x ORU message
+bnt normalize --input lab_results.hl7 --output-dir out
 
 # Normalize with FHIR output
 bnt normalize --input labs.csv --output-dir out --emit-fhir

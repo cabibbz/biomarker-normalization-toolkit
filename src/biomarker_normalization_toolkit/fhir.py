@@ -37,6 +37,8 @@ UCUM_CODES: dict[str, str] = {
     "ratio": "{ratio}",
     "mL/min/1.73m2": "mL/min/{1.73_m2}",
     "mmHg": "mm[Hg]",
+    "ug/mL": "ug/mL",
+    "IU/mL": "[IU]/mL",
 }
 
 

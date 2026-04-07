@@ -335,7 +335,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="fL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("MCV", "Mean Corpuscular Volume",
-                 "MCV [Entitic mean volume] in Red Blood Cells by Automated count"),
+                 "MCV [Entitic mean volume] in Red Blood Cells by Automated count",
+                 "MCV [Entitic volume] by Automated count"),
     ),
     "mch": BiomarkerDefinition(
         biomarker_id="mch",
@@ -353,7 +354,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="g/dL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("MCHC", "Mean Corpuscular Hemoglobin Concentration",
-                 "MCHC [Entitic Mass/volume] in Red Blood Cells by Automated count"),
+                 "MCHC [Entitic Mass/volume] in Red Blood Cells by Automated count",
+                 "MCHC [Mass/volume] by Automated count"),
     ),
     "rdw": BiomarkerDefinition(
         biomarker_id="rdw",
@@ -361,7 +363,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="788-0",
         normalized_unit="%",
         allowed_specimens=_WHOLE_BLOOD,
-        aliases=("RDW", "Red Cell Distribution Width", "RDW-CV"),
+        aliases=("RDW", "Red Cell Distribution Width", "RDW-CV",
+                 "Erythrocyte distribution width [Ratio] by Automated count"),
     ),
     "rdw_sd": BiomarkerDefinition(
         biomarker_id="rdw_sd",
@@ -654,7 +657,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="K/uL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Neutrophils", "Neutrophil Count", "ANC", "Absolute Neutrophil Count",
-                 "Neutrophils [#/volume] in Blood"),
+                 "Neutrophils [#/volume] in Blood",
+                 "Neutrophils/100 leukocytes in Blood by Automated count"),
     ),
     "lymphocytes": BiomarkerDefinition(
         biomarker_id="lymphocytes",
@@ -664,7 +668,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Lymphocytes", "Lymphocyte Count", "Lymph",
                  "Absolute Lymphocyte Count",
-                 "Lymphocytes [#/volume] in Blood"),
+                 "Lymphocytes [#/volume] in Blood",
+                 "Lymphocytes/100 leukocytes in Blood by Automated count"),
     ),
     "monocytes": BiomarkerDefinition(
         biomarker_id="monocytes",
@@ -674,7 +679,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Monocytes", "Monocyte Count", "Mono",
                  "Absolute Monocyte Count",
-                 "Monocytes [#/volume] in Blood"),
+                 "Monocytes [#/volume] in Blood",
+                 "Monocytes/100 leukocytes in Blood by Automated count"),
     ),
     "eosinophils": BiomarkerDefinition(
         biomarker_id="eosinophils",
@@ -684,7 +690,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Eosinophils", "Eosinophil Count", "Eos",
                  "Absolute Eosinophil Count",
-                 "Eosinophils [#/volume] in Blood"),
+                 "Eosinophils [#/volume] in Blood",
+                 "Eosinophils/100 leukocytes in Blood by Automated count"),
     ),
     "basophils": BiomarkerDefinition(
         biomarker_id="basophils",
@@ -694,7 +701,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Basophils", "Basophil Count", "Baso",
                  "Absolute Basophil Count",
-                 "Basophils [#/volume] in Blood"),
+                 "Basophils [#/volume] in Blood",
+                 "Basophils/100 leukocytes in Blood by Automated count"),
     ),
     # --- Wave 5: Other ---
     "total_protein": BiomarkerDefinition(

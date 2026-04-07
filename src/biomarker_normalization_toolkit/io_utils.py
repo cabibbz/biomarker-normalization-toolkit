@@ -20,10 +20,12 @@ REQUIRED_INPUT_COLUMNS = (
 
 
 def read_input(path: Path) -> list[dict[str, str]]:
-    """Auto-detect format and read input file. Supports CSV and FHIR JSON."""
+    """Auto-detect format and read input file. Supports CSV, FHIR JSON, and HL7v2."""
     suffix = path.suffix.lower()
     if suffix == ".json":
         return read_fhir_input(path)
+    if suffix in (".hl7", ".oru"):
+        return read_hl7_input(path)
     return read_input_csv(path)
 
 
@@ -94,6 +96,95 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
 
     if not rows:
         raise ValueError("No Observation resources with numeric values found in FHIR input.")
+
+    return rows
+
+
+def _parse_hl7_sn(value: str) -> str:
+    """Parse HL7 SN (Structured Numeric) value like '<^10' or '>^500'."""
+    parts = value.split("^")
+    if len(parts) >= 2:
+        comparator = parts[0].strip()
+        number = parts[1].strip()
+        if comparator and number:
+            return f"{comparator}{number}"
+        if number:
+            return number
+    return value
+
+
+def read_hl7_input(path: Path) -> list[dict[str, str]]:
+    """Read an HL7 v2.x file and extract OBX segments into input rows."""
+    text = path.read_text(encoding="utf-8-sig")
+    lines = [line.rstrip("\r") for line in text.split("\n") if line.strip()]
+
+    # Detect field separator from MSH
+    if not lines or not lines[0].startswith("MSH"):
+        raise ValueError("Not a valid HL7 v2.x message: missing MSH segment.")
+
+    field_sep = lines[0][3]  # Usually '|'
+    comp_sep = lines[0][4] if len(lines[0]) > 4 else "^"  # Usually '^'
+
+    rows: list[dict[str, str]] = []
+    current_obr_name = ""
+    row_id = 0
+
+    for line in lines:
+        fields = line.split(field_sep)
+        segment = fields[0] if fields else ""
+
+        if segment == "OBR" and len(fields) > 4:
+            # OBR-4: Universal Service Identifier (test/panel name)
+            obr4_parts = fields[4].split(comp_sep)
+            current_obr_name = obr4_parts[1] if len(obr4_parts) > 1 else obr4_parts[0]
+
+        if segment == "OBX" and len(fields) > 6:
+            value_type = fields[2] if len(fields) > 2 else ""  # NM, SN, ST, CE, etc.
+            # OBX-3: Observation Identifier
+            obx3_parts = fields[3].split(comp_sep)
+            test_name = obx3_parts[1] if len(obx3_parts) > 1 else obx3_parts[0]
+            loinc_code = obx3_parts[0] if obx3_parts else ""
+
+            # OBX-5: Observation Value
+            raw_value = fields[5] if len(fields) > 5 else ""
+            if value_type == "SN":
+                raw_value = _parse_hl7_sn(raw_value)
+
+            # OBX-6: Units
+            unit = ""
+            if len(fields) > 6 and fields[6]:
+                unit_parts = fields[6].split(comp_sep)
+                unit = unit_parts[0]
+
+            # OBX-7: Reference Range
+            ref_range = ""
+            if len(fields) > 7 and fields[7]:
+                rr = fields[7]
+                if unit:
+                    ref_range = f"{rr} {unit}"
+                else:
+                    ref_range = rr
+
+            # OBX-8: Abnormal Flags
+            abnormal_flag = fields[8].strip() if len(fields) > 8 else ""
+
+            # OBX-11: Result Status
+            result_status = fields[11].strip() if len(fields) > 11 else ""
+
+            row_id += 1
+            rows.append({
+                "source_row_id": f"hl7_{row_id}",
+                "source_lab_name": "",
+                "source_panel_name": current_obr_name,
+                "source_test_name": test_name,
+                "raw_value": raw_value,
+                "source_unit": unit,
+                "specimen_type": "",
+                "source_reference_range": ref_range,
+            })
+
+    if not rows:
+        raise ValueError("No OBX segments found in HL7 input.")
 
     return rows
 
