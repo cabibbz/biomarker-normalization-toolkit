@@ -77,6 +77,31 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output format (default: table).",
     )
 
+    batch = subparsers.add_parser(
+        "batch",
+        help="Normalize all supported files in a directory.",
+    )
+    batch.add_argument(
+        "--input-dir",
+        required=True,
+        help="Directory containing input files.",
+    )
+    batch.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory where per-file output subdirectories will be created.",
+    )
+    batch.add_argument(
+        "--aliases",
+        default=None,
+        help="Path to custom alias JSON file.",
+    )
+    batch.add_argument(
+        "--emit-fhir",
+        action="store_true",
+        help="Also write FHIR bundles for each file.",
+    )
+
     analyze = subparsers.add_parser(
         "analyze",
         help="Analyze a file and report coverage gaps.",
@@ -272,6 +297,56 @@ def command_analyze(input_path: str, aliases_path: str | None = None) -> int:
     return 0
 
 
+SUPPORTED_EXTENSIONS = {".csv", ".json", ".hl7", ".oru", ".xml", ".xlsx", ".xls"}
+
+
+def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None) -> int:
+    _load_aliases(aliases_path)
+
+    input_path = Path(input_dir)
+    if not input_path.is_dir():
+        print(f"Input directory does not exist: {input_path}", file=sys.stderr)
+        return 1
+
+    files = sorted(
+        f for f in input_path.iterdir()
+        if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
+    )
+
+    if not files:
+        print(f"No supported files found in {input_path}", file=sys.stderr)
+        return 1
+
+    out_base = Path(output_dir)
+    total_mapped = 0
+    total_rows = 0
+    errors: list[str] = []
+
+    for source_file in files:
+        file_out = out_base / source_file.stem
+        try:
+            rows = read_input(source_file)
+            result = normalize_rows(rows, input_file=source_file.name)
+            write_result(result, file_out)
+            if emit_fhir:
+                write_fhir_bundle(result, file_out)
+            write_summary_report(result, file_out)
+            total_mapped += result.summary["mapped"]
+            total_rows += result.summary["total_rows"]
+            pct = result.summary["mapped"] / result.summary["total_rows"] * 100 if result.summary["total_rows"] else 0
+            print(f"  {source_file.name}: {result.summary['mapped']}/{result.summary['total_rows']} mapped ({pct:.0f}%)")
+        except Exception as exc:
+            errors.append(f"{source_file.name}: {exc}")
+            print(f"  {source_file.name}: ERROR - {exc}", file=sys.stderr)
+
+    overall_pct = total_mapped / total_rows * 100 if total_rows else 0
+    print(f"\nBatch complete: {len(files)} files, {total_rows} total rows, {total_mapped} mapped ({overall_pct:.1f}%)")
+    if errors:
+        print(f"{len(errors)} files had errors.", file=sys.stderr)
+
+    return 1 if errors else 0
+
+
 def command_demo(output_dir: str) -> int:
     demo_input = resources.files("biomarker_normalization_toolkit").joinpath("data/v0_sample.csv")
     return command_normalize(str(demo_input), output_dir, emit_fhir=True)
@@ -289,6 +364,8 @@ def main() -> int:
         return command_normalize(args.input, args.output_dir, args.emit_fhir, args.aliases)
     if args.command == "demo":
         return command_demo(args.output_dir)
+    if args.command == "batch":
+        return command_batch(args.input_dir, args.output_dir, args.emit_fhir, args.aliases)
     if args.command == "catalog":
         return command_catalog(args.format)
     if args.command == "analyze":
