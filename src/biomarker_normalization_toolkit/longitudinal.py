@@ -54,7 +54,7 @@ def compare_results(
         old = before_vals[bio_id]
         new = after_vals[bio_id]
         abs_delta = new - old
-        pct_delta = float(abs_delta / old * 100) if old != 0 else 0
+        pct_delta: float | None = float(abs_delta / old * 100) if old != 0 else None
 
         # Determine direction relative to optimal ranges
         optimal = OPTIMAL_RANGES.get(bio_id)

@@ -417,6 +417,20 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "dht": {"ng/dL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("0.0344")},
     "omega3_index": {"%": Decimal("1")},
     "ige_total": {"IU/mL": Decimal("1")},
+    # --- Wave 13: Niche ---
+    "acth": {"pg/mL": Decimal("1"), "pmol/L": Decimal("1") / Decimal("0.2202")},
+    "pregnenolone": {"ng/dL": Decimal("1")},
+    "glycomark": {"ug/mL": Decimal("1")},
+    "coq10": {"ug/mL": Decimal("1")},
+    "estrone": {"pg/mL": Decimal("1"), "pmol/L": Decimal("1") / Decimal("3.699")},
+    "cortisol_free": {"ug/dL": Decimal("1")},
+    "igfbp3": {"ng/mL": Decimal("1"), "mg/L": Decimal("1000")},
+    "anti_ccp": {"U/mL": Decimal("1")},
+    "beta2_microglobulin": {"mg/L": Decimal("1"), "nmol/L": Decimal("1") / Decimal("84.9")},
+    "ca125": {"U/mL": Decimal("1")},
+    "cea": {"ng/mL": Decimal("1")},
+    "afp": {"ng/mL": Decimal("1"), "IU/mL": Decimal("1.21")},
+    "ldl_particle_size": {"nm": Decimal("1")},
 }
 
 

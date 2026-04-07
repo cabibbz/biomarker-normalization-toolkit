@@ -35,6 +35,16 @@ from biomarker_normalization_toolkit.phenoage import compute_phenoage
 
 logger = logging.getLogger("bnt.api")
 
+# Structured JSON logging if python-json-logger is available
+try:
+    from pythonjsonlogger.json import JsonFormatter
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
+    logging.getLogger("bnt").addHandler(handler)
+    logging.getLogger("bnt").setLevel(logging.INFO)
+except ImportError:
+    pass  # Fall back to stdlib logging
+
 MAX_ROWS = 100_000
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 MAX_JSON_BODY_BYTES = 50 * 1024 * 1024
@@ -282,10 +292,14 @@ def _enrich_response(
     derived = compute_derived_metrics(result)
     if derived and features.get("derived_metrics"):
         response["derived_metrics"] = derived
+    elif derived:
+        response["derived_metrics"] = {"status": "upgrade_required", "message": "Derived metrics require Pro tier."}
     if features.get("optimal_ranges"):
         optimal = evaluate_optimal_ranges(result, sex=sex)
         if optimal:
             response["optimal_ranges"] = summarize_optimal(optimal)
+    else:
+        response["optimal_ranges"] = {"status": "upgrade_required", "message": "Optimal ranges require Pro tier."}
     if chronological_age is not None and features.get("phenoage"):
         pheno = compute_phenoage(result, chronological_age=chronological_age)
         if pheno:

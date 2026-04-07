@@ -8,6 +8,29 @@ from biomarker_normalization_toolkit.models import NormalizationResult, Normaliz
 from biomarker_normalization_toolkit.plausibility import check_plausibility
 from biomarker_normalization_toolkit.units import convert_to_normalized, format_decimal, format_range, is_inequality_value, normalize_unit, parse_decimal, parse_reference_range
 
+# Explicit sibling map: when unit conversion fails for a biomarker, try these
+# related biomarkers. Only curated pairs — no prefix-based guessing.
+_SIBLING_MAP: dict[str, list[str]] = {
+    "neutrophils": ["neutrophils_pct"],
+    "neutrophils_pct": ["neutrophils"],
+    "lymphocytes": ["lymphocytes_pct"],
+    "lymphocytes_pct": ["lymphocytes"],
+    "monocytes": ["monocytes_pct"],
+    "monocytes_pct": ["monocytes"],
+    "eosinophils": ["eosinophils_pct"],
+    "eosinophils_pct": ["eosinophils"],
+    "basophils": ["basophils_pct"],
+    "basophils_pct": ["basophils"],
+    "rdw": ["rdw_sd"],
+    "rdw_sd": ["rdw"],
+    "reticulocytes": ["reticulocyte_absolute"],
+    "reticulocyte_absolute": ["reticulocytes"],
+    "glucose_serum": ["glucose_urine"],
+    "glucose_urine": ["glucose_serum"],
+    "creatinine": ["creatinine_urine"],
+    "creatinine_urine": ["creatinine"],
+}
+
 # Keys from source input that are safe to include in provenance output.
 # Prevents arbitrary/sensitive fields from leaking into normalized records.
 _SAFE_RAW_SOURCE_KEYS = frozenset({
@@ -159,23 +182,15 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
     sibling_redirected = False
     normalized_value = convert_to_normalized(source.raw_value, candidate.biomarker_id, source.source_unit)
     if normalized_value is None:
-        # Try sibling biomarkers with related suffixes (_pct, _sd, _absolute, _urine, _serum)
-        base = candidate.biomarker_id
-        for suffix in ("_pct", "_sd", "_absolute", "_urine", "_serum"):
-            if base.endswith(suffix):
-                base = base.removesuffix(suffix)
-                break
-        sibling_ids = [
-            sid for sid in BIOMARKER_CATALOG
-            if (sid.startswith(base + "_") or sid == base) and sid != candidate.biomarker_id
-        ]
-        for sib_id in sibling_ids:
-            sib_value = convert_to_normalized(source.raw_value, sib_id, source.source_unit)
-            if sib_value is not None:
-                candidate = BIOMARKER_CATALOG[sib_id]
-                normalized_value = sib_value
-                sibling_redirected = True
-                break
+        # Try explicit sibling biomarkers (curated pairs, not prefix matching)
+        for sib_id in _SIBLING_MAP.get(candidate.biomarker_id, []):
+            if sib_id in BIOMARKER_CATALOG:
+                sib_value = convert_to_normalized(source.raw_value, sib_id, source.source_unit)
+                if sib_value is not None:
+                    candidate = BIOMARKER_CATALOG[sib_id]
+                    normalized_value = sib_value
+                    sibling_redirected = True
+                    break
     if normalized_value is None:
         return _build_record(
             source,

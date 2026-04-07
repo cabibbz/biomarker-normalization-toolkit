@@ -209,6 +209,19 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "dht":                  (Decimal("0"),    Decimal("500")),
     "omega3_index":         (Decimal("0"),    Decimal("20")),
     "ige_total":            (Decimal("0"),    Decimal("5000")),
+    "acth":                 (Decimal("0"),    Decimal("500")),
+    "pregnenolone":         (Decimal("0"),    Decimal("1000")),
+    "glycomark":            (Decimal("1"),    Decimal("50")),
+    "coq10":                (Decimal("0.1"),  Decimal("5")),
+    "estrone":              (Decimal("0"),    Decimal("500")),
+    "cortisol_free":        (Decimal("0"),    Decimal("10")),
+    "igfbp3":               (Decimal("500"),  Decimal("10000")),
+    "anti_ccp":             (Decimal("0"),    Decimal("1000")),
+    "beta2_microglobulin":  (Decimal("0.5"),  Decimal("20")),
+    "ca125":                (Decimal("0"),    Decimal("1000")),
+    "cea":                  (Decimal("0"),    Decimal("100")),
+    "afp":                  (Decimal("0"),    Decimal("500")),
+    "ldl_particle_size":    (Decimal("15"),   Decimal("25")),
 }
 
 
