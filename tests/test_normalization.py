@@ -592,6 +592,80 @@ class NormalizationTests(unittest.TestCase):
         rows = read_input(hl7_path)
         self.assertEqual(len(rows), 14)
 
+    # --- Custom alias overrides ---
+
+    def test_custom_alias_loading(self) -> None:
+        from biomarker_normalization_toolkit.catalog import load_custom_aliases
+        alias_path = ROOT / "sample data" / "test_aliases.json"
+        if not alias_path.exists():
+            self.skipTest("Test aliases file not available")
+        added = load_custom_aliases(alias_path)
+        self.assertGreater(added, 0)
+        # Verify "Blood Sugar" now maps to glucose
+        rows = [{"source_row_id": "ca1", "source_test_name": "Blood Sugar", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "glucose_serum")
+
+    # --- Specimen disambiguation ---
+
+    def test_ph_disambiguates_by_specimen(self) -> None:
+        rows = [
+            {"source_row_id": "ph1", "source_test_name": "pH", "raw_value": "7.4",
+             "source_unit": "units", "specimen_type": "blood", "source_reference_range": "7.35-7.45"},
+            {"source_row_id": "ph2", "source_test_name": "pH", "raw_value": "6.0",
+             "source_unit": "units", "specimen_type": "urine", "source_reference_range": "5.0-8.0"},
+            {"source_row_id": "ph3", "source_test_name": "pH", "raw_value": "7.0",
+             "source_unit": "units", "specimen_type": "", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].canonical_biomarker_id, "blood_ph")
+        self.assertEqual(result.records[1].canonical_biomarker_id, "urine_ph")
+        self.assertEqual(result.records[2].mapping_status, "review_needed")
+        self.assertEqual(result.records[2].status_reason, "ambiguous_alias_requires_specimen")
+
+    def test_bilirubin_disambiguates_by_specimen(self) -> None:
+        rows = [
+            {"source_row_id": "b1", "source_test_name": "Bilirubin", "raw_value": "1.0",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "b2", "source_test_name": "Bilirubin", "raw_value": "0.2",
+             "source_unit": "mg/dL", "specimen_type": "urine", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].canonical_biomarker_id, "total_bilirubin")
+        self.assertEqual(result.records[1].canonical_biomarker_id, "urine_bilirubin")
+
+    # --- New biomarker coverage ---
+
+    def test_fibrinogen_maps(self) -> None:
+        rows = [{"source_row_id": "f1", "source_test_name": "Fibrinogen, Functional",
+                 "raw_value": "250", "source_unit": "mg/dL", "specimen_type": "plasma",
+                 "source_reference_range": "200-400 mg/dL"}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "fibrinogen")
+
+    def test_eag_maps(self) -> None:
+        rows = [{"source_row_id": "e1", "source_test_name": "eAG",
+                 "raw_value": "117", "source_unit": "mg/dL", "specimen_type": "whole blood",
+                 "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "eag")
+
+    # --- Batch command ---
+
+    def test_batch_processes_fixture_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = subprocess.run(
+                [sys.executable, "-m", "biomarker_normalization_toolkit.cli",
+                 "batch", "--input-dir", str(FIXTURES / "input"), "--output-dir", temp_dir],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertIn("Batch complete", result.stdout)
+            self.assertIn("files", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

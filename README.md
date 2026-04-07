@@ -86,6 +86,12 @@ bnt normalize --input lab_results.xml --output-dir out
 # Normalize an Excel spreadsheet
 bnt normalize --input lab_results.xlsx --output-dir out
 
+# Batch-process a directory of mixed-format files
+bnt batch --input-dir /data/labs --output-dir /data/normalized --emit-fhir
+
+# Use custom aliases for vendor-specific test names
+bnt normalize --input labs.csv --output-dir out --aliases custom_aliases.json
+
 # Normalize with FHIR output
 bnt normalize --input labs.csv --output-dir out --emit-fhir
 
