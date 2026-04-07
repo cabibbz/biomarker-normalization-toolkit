@@ -109,6 +109,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
             "Hgb A1C",
             "Glycohemoglobin A1C",
             "Hemoglobin A1c/Hemoglobin.total in Blood",
+            "Hemoglobin A1c/Hemoglobin.total in Blood by IFCC protocol",
         ),
     ),
     "total_cholesterol": BiomarkerDefinition(
@@ -544,7 +545,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
                  "Carbon dioxide total [Moles/volume] in Blood",
                  "Carbon dioxide  total [Moles/volume] in Blood",
                  "Carbon dioxide  total [Moles/volume] in Serum or Plasma",
-                 "Carbon dioxide  total [Moles/volume] in Venous blood"),
+                 "Carbon dioxide  total [Moles/volume] in Venous blood",
+                 "Bicarbonate [Moles/volume] in Serum or Plasma"),
     ),
     "calcium": BiomarkerDefinition(
         biomarker_id="calcium",
