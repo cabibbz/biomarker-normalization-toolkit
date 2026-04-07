@@ -1,11 +1,11 @@
 # Current Context
 
-Latest checkpoint: `170_live-cli-wrappers-for-dual-agent-consensus.md`
-Progress: `170%`
+Latest checkpoint: `180_live-smoke-test-and-consensus-hardening.md`
+Progress: `180%`
 
 ## Compressed State
 
-Expanded the repo workflow with real Codex and Claude wrapper scripts for the dual-agent consensus loop. The wrappers now build prompts from frozen run artifacts, isolate agent reasoning to the snapshot run directory instead of the live workspace, and the repo passes 51 tests including wrapper-specific coverage.
+Expanded the consensus workflow with a retry-aware live smoke test and hardened the orchestrator against sloppy provider responses such as first-round accept-with-proposal and repeated propose-when-revise would be more correct. The repo now has real Codex and Claude wrappers plus 54 passing tests.
 
 ## Locked Decisions
 
@@ -18,6 +18,8 @@ Expanded the repo workflow with real Codex and Claude wrapper scripts for the du
 - Dual-agent consensus runs from frozen context snapshots, not live mutable files
 - Deploy hooks only run after one agent accepts the other agent's current proposal
 - Repo-owned Codex and Claude wrappers should preserve the frozen-context guarantee, not silently reintroduce live workspace context
+- Live smoke tests are transport checks, not semantic guarantees about provider behavior
+- The orchestrator may normalize recoverable action mistakes when providers return structurally useful output
 
 ## Immediate Next Steps
 
@@ -25,7 +27,8 @@ Expanded the repo workflow with real Codex and Claude wrapper scripts for the du
 - Consider HL7v2 ingest for enterprise customers
 - Add broader metadata sanity checks for future catalog expansion waves
 - Decide whether to smoke-test live provider calls in CI-like environments or keep wrapper verification provider-free
+- Decide whether semantic task adherence needs a separate evaluator beyond transport-level smoke testing
 
 ## Resume From
 
-Start from project_memory/current_context.md. The repo now includes real local wrappers for Codex and Claude plus the hardened 71-biomarker toolkit baseline. Next focus should be broader validation and deciding how much live-provider verification to automate.
+Start from project_memory/current_context.md. The repo now includes real local wrappers, a retry-aware live smoke test, and hardened consensus normalization. Next focus should be broader validation and deciding whether to add semantic evaluation on top of the transport smoke check.

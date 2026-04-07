@@ -217,6 +217,93 @@ class DualAgentConsensusTests(unittest.TestCase):
             payload = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(payload["status"], "no_consensus")
 
+    def test_normalizes_accept_with_proposal_into_first_proposal(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp = Path(temp_dir)
+            agent_script = temp / "normalize_agent.py"
+            task_file = temp / "task.md"
+            config_file = temp / "config.json"
+            run_dir = temp / "run"
+
+            agent_script.write_text(
+                textwrap.dedent(
+                    """
+                    import json
+                    import sys
+                    from pathlib import Path
+
+                    response_file = Path(sys.argv[2])
+                    agent_name = sys.argv[4]
+
+                    if agent_name == "codex":
+                        payload = {
+                            "action": "accept",
+                            "summary": "Premature accept with proposal text",
+                            "concerns": [],
+                            "proposal_markdown": "# Smoke\\n\\n- First actual proposal."
+                        }
+                    else:
+                        payload = {
+                            "action": "accept",
+                            "summary": "Second agent accepts the proposal",
+                            "concerns": [],
+                            "proposal_markdown": ""
+                        }
+
+                    response_file.write_text(json.dumps(payload), encoding="utf-8")
+                    """
+                ).strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            task_file.write_text("Normalize sloppy first-agent behavior.\n", encoding="utf-8")
+            config = {
+                "workspace": str(temp),
+                "run_dir": str(run_dir),
+                "task_file": str(task_file),
+                "max_rounds": 3,
+                "agents": [
+                    {
+                        "name": "codex",
+                        "command": [
+                            sys.executable,
+                            str(agent_script),
+                            "{prompt_file}",
+                            "{response_file}",
+                            "{proposal_file}",
+                            "codex",
+                        ],
+                    },
+                    {
+                        "name": "claude",
+                        "command": [
+                            sys.executable,
+                            str(agent_script),
+                            "{prompt_file}",
+                            "{response_file}",
+                            "{proposal_file}",
+                            "claude",
+                        ],
+                    },
+                ],
+            }
+            config_file.write_text(json.dumps(config, indent=2), encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), str(config_file)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            payload = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
+            self.assertEqual(payload["status"], "consensus_reached")
+            self.assertEqual(payload["proposed_by"], "codex")
+            transcript = (run_dir / "transcript.md").read_text(encoding="utf-8")
+            self.assertIn("normalized `accept` to `propose`", transcript)
+
 
 if __name__ == "__main__":
     unittest.main()

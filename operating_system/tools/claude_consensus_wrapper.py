@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from consensus_wrapper_common import RESPONSE_SCHEMA, build_prompt, validate_response, write_response
+from consensus_wrapper_common import RESPONSE_SCHEMA, build_prompt, resolve_executable, validate_response, write_response
 
 
 def parse_args():
@@ -18,6 +18,8 @@ def parse_args():
     parser.add_argument("--binary-arg", action="append", default=[], help="Extra argument to insert after the binary.")
     parser.add_argument("--model", default="", help="Optional Claude model override.")
     parser.add_argument("--effort", default="", help="Optional Claude effort override.")
+    parser.add_argument("--max-budget-usd", default="", help="Optional Claude budget cap.")
+    parser.add_argument("--bare", action="store_true", help="Run Claude in bare mode.")
     return parser.parse_args()
 
 
@@ -32,9 +34,8 @@ def main():
     prompt = build_prompt(run_dir, prompt_file, proposal_file)
 
     command = [
-        args.binary,
+        resolve_executable(args.binary),
         *args.binary_arg,
-        "--bare",
         "--no-session-persistence",
         "-p",
         "--output-format",
@@ -44,10 +45,14 @@ def main():
         "--tools",
         "",
     ]
+    if args.bare:
+        command.append("--bare")
     if args.model:
         command.extend(["--model", args.model])
     if args.effort:
         command.extend(["--effort", args.effort])
+    if args.max_budget_usd:
+        command.extend(["--max-budget-usd", args.max_budget_usd])
     command.append(prompt)
 
     result = subprocess.run(
@@ -62,7 +67,9 @@ def main():
         raise SystemExit(result.returncode)
 
     envelope = json.loads(result.stdout.strip())
-    if isinstance(envelope, dict) and isinstance(envelope.get("result"), str):
+    if isinstance(envelope, dict) and isinstance(envelope.get("structured_output"), dict):
+        payload = envelope["structured_output"]
+    elif isinstance(envelope, dict) and isinstance(envelope.get("result"), str):
         payload = json.loads(envelope["result"])
     else:
         payload = envelope

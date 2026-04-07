@@ -1,6 +1,6 @@
 {
-  "current_percent": 170,
-  "latest_checkpoint": "project_memory/checkpoints/170_live-cli-wrappers-for-dual-agent-consensus.md",
+  "current_percent": 180,
+  "latest_checkpoint": "project_memory/checkpoints/180_live-smoke-test-and-consensus-hardening.md",
   "checkpoints": [
     {
       "percent": 10,
@@ -86,6 +86,11 @@
       "percent": 170,
       "title": "live cli wrappers for dual-agent consensus",
       "file": "project_memory/checkpoints/170_live-cli-wrappers-for-dual-agent-consensus.md"
+    },
+    {
+      "percent": 180,
+      "title": "live smoke test and consensus hardening",
+      "file": "project_memory/checkpoints/180_live-smoke-test-and-consensus-hardening.md"
     }
   ]
 }

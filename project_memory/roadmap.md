@@ -24,4 +24,5 @@ This roadmap uses 10% milestones to force resumable progress summaries.
 - `150%`: catalog integrity and 71-biomarker hardening
 - `160%`: dual-agent consensus orchestration
 - `170%`: live CLI wrappers for dual-agent consensus
-- `180%`: beta readiness decision and broader validation automation
+- `180%`: live smoke test and consensus hardening
+- `190%`: beta readiness decision and broader validation automation

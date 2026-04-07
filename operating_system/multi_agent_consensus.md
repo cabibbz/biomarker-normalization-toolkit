@@ -18,6 +18,12 @@ Run:
 python .\operating_system\tools\dual_agent_consensus.py .\operating_system\examples\dual_agent_consensus_config.json
 ```
 
+Optional live transport smoke test:
+
+```powershell
+python .\operating_system\tools\run_live_consensus_smoke_test.py --attempts 2
+```
+
 The example config now points at the repo-owned wrappers:
 
 - [codex_consensus_wrapper.py](/C:/Users/me/Desktop/longevb2b/operating_system/tools/codex_consensus_wrapper.py)
@@ -93,6 +99,8 @@ Valid `action` values:
 - `accept`: accept the current proposal unchanged
 - `block`: stop the run with concrete concerns
 
+`proposal_markdown` should always be present. Use an empty string for `accept` or `block`.
+
 ## Agreement Rule
 
 Consensus is reached when the reviewing agent returns `accept` for the current proposal. That means:
@@ -120,3 +128,11 @@ Each run writes:
 ## Practical Setup
 
 This repo already includes thin wrappers for Codex and Claude. Keep any future wrapper changes small and deterministic: they should translate the frozen run context into one JSON response, not try to manage the whole loop themselves.
+
+The live smoke test is intentionally narrow. It checks that:
+
+- the installed CLIs can be invoked by the repo-owned wrappers
+- structured responses survive wrapper parsing
+- the orchestrator can reach a completed state through the real provider clients
+
+It does not guarantee that live model outputs will stay semantically on-task across runs. Treat it as a plumbing check, not a semantic correctness proof.

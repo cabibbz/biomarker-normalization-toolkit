@@ -120,7 +120,8 @@ class ConsensusWrapperTests(unittest.TestCase):
                     payload = {
                         "action": "accept",
                         "summary": "Claude accepts",
-                        "concerns": []
+                        "concerns": [],
+                        "proposal_markdown": ""
                     }
                     print(json.dumps({"result": json.dumps(payload)}))
                     """

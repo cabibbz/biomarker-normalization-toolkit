@@ -196,6 +196,23 @@ def parse_agent_response(response_path: Path, stdout_path: Path) -> dict:
     return data
 
 
+def normalize_agent_response(response: dict, proposal_exists: bool) -> tuple[dict, str | None]:
+    action = str(response["action"])
+    proposal_text = str(response.get("proposal_markdown", "")).strip()
+
+    if not proposal_exists and action in {"accept", "revise"} and proposal_text:
+        normalized = dict(response)
+        normalized["action"] = "propose"
+        return normalized, f"normalized `{action}` to `propose` because no proposal existed yet"
+
+    if proposal_exists and action == "propose" and proposal_text:
+        normalized = dict(response)
+        normalized["action"] = "revise"
+        return normalized, "normalized `propose` to `revise` because a proposal already existed"
+
+    return response, None
+
+
 def append_transcript(path: Path, lines: list[str]):
     existing = ""
     if path.exists():
@@ -328,6 +345,7 @@ def main():
         ensure(exit_code == 0, f"agent command failed for {agent['name']} in round {round_number}")
 
         response = parse_agent_response(response_path, stdout_path)
+        response, normalization_note = normalize_agent_response(response, proposal_path.exists())
         action = response["action"]
         summary = str(response["summary"]).strip()
         concerns = [str(item) for item in response.get("concerns", [])]
@@ -339,6 +357,7 @@ def main():
                 "",
                 f"- action: `{action}`",
                 f"- summary: {summary}",
+                *([f"- normalization: {normalization_note}"] if normalization_note else []),
                 *[f"- concern: {item}" for item in concerns],
                 "",
             ],

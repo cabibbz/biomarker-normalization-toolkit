@@ -5,7 +5,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from consensus_wrapper_common import RESPONSE_SCHEMA, build_prompt, validate_response, write_response
+from consensus_wrapper_common import RESPONSE_SCHEMA, build_prompt, resolve_executable, validate_response, write_response
 
 
 def parse_args():
@@ -38,7 +38,7 @@ def main():
         schema_path.write_text(json.dumps(RESPONSE_SCHEMA), encoding="utf-8")
 
         command = [
-            args.binary,
+            resolve_executable(args.binary),
             *args.binary_arg,
             "exec",
             "--skip-git-repo-check",

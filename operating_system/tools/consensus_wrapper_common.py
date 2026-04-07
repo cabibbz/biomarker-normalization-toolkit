@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+import shutil
+import sys
 
 
 RESPONSE_SCHEMA = {
@@ -16,7 +18,7 @@ RESPONSE_SCHEMA = {
         },
         "proposal_markdown": {"type": "string"},
     },
-    "required": ["action", "summary", "concerns"],
+    "required": ["action", "summary", "concerns", "proposal_markdown"],
     "additionalProperties": False,
 }
 
@@ -106,10 +108,26 @@ def validate_response(data: dict) -> dict:
         "summary": summary.strip(),
         "concerns": [item.strip() for item in concerns],
     }
-    if "proposal_markdown" in data and isinstance(data["proposal_markdown"], str):
-        normalized["proposal_markdown"] = data["proposal_markdown"].strip()
+    proposal = data.get("proposal_markdown")
+    if not isinstance(proposal, str):
+        raise ValueError("proposal_markdown must be a string")
+    normalized["proposal_markdown"] = proposal.strip()
     return normalized
 
 
 def write_response(path: Path, data: dict):
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def resolve_executable(binary: str) -> str:
+    resolved = shutil.which(binary)
+    if resolved:
+        return resolved
+
+    if sys.platform.startswith("win") and "." not in Path(binary).name:
+        for suffix in (".cmd", ".exe", ".bat"):
+            resolved = shutil.which(binary + suffix)
+            if resolved:
+                return resolved
+
+    return binary

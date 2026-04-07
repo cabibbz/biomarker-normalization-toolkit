@@ -34,6 +34,14 @@ The repo now includes real local wrappers for both CLIs:
 
 These wrappers run from the frozen consensus run directory rather than the live workspace so both agents reason from the same snapshot.
 
+For a low-cost end-to-end transport check through the installed CLIs, use the live smoke runner:
+
+```powershell
+python .\operating_system\tools\run_live_consensus_smoke_test.py --attempts 2
+```
+
+This smoke test verifies wrapper and orchestrator interoperability. It does not guarantee that both providers semantically follow the requested task exactly on every run.
+
 6. Execute the derived verification plan and validate the changed system against [functional_test_matrix.md](/C:/Users/me/Desktop/longevb2b/operating_system/functional_test_matrix.md)
 7. If progress crosses a 10% milestone, record a checkpoint in [project_memory/](/C:/Users/me/Desktop/longevb2b/project_memory)
 
