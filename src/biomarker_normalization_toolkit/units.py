@@ -110,6 +110,7 @@ UNIT_SYNONYMS = {
     "mg/g": "mg/g",
     "mg/mmol": "mg/mmol",
     "{presence}": "",
+    "1": "",
 }
 
 

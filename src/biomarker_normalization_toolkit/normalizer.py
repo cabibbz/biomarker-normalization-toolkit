@@ -103,9 +103,18 @@ def _convert_range(range_value: RangeValue | None, biomarker_id: str) -> RangeVa
     return RangeValue(low=low, high=high, unit=target_unit)
 
 
+_LOINC_INDEX: dict[str, str] = {bio.loinc: bio_id for bio_id, bio in BIOMARKER_CATALOG.items()}
+
+
 def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.0) -> NormalizedRecord:
     candidate_ids = ALIAS_INDEX.get(source.alias_key, [])
     fuzzy_result: tuple[str, float] | None = None
+
+    # Fallback: try LOINC code lookup (source test name may be a LOINC code)
+    if not candidate_ids:
+        loinc_match = _LOINC_INDEX.get(source.source_test_name.strip())
+        if loinc_match:
+            candidate_ids = [loinc_match]
 
     if not candidate_ids and fuzzy_threshold > 0:
         from biomarker_normalization_toolkit.fuzzy import fuzzy_match

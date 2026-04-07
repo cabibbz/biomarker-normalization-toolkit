@@ -1396,6 +1396,30 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(result.summary["mapped"], 1000)
         self.assertLess(elapsed, 1.0, f"1000 rows took {elapsed:.2f}s, expected < 1s")
 
+    # --- LOINC code lookup ---
+
+    def test_loinc_code_as_test_name_maps(self) -> None:
+        """Source test name that IS a LOINC code should map to the biomarker."""
+        rows = [
+            {"source_row_id": "loinc1", "source_test_name": "2345-7", "raw_value": "100",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "loinc2", "source_test_name": "4548-4", "raw_value": "5.7",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "loinc3", "source_test_name": "6690-2", "raw_value": "7.0",
+             "source_unit": "K/uL", "specimen_type": "whole blood", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "glucose_serum")
+        self.assertEqual(result.records[1].canonical_biomarker_id, "hba1c")
+        self.assertEqual(result.records[2].canonical_biomarker_id, "wbc")
+
+    def test_invalid_loinc_code_stays_unmapped(self) -> None:
+        rows = [{"source_row_id": "loinc_bad", "source_test_name": "9999-9", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "unmapped")
+
 
 if __name__ == "__main__":
     unittest.main()
