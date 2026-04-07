@@ -102,11 +102,14 @@ def compute_phenoage(
     ln_crp = math.log(crp_mg_dl)
 
     # Compute linear predictor (xb) WITHOUT age term
+    # Levine 2018: glucose enters as ln(glucose_mg_dL) per the Gompertz model
+    ln_glucose = math.log(glucose) if glucose > 0 else 0
+
     xb_no_age = (
         _INTERCEPT
         + _COEFFICIENTS["albumin_g_dl"] * albumin
         + _COEFFICIENTS["creatinine_mg_dl"] * creatinine
-        + _COEFFICIENTS["glucose_mg_dl"] * (glucose / 18.0)  # Convert mg/dL to log-scale factor
+        + _COEFFICIENTS["glucose_mg_dl"] * ln_glucose
         + _COEFFICIENTS["crp_ln_mg_dl"] * ln_crp
         + _COEFFICIENTS["lymphocyte_pct"] * lymph_pct
         + _COEFFICIENTS["mcv_fl"] * mcv

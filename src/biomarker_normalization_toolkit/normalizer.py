@@ -152,11 +152,12 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
             loinc=candidate.loinc,
         )
 
+    original_biomarker_id = candidate.biomarker_id
+    sibling_redirected = False
     normalized_value = convert_to_normalized(source.raw_value, candidate.biomarker_id, source.source_unit)
     if normalized_value is None:
         # Try sibling biomarkers with related suffixes (_pct, _sd, _absolute, _urine, _serum)
         base = candidate.biomarker_id
-        # Strip known suffixes to find base, then try all siblings
         for suffix in ("_pct", "_sd", "_absolute", "_urine", "_serum"):
             if base.endswith(suffix):
                 base = base.removesuffix(suffix)
@@ -170,6 +171,7 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
             if sib_value is not None:
                 candidate = BIOMARKER_CATALOG[sib_id]
                 normalized_value = sib_value
+                sibling_redirected = True
                 break
     if normalized_value is None:
         return _empty_record(
@@ -196,6 +198,12 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
             status = "review_needed"
             reason = "fuzzy_match_low_confidence"
         mapping_rule = f"fuzzy:{best_score:.2f}|source:{source.alias_key}|match:{best_alias}|biomarker:{candidate.biomarker_id}"
+    elif sibling_redirected:
+        # Biomarker identity changed via unit-based sibling redirect
+        confidence = "medium"
+        status = "mapped"
+        reason = "sibling_unit_redirect"
+        mapping_rule = f"alias:{source.alias_key}|original:{original_biomarker_id}|redirected:{candidate.biomarker_id}|unit:{source.source_unit}"
     else:
         confidence = "high"
         status = "mapped"

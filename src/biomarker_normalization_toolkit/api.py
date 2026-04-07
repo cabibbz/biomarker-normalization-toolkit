@@ -279,7 +279,20 @@ def _enrich_response(
 
 
 def _get_license(x_api_key: str | None) -> dict[str, Any]:
-    return validate_api_key(x_api_key)
+    info = validate_api_key(x_api_key)
+    # If a key was provided but is invalid, we still allow free tier
+    # but include a warning in the response
+    return info
+
+
+def _check_key_validity(license_info: dict[str, Any], x_api_key: str | None) -> JSONResponse | None:
+    """Return a 401 response if an API key was provided but is invalid."""
+    if x_api_key and not license_info.get("valid", True):
+        return JSONResponse(status_code=401, content={
+            "error": "Invalid API key. Check your X-API-Key header.",
+            "tier": "free",
+        })
+    return None
 
 
 # ─── Health + Metrics ─────────────────────────────────────
@@ -362,6 +375,12 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
                       x_api_key: str | None) -> JSONResponse:
     license_info = _get_license(x_api_key)
     features = license_info["features"]
+
+    # Reject invalid API keys with 401
+    rejection = _check_key_validity(license_info, x_api_key)
+    if rejection:
+        return rejection
+
     rows, error = _validate_rows(body)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
@@ -372,6 +391,48 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
         fuzzy_threshold = 0.0
     input_file = Path(str(body.get("input_file", ""))).name
     result = normalize_rows(rows, input_file=input_file, fuzzy_threshold=fuzzy_threshold)
+
+    # Enforce biomarker filtering for free tier
+    allowed_ids = license_info.get("biomarker_ids")
+    if allowed_ids is not None:
+        from biomarker_normalization_toolkit.models import NormalizedRecord
+        filtered = []
+        for r in result.records:
+            if r.canonical_biomarker_id and r.canonical_biomarker_id not in allowed_ids:
+                filtered.append(NormalizedRecord(
+                    source_row_number=r.source_row_number, source_row_id=r.source_row_id,
+                    source_lab_name=r.source_lab_name, source_panel_name=r.source_panel_name,
+                    source_test_name=r.source_test_name, alias_key=r.alias_key,
+                    raw_value=r.raw_value, source_unit=r.source_unit,
+                    specimen_type=r.specimen_type, source_reference_range=r.source_reference_range,
+                    canonical_biomarker_id=r.canonical_biomarker_id,
+                    canonical_biomarker_name=r.canonical_biomarker_name,
+                    loinc=r.loinc, mapping_status="review_needed",
+                    match_confidence="none",
+                    status_reason="biomarker_requires_pro_tier",
+                    mapping_rule="", normalized_value="", normalized_unit="",
+                    normalized_reference_range="", provenance=r.provenance,
+                ))
+            else:
+                filtered.append(r)
+        result = result.__class__(
+            input_file=result.input_file,
+            summary={
+                "total_rows": len(filtered),
+                "mapped": sum(1 for r in filtered if r.mapping_status == "mapped"),
+                "review_needed": sum(1 for r in filtered if r.mapping_status == "review_needed"),
+                "unmapped": sum(1 for r in filtered if r.mapping_status == "unmapped"),
+                "confidence_breakdown": {
+                    "high": sum(1 for r in filtered if r.match_confidence == "high"),
+                    "medium": sum(1 for r in filtered if r.match_confidence == "medium"),
+                    "low": sum(1 for r in filtered if r.match_confidence == "low"),
+                    "none": sum(1 for r in filtered if r.match_confidence == "none"),
+                },
+            },
+            records=filtered,
+            warnings=result.warnings,
+        )
+
     _metrics.total_rows_processed += len(rows)
     response = result.to_json_dict()
     response["tier"] = license_info["tier"]

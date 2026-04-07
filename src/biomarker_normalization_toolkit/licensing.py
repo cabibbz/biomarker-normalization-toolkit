@@ -11,7 +11,7 @@ a remote license server (configurable).
 
 from __future__ import annotations
 
-import hashlib
+import hmac
 import os
 import time
 from typing import Any
@@ -55,11 +55,11 @@ def validate_api_key(api_key: str | None) -> dict[str, Any]:
             "features": {"phenoage": False, "optimal_ranges": False, "derived_metrics": True, "fuzzy": False},
         }
 
-    # Check against environment variable (simple deployment)
+    # Check against environment variable (constant-time comparison)
     env_key = os.environ.get("BNT_PRO_KEY", "")
     env_enterprise_key = os.environ.get("BNT_ENTERPRISE_KEY", "")
 
-    if api_key == env_enterprise_key and env_enterprise_key:
+    if env_enterprise_key and hmac.compare_digest(api_key.encode(), env_enterprise_key.encode()):
         return {
             "tier": LicenseTier.ENTERPRISE,
             "valid": True,
@@ -68,7 +68,7 @@ def validate_api_key(api_key: str | None) -> dict[str, Any]:
             "features": {"phenoage": True, "optimal_ranges": True, "derived_metrics": True, "fuzzy": True},
         }
 
-    if api_key == env_key and env_key:
+    if env_key and hmac.compare_digest(api_key.encode(), env_key.encode()):
         return {
             "tier": LicenseTier.PRO,
             "valid": True,
@@ -77,11 +77,11 @@ def validate_api_key(api_key: str | None) -> dict[str, Any]:
             "features": {"phenoage": True, "optimal_ranges": True, "derived_metrics": True, "fuzzy": True},
         }
 
-    # Invalid key
+    # Invalid key — explicitly marked
     return {
         "tier": LicenseTier.FREE,
         "valid": False,
-        "error": "Invalid API key",
+        "error": "Invalid API key. Ignored — using free tier.",
         "max_rows": FREE_MAX_ROWS,
         "biomarker_ids": FREE_BIOMARKER_IDS,
         "features": {"phenoage": False, "optimal_ranges": False, "derived_metrics": True, "fuzzy": False},

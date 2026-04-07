@@ -7,6 +7,7 @@ name = "biomarker-normalization-toolkit"
 version = "0.2.1"
 description = "Customer-run toolkit that normalizes messy lab data into canonical machine-readable output."
 readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = ["defusedxml>=0.7"]
 
