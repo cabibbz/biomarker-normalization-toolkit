@@ -141,18 +141,22 @@ def command_where_left_off(path: str) -> int:
     return 0
 
 
-def _load_aliases(aliases_path: str | None) -> None:
-    if aliases_path:
-        alias_path = Path(aliases_path)
-        if not alias_path.exists():
-            print(f"Alias file does not exist: {alias_path}", file=sys.stderr)
-            return
-        added = load_custom_aliases(alias_path)
-        print(f"Loaded {added} custom aliases from {alias_path}")
+def _load_aliases(aliases_path: str | None) -> bool:
+    """Load custom aliases. Returns False if file was specified but missing."""
+    if not aliases_path:
+        return True
+    alias_path = Path(aliases_path)
+    if not alias_path.exists():
+        print(f"Alias file does not exist: {alias_path}", file=sys.stderr)
+        return False
+    added = load_custom_aliases(alias_path)
+    print(f"Loaded {added} custom aliases from {alias_path}")
+    return True
 
 
 def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None) -> int:
-    _load_aliases(aliases_path)
+    if not _load_aliases(aliases_path):
+        return 1
 
     source_path = Path(input_path)
     if not source_path.exists():
@@ -212,7 +216,8 @@ def command_catalog(fmt: str) -> int:
 
 
 def command_analyze(input_path: str, aliases_path: str | None = None) -> int:
-    _load_aliases(aliases_path)
+    if not _load_aliases(aliases_path):
+        return 1
 
     source_path = Path(input_path)
     if not source_path.exists():
@@ -301,7 +306,8 @@ SUPPORTED_EXTENSIONS = {".csv", ".json", ".hl7", ".oru", ".xml", ".xlsx", ".xls"
 
 
 def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None) -> int:
-    _load_aliases(aliases_path)
+    if not _load_aliases(aliases_path):
+        return 1
 
     input_path = Path(input_dir)
     if not input_path.is_dir():

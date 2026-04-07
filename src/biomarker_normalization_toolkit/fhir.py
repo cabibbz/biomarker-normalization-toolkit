@@ -37,6 +37,8 @@ UCUM_CODES: dict[str, str] = {
     "ratio": "{ratio}",
     "mL/min/1.73m2": "mL/min/{1.73_m2}",
     "mmHg": "mm[Hg]",
+    "pH": "[pH]",
+    "units": "[pH]",
     "ug/mL": "ug/mL",
     "IU/mL": "[IU]/mL",
 }
@@ -150,7 +152,7 @@ def build_bundle(result: NormalizationResult) -> dict:
     return {
         "resourceType": "Bundle",
         "type": "collection",
-        "meta": {"profile": [f"http://hl7.org/fhir/{FHIR_VERSION}/Bundle"]},
+        "meta": {"profile": ["http://hl7.org/fhir/StructureDefinition/Bundle"]},
         "identifier": {
             "system": "urn:input-file",
             "value": result.input_file,

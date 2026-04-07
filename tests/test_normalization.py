@@ -425,7 +425,8 @@ class NormalizationTests(unittest.TestCase):
 
     def test_free_t4_pmol_to_ngdl(self) -> None:
         result = convert_to_normalized(Decimal("15.4"), "free_t4", "pmol/L")
-        self.assertAlmostEqual(float(result), 0.19866, places=4)
+        # 15.4 / 12.87 = 1.1966
+        self.assertAlmostEqual(float(result), 1.1966, places=3)
 
     def test_bun_mmol_to_mg(self) -> None:
         result = convert_to_normalized(Decimal("5.0"), "bun", "mmol/L")
@@ -455,7 +456,8 @@ class NormalizationTests(unittest.TestCase):
 
     def test_folate_nmol_to_ngml(self) -> None:
         result = convert_to_normalized(Decimal("22.7"), "folate", "nmol/L")
-        self.assertAlmostEqual(float(result), 5.1438, places=3)
+        # 22.7 / 2.266 = 10.018
+        self.assertAlmostEqual(float(result), 10.018, places=2)
 
     def test_iron_umol_to_ugdl(self) -> None:
         result = convert_to_normalized(Decimal("14.3"), "iron", "umol/L")

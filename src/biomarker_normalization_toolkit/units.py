@@ -68,10 +68,11 @@ UNIT_SYNONYMS = {
     "ml/min/{1.73_m2}": "mL/min/1.73m2",
     "ml/min": "mL/min",
     "ph": "pH",
+    "units": "units",
     "mmhg": "mmHg",
     "mm hg": "mmHg",
     "mm[hg]": "mmHg",
-    "#/ul": "K/uL",
+    "#/ul": "#/uL",
 }
 
 
@@ -128,7 +129,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "tsh": {"mIU/L": Decimal("1")},
     "free_t4": {
         "ng/dL": Decimal("1"),
-        "pmol/L": Decimal("0.0129"),
+        "pmol/L": Decimal("1") / Decimal("12.87"),
     },
     # --- Wave 2: Renal expansion ---
     "bun": {
@@ -162,7 +163,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     },
     "folate": {
         "ng/mL": Decimal("1"),
-        "nmol/L": Decimal("0.2266"),
+        "nmol/L": Decimal("1") / Decimal("2.266"),
     },
     # --- Wave 3: Minerals ---
     "iron": {
@@ -280,7 +281,10 @@ def parse_decimal(value: str | None) -> Decimal | None:
     if not stripped:
         return None
     try:
-        return Decimal(stripped)
+        result = Decimal(stripped)
+        if not result.is_finite():
+            return None
+        return result
     except Exception:
         return None
 

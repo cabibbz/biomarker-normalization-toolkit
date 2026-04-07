@@ -775,11 +775,17 @@ def load_custom_aliases(path: Path) -> int:
     Returns the number of aliases added.
     """
     data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("Custom alias file must be a JSON object mapping biomarker_id to alias lists.")
     added = 0
     for biomarker_id, aliases in data.items():
         if biomarker_id not in BIOMARKER_CATALOG:
             continue
+        if not isinstance(aliases, list):
+            continue
         for alias in aliases:
+            if not isinstance(alias, str):
+                continue
             alias_key = normalize_key(alias)
             candidates = ALIAS_INDEX.setdefault(alias_key, [])
             if biomarker_id not in candidates:

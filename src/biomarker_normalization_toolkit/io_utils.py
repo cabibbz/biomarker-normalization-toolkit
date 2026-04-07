@@ -143,7 +143,7 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
             obr4_parts = fields[4].split(comp_sep)
             current_obr_name = obr4_parts[1] if len(obr4_parts) > 1 else obr4_parts[0]
 
-        if segment == "OBX" and len(fields) > 6:
+        if segment == "OBX" and len(fields) > 5:
             value_type = fields[2] if len(fields) > 2 else ""  # NM, SN, ST, CE, etc.
             # OBX-3: Observation Identifier
             obx3_parts = fields[3].split(comp_sep)
@@ -195,6 +195,7 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
 
 
 _XSI = "{http://www.w3.org/2001/XMLSchema-instance}"
+_HL7V3 = "{urn:hl7-org:v3}"
 _LOINC_OID = "2.16.840.1.113883.6.1"
 
 
@@ -215,9 +216,16 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     row_id = 0
 
-    for obs in root.iter("observation"):
+    # Search for observation elements with and without namespace
+    observations = list(root.iter("observation")) + list(root.iter(f"{_HL7V3}observation"))
+
+    for obs in observations:
         code_el = obs.find("code")
+        if code_el is None:
+            code_el = obs.find(f"{_HL7V3}code")
         value_el = obs.find("value")
+        if value_el is None:
+            value_el = obs.find(f"{_HL7V3}value")
         if code_el is None or value_el is None:
             continue
 
@@ -226,7 +234,7 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
         display_name = code_el.attrib.get("displayName", "")
         # Check translations for LOINC
         if not display_name:
-            for trans in code_el.findall("translation"):
+            for trans in list(code_el.findall("translation")) + list(code_el.findall(f"{_HL7V3}translation")):
                 if trans.attrib.get("codeSystem") == _LOINC_OID:
                     display_name = trans.attrib.get("displayName", "")
                     if not loinc_code:
@@ -280,6 +288,8 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
         # Get reference range
         ref_range = ""
         ref_el = obs.find(".//referenceRange/observationRange/value")
+        if ref_el is None:
+            ref_el = obs.find(f".//{_HL7V3}referenceRange/{_HL7V3}observationRange/{_HL7V3}value")
         if ref_el is not None:
             ref_low = ref_el.find("low")
             ref_high = ref_el.find("high")
@@ -330,79 +340,80 @@ def read_excel_input(path: Path) -> list[dict[str, str]]:
         raise ImportError("openpyxl is required for Excel ingest: pip install openpyxl")
 
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    ws = wb.active
-    if ws is None:
-        raise ValueError("Excel file has no active worksheet.")
+    try:
+        ws = wb.active
+        if ws is None:
+            raise ValueError("Excel file has no active worksheet.")
 
-    rows_iter = ws.iter_rows(values_only=True)
-    raw_headers = next(rows_iter, None)
-    if raw_headers is None:
-        raise ValueError("Excel file has no header row.")
+        rows_iter = ws.iter_rows(values_only=True)
+        raw_headers = next(rows_iter, None)
+        if raw_headers is None:
+            raise ValueError("Excel file has no header row.")
 
-    # Normalize headers: strip, lowercase, replace spaces/dashes with underscores
-    def norm_header(h: str) -> str:
-        return h.strip().lower().replace(" ", "_").replace("-", "_")
+        # Normalize headers: strip, lowercase, replace spaces/dashes with underscores
+        def norm_header(h: str) -> str:
+            return h.strip().lower().replace(" ", "_").replace("-", "_")
 
-    headers = [norm_header(str(h or "")) for h in raw_headers]
+        headers = [norm_header(str(h or "")) for h in raw_headers]
 
-    # Map flexible header names to our schema
-    HEADER_MAP = {
-        "source_row_id": {"source_row_id", "row_id", "id", "sample_id", "accession", "accession_number"},
-        "source_test_name": {"source_test_name", "test_name", "test", "analyte", "component", "observation", "lab_test", "result_name"},
-        "raw_value": {"raw_value", "value", "result", "result_value", "observed_value"},
-        "source_unit": {"source_unit", "unit", "units", "uom", "unit_of_measure"},
-        "specimen_type": {"specimen_type", "specimen", "sample_type", "fluid", "matrix"},
-        "source_reference_range": {"source_reference_range", "reference_range", "ref_range", "normal_range", "range"},
-        "source_lab_name": {"source_lab_name", "lab_name", "lab", "laboratory", "performing_lab"},
-        "source_panel_name": {"source_panel_name", "panel_name", "panel", "order_name", "test_group"},
-    }
-
-    col_map: dict[int, str] = {}
-    for idx, header in enumerate(headers):
-        for canonical, variants in HEADER_MAP.items():
-            if header in variants:
-                col_map[idx] = canonical
-                break
-
-    # Verify required columns found
-    mapped_cols = set(col_map.values())
-    required = {"source_test_name", "raw_value"}
-    missing = required - mapped_cols
-    if missing:
-        raise ValueError(
-            f"Excel file missing required columns: {', '.join(missing)}. "
-            f"Found headers: {[str(h) for h in raw_headers]}"
-        )
-
-    rows: list[dict[str, str]] = []
-    row_num = 0
-    for data_row in rows_iter:
-        row_num += 1
-        row: dict[str, str] = {
-            "source_row_id": str(row_num),
-            "source_lab_name": "",
-            "source_panel_name": "",
-            "source_test_name": "",
-            "raw_value": "",
-            "source_unit": "",
-            "specimen_type": "",
-            "source_reference_range": "",
+        # Map flexible header names to our schema
+        header_map = {
+            "source_row_id": {"source_row_id", "row_id", "id", "sample_id", "accession", "accession_number"},
+            "source_test_name": {"source_test_name", "test_name", "test", "analyte", "component", "observation", "lab_test", "result_name"},
+            "raw_value": {"raw_value", "value", "result", "result_value", "observed_value"},
+            "source_unit": {"source_unit", "unit", "units", "uom", "unit_of_measure"},
+            "specimen_type": {"specimen_type", "specimen", "sample_type", "fluid", "matrix"},
+            "source_reference_range": {"source_reference_range", "reference_range", "ref_range", "normal_range", "range"},
+            "source_lab_name": {"source_lab_name", "lab_name", "lab", "laboratory", "performing_lab"},
+            "source_panel_name": {"source_panel_name", "panel_name", "panel", "order_name", "test_group"},
         }
-        for idx, val in enumerate(data_row):
-            if idx in col_map:
-                row[col_map[idx]] = str(val).strip() if val is not None else ""
 
-        # Skip completely empty rows
-        if not row["source_test_name"] and not row["raw_value"]:
-            continue
+        col_map: dict[int, str] = {}
+        for idx, header in enumerate(headers):
+            for canonical, variants in header_map.items():
+                if header in variants:
+                    col_map[idx] = canonical
+                    break
 
-        # Auto-generate row ID if not mapped
-        if "source_row_id" not in mapped_cols:
-            row["source_row_id"] = str(row_num)
+        # Verify required columns found
+        mapped_cols = set(col_map.values())
+        required = {"source_test_name", "raw_value"}
+        missing = required - mapped_cols
+        if missing:
+            raise ValueError(
+                f"Excel file missing required columns: {', '.join(missing)}. "
+                f"Found headers: {[str(h) for h in raw_headers]}"
+            )
 
-        rows.append(row)
+        rows: list[dict[str, str]] = []
+        row_num = 0
+        for data_row in rows_iter:
+            row_num += 1
+            row: dict[str, str] = {
+                "source_row_id": str(row_num),
+                "source_lab_name": "",
+                "source_panel_name": "",
+                "source_test_name": "",
+                "raw_value": "",
+                "source_unit": "",
+                "specimen_type": "",
+                "source_reference_range": "",
+            }
+            for idx, val in enumerate(data_row):
+                if idx in col_map:
+                    row[col_map[idx]] = str(val).strip() if val is not None else ""
 
-    wb.close()
+            # Skip completely empty rows
+            if not row["source_test_name"] and not row["raw_value"]:
+                continue
+
+            # Auto-generate row ID if not mapped
+            if "source_row_id" not in mapped_cols:
+                row["source_row_id"] = str(row_num)
+
+            rows.append(row)
+    finally:
+        wb.close()
 
     if not rows:
         raise ValueError("Excel file has no data rows.")
