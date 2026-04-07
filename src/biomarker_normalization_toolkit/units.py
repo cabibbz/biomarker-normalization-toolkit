@@ -312,7 +312,7 @@ def parse_reference_range(text: str, fallback_unit: str) -> RangeValue | None:
         return None
 
     match = re.match(
-        r"^\s*(?P<low>[+-]?\d+(?:\.\d+)?)\s*(?:to|–|—|-)\s*(?P<high>[+-]?\d+(?:\.\d+)?)(?:\s*(?P<unit>[a-zA-Z/\[\]{}%#µμ].*?))?$",
+        r"^\s*(?P<low>[+-]?\d+(?:\.\d+)?)\s*(?:to|–|—|-)\s*(?P<high>[+-]?\d+(?:\.\d+)?)(?:\s+(?P<unit>.+?))?$",
         stripped,
     )
     if not match:
