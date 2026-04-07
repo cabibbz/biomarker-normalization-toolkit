@@ -119,8 +119,11 @@ UNIT_SYNONYMS = {
 
 
 
+# Conversion factors to normalized unit.  value_normalized = value_source * factor.
+# Sources: molecular weights from PubChem/NIST; clinical factors from Tietz Clinical
+# Chemistry (7th ed) and UCUM. Factor = MW / (dL-to-L or mL-to-L scale factor).
 CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
-    "glucose_serum": {
+    "glucose_serum": {  # MW 180.16; 1 mmol/L = 18.016 mg/dL (rounded to 18 per clinical convention)
         "mg/dL": Decimal("1"),
         "mmol/L": Decimal("18"),
     },
@@ -355,9 +358,9 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "igm": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "reticulocyte_absolute": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "M/uL": Decimal("1000")},
     # --- Wave 10: ICU + urine chemistry + endocrine ---
-    "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "%": Decimal("1")},
-    "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "%": Decimal("1")},
-    "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000"), "%": Decimal("1")},
+    "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000")},
     "osmolality_urine": {"mOsm/kg": Decimal("1")},
     "sodium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     "potassium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},

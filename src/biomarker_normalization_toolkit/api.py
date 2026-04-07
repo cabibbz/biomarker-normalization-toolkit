@@ -39,7 +39,8 @@ MAX_ROWS = 100_000
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 MAX_JSON_BODY_BYTES = 50 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".csv", ".json", ".hl7", ".oru", ".xml", ".xlsx", ".xls"}
-CORS_ORIGINS = os.environ.get("BNT_CORS_ORIGINS", "*").split(",")
+CORS_ORIGINS = os.environ.get("BNT_CORS_ORIGINS", "").split(",")
+CORS_ORIGINS = [o.strip() for o in CORS_ORIGINS if o.strip()]  # No wildcard by default
 RATE_LIMIT_REQUESTS = int(os.environ.get("BNT_RATE_LIMIT", "60"))  # per minute per key
 RATE_LIMIT_WINDOW = 60  # seconds
 
@@ -77,7 +78,9 @@ class PhenoAgeRequest(BaseModel):
 # ─── Rate Limiter ─────────────────────────────────────────
 
 class RateLimiter:
-    """Simple in-memory sliding window rate limiter per API key."""
+    """In-memory sliding window rate limiter per API key with bounded memory."""
+
+    MAX_KEYS = 10_000  # Prevent unbounded growth from unique key flooding
 
     def __init__(self, max_requests: int = 60, window_seconds: int = 60):
         self.max_requests = max_requests
@@ -88,8 +91,14 @@ class RateLimiter:
         """Returns (allowed, remaining). Cleans expired entries."""
         now = time.time()
         cutoff = now - self.window
+
+        # Periodic cleanup: evict stale keys when approaching limit
+        if len(self._requests) > self.MAX_KEYS:
+            stale = [k for k, v in self._requests.items() if not v or v[-1] < cutoff]
+            for k in stale:
+                del self._requests[k]
+
         entries = self._requests[key]
-        # Prune old entries
         self._requests[key] = [t for t in entries if t > cutoff]
         entries = self._requests[key]
         if len(entries) >= self.max_requests:
@@ -454,6 +463,26 @@ def normalize_v1(body: NormalizeRequest,
                  emit_fhir: bool = Query(False), fuzzy_threshold: float = Query(0.0),
                  x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
     return _handle_normalize(body.model_dump(), emit_fhir, fuzzy_threshold, x_api_key)
+
+
+@v1.post("/analyze")
+def analyze_v1(body: NormalizeRequest, x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    return analyze(body, x_api_key)
+
+
+@v1.post("/phenoage")
+def phenoage_v1(body: PhenoAgeRequest, x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    return phenoage_endpoint(body, x_api_key)
+
+
+@v1.post("/optimal-ranges")
+def optimal_ranges_v1(body: NormalizeRequest, x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    return optimal_ranges_endpoint(body, x_api_key)
+
+
+@v1.post("/compare")
+def compare_v1(body: CompareRequest, x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
+    return compare_endpoint(body, x_api_key)
 
 
 # ─── Normalize Upload ────────────────────────────────────

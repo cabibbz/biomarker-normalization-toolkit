@@ -1,0 +1,17 @@
+.git
+.github
+.claude
+.agent_consensus
+.coverage
+.pytest_cache
+__pycache__
+*.pyc
+tests/
+scripts/
+fixtures/
+sample data/
+project_memory/
+operating_system/
+*.egg-info
+dist/
+build/

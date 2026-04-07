@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
+
+# Type-safe constants for mapping status and confidence
+MappingStatus = Literal["mapped", "review_needed", "unmapped"]
+MatchConfidence = Literal["high", "medium", "low", "none"]
 
 
 @dataclass(frozen=True)
@@ -107,7 +111,7 @@ class NormalizedRecord:
 @dataclass(frozen=True)
 class NormalizationResult:
     input_file: str
-    summary: dict[str, int]
+    summary: dict[str, Any]  # Contains int counts + nested confidence_breakdown dict
     records: list[NormalizedRecord]
     warnings: tuple[str, ...] = ()
 

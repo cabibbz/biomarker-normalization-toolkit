@@ -132,6 +132,7 @@ def build_observation(record: NormalizedRecord, input_file: str = "") -> dict | 
             ],
             "text": record.canonical_biomarker_name,
         },
+        "effectiveDateTime": "1970-01-01T00:00:00Z",  # Placeholder — source data lacks timestamps
         "valueQuantity": _build_value_quantity(record),
         "note": [
             {

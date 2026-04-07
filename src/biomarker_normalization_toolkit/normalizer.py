@@ -35,7 +35,7 @@ def build_source_records(rows: list[dict[str, str]]) -> list[SourceRecord]:
     return records
 
 
-def _empty_record(
+def _build_record(
     source: SourceRecord,
     *,
     status: str,
@@ -125,25 +125,25 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
             fuzzy_result = (best_alias, best_score)
 
     if not candidate_ids:
-        return _empty_record(source, status="unmapped", reason="unknown_alias")
+        return _build_record(source, status="unmapped", reason="unknown_alias")
 
     specimen_filtered = _filter_candidates_by_specimen(candidate_ids, source.specimen_type)
 
     if len(candidate_ids) > 1 and not source.specimen_type:
         reason = "fuzzy_match_ambiguous_requires_specimen" if fuzzy_result else "ambiguous_alias_requires_specimen"
-        return _empty_record(source, status="review_needed", reason=reason)
+        return _build_record(source, status="review_needed", reason=reason)
 
     if len(specimen_filtered) > 1:
-        return _empty_record(source, status="review_needed", reason="ambiguous_alias_after_specimen_filter")
+        return _build_record(source, status="review_needed", reason="ambiguous_alias_after_specimen_filter")
 
     if len(specimen_filtered) == 0:
-        return _empty_record(source, status="review_needed", reason="no_candidate_for_specimen")
+        return _build_record(source, status="review_needed", reason="no_candidate_for_specimen")
 
     candidate = BIOMARKER_CATALOG[specimen_filtered[0]]
 
     if source.raw_value is None:
         reason = "inequality_value" if is_inequality_value(source.raw_value_text) else "invalid_raw_value"
-        return _empty_record(
+        return _build_record(
             source,
             status="review_needed",
             reason=reason,
@@ -174,7 +174,7 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
                 sibling_redirected = True
                 break
     if normalized_value is None:
-        return _empty_record(
+        return _build_record(
             source,
             status="review_needed",
             reason="unsupported_unit_for_biomarker",
@@ -213,7 +213,7 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
         if mapped_by_specimen:
             mapping_rule += f"|specimen:{source.specimen_type}"
 
-    return _empty_record(
+    return _build_record(
         source,
         status=status,
         reason=reason,
