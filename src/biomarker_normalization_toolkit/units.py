@@ -349,6 +349,21 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "igg": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "igm": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "reticulocyte_absolute": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    # --- Wave 10: ICU + urine chemistry + endocrine ---
+    "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000")},
+    "osmolality_urine": {"mOsm/kg": Decimal("1")},
+    "sodium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "potassium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "chloride_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "bun_urine": {"mg/dL": Decimal("1")},
+    "pth": {"pg/mL": Decimal("1"), "ng/L": Decimal("1")},
+    "t3_total": {"ng/dL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("0.01536")},
+    "t4_total": {"ug/dL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("12.87")},
+    "complement_c3": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
+    "complement_c4": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
+    "ammonia": {"umol/L": Decimal("1"), "ug/dL": Decimal("1") / Decimal("0.5872")},
 }
 
 

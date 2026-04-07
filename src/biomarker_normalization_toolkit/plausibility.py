@@ -150,6 +150,20 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "igg":              (Decimal("100"), Decimal("5000")),
     "igm":              (Decimal("10"),  Decimal("1000")),
     "reticulocyte_absolute": (Decimal("0"), Decimal("500")),
+    "bands":                (Decimal("0"),    Decimal("50")),
+    "immature_granulocytes":(Decimal("0"),    Decimal("20")),
+    "nrbc":                 (Decimal("0"),    Decimal("10000")),
+    "osmolality_urine":     (Decimal("50"),   Decimal("1400")),
+    "sodium_urine":         (Decimal("0"),    Decimal("500")),
+    "potassium_urine":      (Decimal("0"),    Decimal("300")),
+    "chloride_urine":       (Decimal("0"),    Decimal("500")),
+    "bun_urine":            (Decimal("50"),   Decimal("5000")),
+    "pth":                  (Decimal("0"),    Decimal("5000")),
+    "t3_total":             (Decimal("20"),   Decimal("500")),
+    "t4_total":             (Decimal("0.5"),  Decimal("30")),
+    "complement_c3":        (Decimal("10"),   Decimal("400")),
+    "complement_c4":        (Decimal("1"),    Decimal("100")),
+    "ammonia":              (Decimal("0"),    Decimal("500")),
 }
 
 
