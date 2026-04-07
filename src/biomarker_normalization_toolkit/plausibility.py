@@ -153,6 +153,8 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "bands":                (Decimal("0"),    Decimal("50")),
     "immature_granulocytes":(Decimal("0"),    Decimal("20")),
     "nrbc":                 (Decimal("0"),    Decimal("10000")),
+    "urine_rbc":            (Decimal("0"),    Decimal("100000")),
+    "urine_wbc":            (Decimal("0"),    Decimal("100000")),
     "osmolality_urine":     (Decimal("50"),   Decimal("1400")),
     "sodium_urine":         (Decimal("0"),    Decimal("500")),
     "potassium_urine":      (Decimal("0"),    Decimal("300")),
