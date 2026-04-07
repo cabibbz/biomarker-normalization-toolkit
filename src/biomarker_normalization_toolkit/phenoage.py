@@ -145,11 +145,12 @@ def compute_phenoage(
     if chronological_age is not None:
         xb = xb_no_age + _COEFFICIENTS["age"] * chronological_age
 
-        # Gompertz parameters from Levine 2018
+        # Gompertz parameters from Levine 2018 supplementary R code
         gamma = 0.0076927
-        # exp(120 * 0.0076927) - 1 = exp(0.923124) - 1 = 1.51744
+        # Compute at runtime instead of hardcoding to avoid truncation error
+        gompertz_num = math.exp(120 * gamma) - 1  # ~1.51714
         mortality_score = 1.0 - math.exp(
-            -1.51744 * math.exp(xb) / 0.0076927
+            -gompertz_num * math.exp(xb) / gamma
         )
 
         # Invert: find the age that would give this mortality score for an
