@@ -102,6 +102,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Also write FHIR bundles for each file.",
     )
 
+    serve = subparsers.add_parser(
+        "serve",
+        help="Start the REST API server.",
+    )
+    serve.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to bind to (default: 0.0.0.0).",
+    )
+    serve.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to bind to (default: 8000).",
+    )
+
     analyze = subparsers.add_parser(
         "analyze",
         help="Analyze a file and report coverage gaps.",
@@ -353,6 +369,24 @@ def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path
     return 1 if errors else 0
 
 
+def command_serve(host: str, port: int) -> int:
+    try:
+        import uvicorn
+        from biomarker_normalization_toolkit.api import app
+    except ImportError:
+        print(
+            "REST API dependencies not installed.\n"
+            "Install with: pip install biomarker-normalization-toolkit[rest]",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(f"Starting BNT API server on {host}:{port}")
+    print(f"Docs: http://{host}:{port}/docs")
+    uvicorn.run(app, host=host, port=port)
+    return 0
+
+
 def command_demo(output_dir: str) -> int:
     demo_input = resources.files("biomarker_normalization_toolkit").joinpath("data/v0_sample.csv")
     return command_normalize(str(demo_input), output_dir, emit_fhir=True)
@@ -372,6 +406,8 @@ def main() -> int:
         return command_demo(args.output_dir)
     if args.command == "batch":
         return command_batch(args.input_dir, args.output_dir, args.emit_fhir, args.aliases)
+    if args.command == "serve":
+        return command_serve(args.host, args.port)
     if args.command == "catalog":
         return command_catalog(args.format)
     if args.command == "analyze":

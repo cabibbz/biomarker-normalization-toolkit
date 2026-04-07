@@ -13,7 +13,8 @@ dependencies = []
 [project.optional-dependencies]
 excel = ["openpyxl>=3.1"]
 fhir-validation = ["fhir.resources"]
-all = ["openpyxl>=3.1", "fhir.resources"]
+rest = ["fastapi>=0.100", "uvicorn[standard]>=0.24"]
+all = ["openpyxl>=3.1", "fhir.resources", "fastapi>=0.100", "uvicorn[standard]>=0.24"]
 
 [project.scripts]
 bnt = "biomarker_normalization_toolkit.cli:main"

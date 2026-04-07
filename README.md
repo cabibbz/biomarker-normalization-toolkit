@@ -106,10 +106,47 @@ bnt analyze --input labs.csv
 bnt demo --output-dir demo_out
 ```
 
+## REST API
+
+```bash
+pip install biomarker-normalization-toolkit[rest]
+bnt serve --port 8000
+```
+
+Then:
+```bash
+# Health check
+curl localhost:8000/health
+
+# List all biomarkers
+curl localhost:8000/catalog
+curl "localhost:8000/catalog?search=glucose"
+
+# Normalize JSON rows
+curl -X POST localhost:8000/normalize \
+  -H "Content-Type: application/json" \
+  -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1", "source_reference_range": "70-99 mg/dL"}]}'
+
+# Normalize with FHIR output
+curl -X POST "localhost:8000/normalize?emit_fhir=true" \
+  -H "Content-Type: application/json" \
+  -d '{"rows": [...]}'
+
+# Upload a file (CSV, FHIR, HL7, C-CDA, Excel)
+curl -X POST localhost:8000/normalize/upload -F "file=@labs.csv"
+
+# Coverage analysis
+curl -X POST localhost:8000/analyze/upload -F "file=@labs.csv"
+
+# Interactive API docs
+open http://localhost:8000/docs
+```
+
 ## Docker
 
 ```bash
 docker build -t bnt .
+docker run -p 8000:8000 bnt serve
 docker run -v /path/to/data:/data bnt normalize --input /data/labs.csv --output-dir /data/out
 ```
 
