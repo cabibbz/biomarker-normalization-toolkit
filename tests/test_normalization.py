@@ -941,9 +941,9 @@ class NormalizationTests(unittest.TestCase):
     def test_api_rejects_non_dict_rows(self) -> None:
         try:
             from fastapi.testclient import TestClient
+            from biomarker_normalization_toolkit.api import app
         except Exception:
-            self.skipTest("httpx/fastapi not available")
-        from biomarker_normalization_toolkit.api import app
+            self.skipTest("API deps not available")
         client = TestClient(app)
         response = client.post("/normalize", json={"rows": ["not a dict", 123]})
         # Pydantic validates, returns 400 or 422 depending on model
@@ -1008,9 +1008,9 @@ class NormalizationTests(unittest.TestCase):
     def test_api_sanitizes_upload_filename(self) -> None:
         try:
             from fastapi.testclient import TestClient
+            from biomarker_normalization_toolkit.api import app
         except Exception:
-            self.skipTest("httpx/fastapi not available")
-        from biomarker_normalization_toolkit.api import app
+            self.skipTest("API deps not available")
         client = TestClient(app)
         csv_content = (
             b"source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
