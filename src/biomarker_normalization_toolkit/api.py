@@ -194,9 +194,12 @@ app.add_middleware(
 class RequestMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
         content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > MAX_JSON_BODY_BYTES:
-            return JSONResponse(status_code=413, content={
-                "error": f"Request body too large. Maximum is {MAX_JSON_BODY_BYTES // (1024 * 1024)} MB."})
+        try:
+            if content_length and int(content_length) > MAX_JSON_BODY_BYTES:
+                return JSONResponse(status_code=413, content={
+                    "error": f"Request body too large. Maximum is {MAX_JSON_BODY_BYTES // (1024 * 1024)} MB."})
+        except (ValueError, TypeError):
+            pass  # Malformed content-length header — ignore and proceed
 
         # Rate limiting
         api_key = request.headers.get("x-api-key", "anonymous")
@@ -493,13 +496,66 @@ def normalize_upload(file: UploadFile = File(...),
                      x_api_key: str | None = Header(None, alias="X-API-Key")) -> JSONResponse:
     license_info = _get_license(x_api_key)
     features = license_info["features"]
+
+    rejection = _check_key_validity(license_info, x_api_key)
+    if rejection:
+        return rejection
+
     rows, error = _read_upload(file)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
+
+    # Enforce row limits (same as JSON endpoint)
+    if len(rows) > license_info["max_rows"]:
+        return JSONResponse(status_code=400, content={
+            "error": f"Row limit exceeded ({license_info['tier']} tier: {license_info['max_rows']} max)."})
+
     if fuzzy_threshold > 0 and not features.get("fuzzy"):
         fuzzy_threshold = 0.0
     safe_name = Path(file.filename or "").name
     result = normalize_rows(rows, input_file=safe_name, fuzzy_threshold=fuzzy_threshold)
+
+    # Enforce biomarker filtering for free tier (same as JSON endpoint)
+    allowed_ids = license_info.get("biomarker_ids")
+    if allowed_ids is not None:
+        from biomarker_normalization_toolkit.models import NormalizedRecord
+        filtered = []
+        for r in result.records:
+            if r.canonical_biomarker_id and r.canonical_biomarker_id not in allowed_ids:
+                filtered.append(NormalizedRecord(
+                    source_row_number=r.source_row_number, source_row_id=r.source_row_id,
+                    source_lab_name=r.source_lab_name, source_panel_name=r.source_panel_name,
+                    source_test_name=r.source_test_name, alias_key=r.alias_key,
+                    raw_value=r.raw_value, source_unit=r.source_unit,
+                    specimen_type=r.specimen_type, source_reference_range=r.source_reference_range,
+                    canonical_biomarker_id=r.canonical_biomarker_id,
+                    canonical_biomarker_name=r.canonical_biomarker_name,
+                    loinc=r.loinc, mapping_status="review_needed",
+                    match_confidence="none",
+                    status_reason="biomarker_requires_pro_tier",
+                    mapping_rule="", normalized_value="", normalized_unit="",
+                    normalized_reference_range="", provenance=r.provenance,
+                ))
+            else:
+                filtered.append(r)
+        result = result.__class__(
+            input_file=result.input_file,
+            summary={
+                "total_rows": len(filtered),
+                "mapped": sum(1 for r in filtered if r.mapping_status == "mapped"),
+                "review_needed": sum(1 for r in filtered if r.mapping_status == "review_needed"),
+                "unmapped": sum(1 for r in filtered if r.mapping_status == "unmapped"),
+                "confidence_breakdown": {
+                    "high": sum(1 for r in filtered if r.match_confidence == "high"),
+                    "medium": sum(1 for r in filtered if r.match_confidence == "medium"),
+                    "low": sum(1 for r in filtered if r.match_confidence == "low"),
+                    "none": sum(1 for r in filtered if r.match_confidence == "none"),
+                },
+            },
+            records=filtered,
+            warnings=result.warnings,
+        )
+
     response = result.to_json_dict()
     response["tier"] = license_info["tier"]
     if emit_fhir:
