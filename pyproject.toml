@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "biomarker-normalization-toolkit"
-version = "0.2.0"
+version = "0.2.1"
 description = "Customer-run toolkit that normalizes messy lab data into canonical machine-readable output."
 readme = "README.md"
 requires-python = ">=3.11"

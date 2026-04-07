@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.2.1
+
+### Critical Bug Fixes
+- **Free T4 conversion was 6x too low** — normal thyroid values appeared as severe hypothyroidism. Factor corrected from 0.0129 to 1/12.87.
+- **Folate conversion was 2x too low** — normal folate appeared deficient. Factor corrected from 0.2266 to 1/2.266.
+- **All 5 WBC differential LOINCs were percentage codes** but unit is K/uL — FHIR output had semantically wrong LOINC/unit pairing. Corrected to absolute count LOINCs.
+- **ALT LOINC was body fluid code** (1744-1) instead of serum/plasma (1742-6).
+- **`#/uL` mapped to `K/uL`** with no division — 1000x magnitude error. Removed.
+- **NaN/Infinity in raw values crashed the normalizer**. Added `is_finite()` check.
+
+### Serious Bug Fixes
+- **C-CDA parser ignored namespaced documents** — zero results from real clinical systems. Added HL7v3 namespace support.
+- **C-CDA Element truthiness bug** — `find("x") or find("ns:x")` silently failed because empty XML Elements are falsy in Python.
+- **HL7 parser never extracted specimen type** — Glucose/Creatinine/pH always flagged as ambiguous. Now parses OBR-15 and SPM-4.
+- **HL7 batch mode leaked panel names** across message boundaries. Now resets on MSH.
+- **Excel workbook resource leak** on parse errors. Added try/finally.
+- **FHIR profile URL was non-standard**. Corrected to StructureDefinition/Bundle.
+- **Custom alias loader accepted malformed input** — could corrupt the alias index. Added type validation.
+- **`--aliases` flag silently continued** when file was missing. Now exits with error.
+- **Reference range regex rejected numeric-prefix units** like `10^9/L`. Fixed.
+- **MCHC accepted `%` as identity** — medically wrong. Removed.
+
+### Precision Improvements
+- Magnesium: 2.4 → 2.431 (MW 24.305, was -1.25% error)
+- Vitamin D: 0.4 → 1/2.496 (MW 400.6, fixed clinical cutoff at 30 ng/mL)
+
+### New Features
+- `bnt batch` command for multi-file processing
+- `--aliases` flag for custom alias JSON files
+- GitHub Actions CI (3 OS x 3 Python versions)
+- Blood pH, Fibrinogen, eAG biomarkers (74 total)
+- HL7 specimen extraction from OBR-15/SPM-4
+- `"seconds"` unit synonym for PT/PTT
+
 ## 0.2.0
 
 ### Biomarker Coverage
