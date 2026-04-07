@@ -184,6 +184,10 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "copper":               (Decimal("20"),   Decimal("300")),
     "fructosamine":         (Decimal("100"),  Decimal("500")),
     "vldl_cholesterol":     (Decimal("1"),    Decimal("200")),
+    "mercury":              (Decimal("0"),    Decimal("200")),
+    "lead":                 (Decimal("0"),    Decimal("100")),
+    "arsenic":              (Decimal("0"),    Decimal("500")),
+    "cadmium":              (Decimal("0"),    Decimal("50")),
 }
 
 

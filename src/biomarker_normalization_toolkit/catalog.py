@@ -1604,6 +1604,43 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("VLDL Cholesterol", "VLDL-C", "VLDL",
                  "Cholesterol in VLDL [Mass/volume] in Serum or Plasma"),
     ),
+    # --- Heavy metals / toxicology ---
+    "mercury": BiomarkerDefinition(
+        biomarker_id="mercury",
+        canonical_name="Mercury",
+        loinc="5677-0",
+        normalized_unit="ug/L",
+        allowed_specimens=_BLOOD,
+        aliases=("Mercury", "Hg", "Mercury, Blood", "Mercury, Whole Blood",
+                 "Mercury [Mass/volume] in Blood"),
+    ),
+    "lead": BiomarkerDefinition(
+        biomarker_id="lead",
+        canonical_name="Lead",
+        loinc="5671-3",
+        normalized_unit="ug/dL",
+        allowed_specimens=_BLOOD,
+        aliases=("Lead", "Pb", "Lead, Blood", "Lead Level",
+                 "Lead [Mass/volume] in Blood"),
+    ),
+    "arsenic": BiomarkerDefinition(
+        biomarker_id="arsenic",
+        canonical_name="Arsenic",
+        loinc="5580-6",
+        normalized_unit="ug/L",
+        allowed_specimens=_BLOOD,
+        aliases=("Arsenic", "As", "Arsenic, Blood",
+                 "Arsenic [Mass/volume] in Blood"),
+    ),
+    "cadmium": BiomarkerDefinition(
+        biomarker_id="cadmium",
+        canonical_name="Cadmium",
+        loinc="5611-9",
+        normalized_unit="ug/L",
+        allowed_specimens=_BLOOD,
+        aliases=("Cadmium", "Cd", "Cadmium, Blood",
+                 "Cadmium [Mass/volume] in Blood"),
+    ),
 }
 
 

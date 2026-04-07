@@ -383,6 +383,11 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "copper": {"ug/dL": Decimal("1"), "umol/L": Decimal("6.355")},
     "fructosamine": {"umol/L": Decimal("1")},
     "vldl_cholesterol": {"mg/dL": Decimal("1"), "mmol/L": Decimal("38.67")},
+    # Heavy metals
+    "mercury": {"ug/L": Decimal("1"), "nmol/L": Decimal("1") / Decimal("4.985")},
+    "lead": {"ug/dL": Decimal("1"), "umol/L": Decimal("1") / Decimal("0.04826")},
+    "arsenic": {"ug/L": Decimal("1")},
+    "cadmium": {"ug/L": Decimal("1"), "nmol/L": Decimal("1") / Decimal("8.897")},
 }
 
 
