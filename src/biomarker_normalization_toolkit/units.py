@@ -111,6 +111,8 @@ UNIT_SYNONYMS = {
     "mg/mmol": "mg/mmol",
     "{presence}": "",
     "1": "",
+    "k/mcl": "K/uL",
+    "units/l": "U/L",
     "#/hpf": "#/hpf",
     "ml/min/1.73 m2": "mL/min/1.73m2",
     "ml/min/1.73 m\u00b2": "mL/min/1.73m2",

@@ -18,13 +18,13 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "hba1c":            (Decimal("2"),    Decimal("20")),
     "eag":              (Decimal("20"),   Decimal("600")),
     # Lipids
-    "total_cholesterol":(Decimal("20"),   Decimal("800")),
+    "total_cholesterol":(Decimal("20"),   Decimal("1000")),
     "ldl_cholesterol":  (Decimal("5"),    Decimal("600")),
-    "hdl_cholesterol":  (Decimal("2"),    Decimal("200")),
+    "hdl_cholesterol":  (Decimal("2"),    Decimal("300")),
     "triglycerides":    (Decimal("10"),   Decimal("5000")),
     # Renal
     "creatinine":       (Decimal("0"),    Decimal("50")),
-    "creatinine_urine": (Decimal("1"),    Decimal("500")),
+    "creatinine_urine": (Decimal("1"),    Decimal("1000")),
     "bun":              (Decimal("1"),    Decimal("300")),
     "egfr":             (Decimal("1"),    Decimal("200")),
     "uric_acid":        (Decimal("0"),    Decimal("30")),
@@ -100,8 +100,8 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     # Vitamins & minerals
     "vitamin_d":        (Decimal("1"),    Decimal("200")),
     "vitamin_b12":      (Decimal("50"),   Decimal("5000")),
-    "folate":           (Decimal("0.5"),  Decimal("100")),
-    "iron":             (Decimal("5"),    Decimal("1000")),
+    "folate":           (Decimal("0.5"),  Decimal("1000")),  # RBC folate can be 150-800 ng/mL
+    "iron":             (Decimal("0"),    Decimal("1000")),
     "ferritin":         (Decimal("1"),    Decimal("100000")),
     # Blood gases
     "blood_ph":         (Decimal("6.5"),  Decimal("8.0")),
@@ -125,7 +125,7 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "lh":               (Decimal("0"),    Decimal("200")),
     "fsh":              (Decimal("0"),    Decimal("200")),
     "homocysteine":     (Decimal("1"),    Decimal("100")),
-    "insulin":          (Decimal("0"),    Decimal("500")),
+    "insulin":          (Decimal("0"),    Decimal("1000")),  # Extreme insulin resistance
     "tibc":             (Decimal("50"),   Decimal("700")),
     "transferrin_saturation": (Decimal("0"), Decimal("100")),
     "lpa":              (Decimal("0"),    Decimal("1000")),
@@ -180,11 +180,11 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "vitamin_c":            (Decimal("0"),    Decimal("5")),
     "vitamin_e":            (Decimal("1"),    Decimal("50")),
     "zinc":                 (Decimal("20"),   Decimal("300")),
-    "selenium":             (Decimal("20"),   Decimal("500")),
+    "selenium":             (Decimal("20"),   Decimal("1000")),
     "copper":               (Decimal("20"),   Decimal("300")),
     "fructosamine":         (Decimal("100"),  Decimal("500")),
     "vldl_cholesterol":     (Decimal("1"),    Decimal("200")),
-    "manganese":            (Decimal("0"),    Decimal("100")),
+    "manganese":            (Decimal("0"),    Decimal("200")),
     "mercury":              (Decimal("0"),    Decimal("200")),
     "lead":                 (Decimal("0"),    Decimal("100")),
     "arsenic":              (Decimal("0"),    Decimal("500")),
