@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG
 from biomarker_normalization_toolkit.fhir import build_bundle
-from biomarker_normalization_toolkit.io_utils import read_ccda_input, read_fhir_input, read_hl7_input, read_input, read_input_csv
+from biomarker_normalization_toolkit.io_utils import read_ccda_input, read_excel_input, read_fhir_input, read_hl7_input, read_input, read_input_csv
 from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_rows, normalize_source_record
 from biomarker_normalization_toolkit.units import convert_to_normalized, is_inequality_value, parse_reference_range
 
@@ -558,6 +558,25 @@ class NormalizationTests(unittest.TestCase):
         rows = read_ccda_input(ccda_path)
         self.assertGreater(len(rows), 0)
         self.assertEqual(rows[0]["raw_value"], "152")
+
+    # --- Excel ingest ---
+
+    def test_excel_ingest_with_flexible_headers(self) -> None:
+        xlsx_path = ROOT / "sample data" / "test_lab_results.xlsx"
+        if not xlsx_path.exists():
+            self.skipTest("Excel test file not available")
+        rows = read_excel_input(xlsx_path)
+        self.assertEqual(len(rows), 10)
+        result = normalize_rows(rows)
+        self.assertEqual(result.summary["mapped"], 9)
+        self.assertEqual(result.summary["unmapped"], 1)
+
+    def test_read_input_auto_detects_xlsx(self) -> None:
+        xlsx_path = ROOT / "sample data" / "test_lab_results.xlsx"
+        if not xlsx_path.exists():
+            self.skipTest("Excel test file not available")
+        rows = read_input(xlsx_path)
+        self.assertEqual(len(rows), 10)
 
     def test_read_input_auto_detects_xml(self) -> None:
         ccda_path = ROOT / "sample data" / "ccda-examples" / "Result with lab location(C-CDAR2.1).xml"

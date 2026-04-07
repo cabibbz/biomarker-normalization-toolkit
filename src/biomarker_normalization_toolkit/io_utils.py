@@ -29,6 +29,8 @@ def read_input(path: Path) -> list[dict[str, str]]:
         return read_hl7_input(path)
     if suffix == ".xml":
         return read_ccda_input(path)
+    if suffix in (".xlsx", ".xls"):
+        return read_excel_input(path)
     return read_input_csv(path)
 
 
@@ -313,6 +315,97 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
             "No completed observation values found in C-CDA input. "
             "The document may contain only pending or null-flavored results."
         )
+
+    return rows
+
+
+def read_excel_input(path: Path) -> list[dict[str, str]]:
+    """Read an Excel file (.xlsx/.xls) and extract rows using the header row for column names.
+
+    Attempts to match columns to our required schema by flexible header matching.
+    """
+    try:
+        import openpyxl
+    except ImportError:
+        raise ImportError("openpyxl is required for Excel ingest: pip install openpyxl")
+
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    ws = wb.active
+    if ws is None:
+        raise ValueError("Excel file has no active worksheet.")
+
+    rows_iter = ws.iter_rows(values_only=True)
+    raw_headers = next(rows_iter, None)
+    if raw_headers is None:
+        raise ValueError("Excel file has no header row.")
+
+    # Normalize headers: strip, lowercase, replace spaces/dashes with underscores
+    def norm_header(h: str) -> str:
+        return h.strip().lower().replace(" ", "_").replace("-", "_")
+
+    headers = [norm_header(str(h or "")) for h in raw_headers]
+
+    # Map flexible header names to our schema
+    HEADER_MAP = {
+        "source_row_id": {"source_row_id", "row_id", "id", "sample_id", "accession", "accession_number"},
+        "source_test_name": {"source_test_name", "test_name", "test", "analyte", "component", "observation", "lab_test", "result_name"},
+        "raw_value": {"raw_value", "value", "result", "result_value", "observed_value"},
+        "source_unit": {"source_unit", "unit", "units", "uom", "unit_of_measure"},
+        "specimen_type": {"specimen_type", "specimen", "sample_type", "fluid", "matrix"},
+        "source_reference_range": {"source_reference_range", "reference_range", "ref_range", "normal_range", "range"},
+        "source_lab_name": {"source_lab_name", "lab_name", "lab", "laboratory", "performing_lab"},
+        "source_panel_name": {"source_panel_name", "panel_name", "panel", "order_name", "test_group"},
+    }
+
+    col_map: dict[int, str] = {}
+    for idx, header in enumerate(headers):
+        for canonical, variants in HEADER_MAP.items():
+            if header in variants:
+                col_map[idx] = canonical
+                break
+
+    # Verify required columns found
+    mapped_cols = set(col_map.values())
+    required = {"source_test_name", "raw_value"}
+    missing = required - mapped_cols
+    if missing:
+        raise ValueError(
+            f"Excel file missing required columns: {', '.join(missing)}. "
+            f"Found headers: {[str(h) for h in raw_headers]}"
+        )
+
+    rows: list[dict[str, str]] = []
+    row_num = 0
+    for data_row in rows_iter:
+        row_num += 1
+        row: dict[str, str] = {
+            "source_row_id": str(row_num),
+            "source_lab_name": "",
+            "source_panel_name": "",
+            "source_test_name": "",
+            "raw_value": "",
+            "source_unit": "",
+            "specimen_type": "",
+            "source_reference_range": "",
+        }
+        for idx, val in enumerate(data_row):
+            if idx in col_map:
+                row[col_map[idx]] = str(val).strip() if val is not None else ""
+
+        # Skip completely empty rows
+        if not row["source_test_name"] and not row["raw_value"]:
+            continue
+
+        # Auto-generate row ID if not mapped
+        if "source_row_id" not in mapped_cols:
+            row["source_row_id"] = str(row_num)
+
+        rows.append(row)
+
+    wb.close()
+
+    if not rows:
+        raise ValueError("Excel file has no data rows.")
 
     return rows
 

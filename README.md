@@ -50,6 +50,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 - **FHIR R4 JSON** — Bundle or individual Observation resources (auto-detected)
 - **HL7 v2.x** — ORU^R01 messages with OBX segments (auto-detected by `.hl7` extension)
 - **C-CDA XML** — Clinical Document Architecture lab results sections (auto-detected by `.xml` extension)
+- **Excel** — `.xlsx` files with flexible header matching (auto-detected)
 
 ## Output Formats
 
@@ -81,6 +82,9 @@ bnt normalize --input lab_results.hl7 --output-dir out
 
 # Normalize a C-CDA XML document
 bnt normalize --input lab_results.xml --output-dir out
+
+# Normalize an Excel spreadsheet
+bnt normalize --input lab_results.xlsx --output-dir out
 
 # Normalize with FHIR output
 bnt normalize --input labs.csv --output-dir out --emit-fhir
