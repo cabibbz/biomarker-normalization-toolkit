@@ -1535,8 +1535,90 @@ class NormalizationTests(unittest.TestCase):
         result = normalize_rows(rows)
         self.assertEqual(result.summary["mapped"], 10)
 
-    def test_catalog_count_at_least_162(self) -> None:
-        self.assertGreaterEqual(len(BIOMARKER_CATALOG), 162)
+    def test_catalog_count_at_least_183(self) -> None:
+        self.assertGreaterEqual(len(BIOMARKER_CATALOG), 183)
+
+    # --- Round-trip conversion tests ---
+
+    def test_conversion_round_trip_glucose(self) -> None:
+        """5.5 mmol/L -> mg/dL -> mmol/L should equal ~5.5."""
+        result = convert_to_normalized(Decimal("5.5"), "glucose_serum", "mmol/L")
+        self.assertIsNotNone(result)
+        # result is in mg/dL. Convert back: mg/dL / 18 = mmol/L
+        back = result / Decimal("18")
+        self.assertAlmostEqual(float(back), 5.5, places=1)
+
+    def test_conversion_round_trip_creatinine(self) -> None:
+        """88.4 umol/L -> mg/dL -> umol/L should equal ~88.4."""
+        result = convert_to_normalized(Decimal("88.4"), "creatinine", "umol/L")
+        self.assertIsNotNone(result)
+        # result is in mg/dL. Convert back: mg/dL * 88.4 = umol/L
+        back = result * Decimal("88.4")
+        self.assertAlmostEqual(float(back), 88.4, places=1)
+
+    def test_conversion_round_trip_hemoglobin(self) -> None:
+        """140 g/L -> g/dL -> g/L should equal 140."""
+        result = convert_to_normalized(Decimal("140"), "hemoglobin", "g/L")
+        self.assertIsNotNone(result)
+        back = result * Decimal("10")
+        self.assertAlmostEqual(float(back), 140.0, places=1)
+
+    def test_conversion_round_trip_calcium(self) -> None:
+        """2.5 mmol/L -> mg/dL -> mmol/L should equal ~2.5."""
+        result = convert_to_normalized(Decimal("2.5"), "calcium", "mmol/L")
+        self.assertIsNotNone(result)
+        back = result / Decimal("4.008")
+        self.assertAlmostEqual(float(back), 2.5, places=2)
+
+    def test_conversion_round_trip_kpa_to_mmhg(self) -> None:
+        """5.3 kPa -> mmHg -> kPa should equal ~5.3."""
+        result = convert_to_normalized(Decimal("5.3"), "pco2", "kPa")
+        self.assertIsNotNone(result)
+        back = result / Decimal("7.50062")
+        self.assertAlmostEqual(float(back), 5.3, places=2)
+
+    # --- Sibling redirect marking ---
+
+    def test_sibling_redirect_is_marked_in_output(self) -> None:
+        """Sibling redirect should show confidence=medium and reason=sibling_unit_redirect."""
+        rows = [{"source_row_id": "sr1", "source_test_name": "Neutrophils", "raw_value": "65",
+                 "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.canonical_biomarker_id, "neutrophils_pct")
+        self.assertEqual(r.match_confidence, "medium")
+        self.assertEqual(r.status_reason, "sibling_unit_redirect")
+        self.assertIn("original:neutrophils", r.mapping_rule)
+        self.assertIn("redirected:neutrophils_pct", r.mapping_rule)
+
+    # --- FHIR effectiveDateTime ---
+
+    def test_fhir_observation_has_effective_datetime(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_observation
+        from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_source_record
+        rows = [{"source_row_id": "dt1", "source_test_name": "TSH", "raw_value": "2.5",
+                 "source_unit": "mIU/L", "specimen_type": "", "source_reference_range": ""}]
+        record = normalize_source_record(build_source_records(rows)[0])
+        obs = build_observation(record)
+        self.assertIsNotNone(obs)
+        self.assertIn("effectiveDateTime", obs)
+
+    # --- Startup validation ---
+
+    def test_all_biomarkers_have_conversions_and_plausibility(self) -> None:
+        """Every biomarker in catalog must have conversion factors and plausibility ranges."""
+        from biomarker_normalization_toolkit.units import CONVERSION_TO_NORMALIZED
+        from biomarker_normalization_toolkit.plausibility import PLAUSIBILITY_RANGES
+        missing_conv = []
+        missing_plaus = []
+        for bio_id, bio in BIOMARKER_CATALOG.items():
+            if bio_id not in CONVERSION_TO_NORMALIZED:
+                missing_conv.append(bio_id)
+            if bio.normalized_unit and bio_id not in PLAUSIBILITY_RANGES:
+                missing_plaus.append(bio_id)
+        self.assertEqual(missing_conv, [], f"Missing conversions: {missing_conv}")
+        self.assertEqual(missing_plaus, [], f"Missing plausibility: {missing_plaus}")
 
 
 if __name__ == "__main__":
