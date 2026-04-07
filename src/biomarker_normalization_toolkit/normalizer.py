@@ -6,6 +6,11 @@ from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, BIOMARKER_CATAL
 from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord, RangeValue, SourceRecord
 from biomarker_normalization_toolkit.units import convert_to_normalized, format_decimal, format_range, is_inequality_value, normalize_unit, parse_decimal, parse_reference_range
 
+_SAFE_RAW_SOURCE_KEYS = frozenset({
+    "source_row_id", "source_test_name", "raw_value", "source_unit",
+    "specimen_type", "source_reference_range", "source_lab_name", "source_panel_name",
+})
+
 
 def build_source_records(rows: list[dict[str, str]]) -> list[SourceRecord]:
     records: list[SourceRecord] = []
@@ -68,7 +73,8 @@ def _empty_record(
             "source_row_number": source.row_number,
             "source_row_id": source.source_row_id,
             "source_alias_key": source.alias_key,
-            "raw_source": source.raw_source,
+            "raw_source": {k: v for k, v in source.raw_source.items()
+                          if k in _SAFE_RAW_SOURCE_KEYS},
         },
     )
 

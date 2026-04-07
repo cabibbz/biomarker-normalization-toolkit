@@ -230,7 +230,16 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="30522-7",
         normalized_unit="mg/L",
         allowed_specimens=_BLOOD,
-        aliases=("CRP", "C-Reactive Protein", "hs-CRP", "hsCRP", "High Sensitivity CRP"),
+        aliases=("hs-CRP", "hsCRP", "High Sensitivity CRP", "High Sensitivity C-Reactive Protein",
+                 "C-Reactive Protein, High Sensitivity"),
+    ),
+    "crp": BiomarkerDefinition(
+        biomarker_id="crp",
+        canonical_name="CRP",
+        loinc="1988-5",
+        normalized_unit="mg/L",
+        allowed_specimens=_BLOOD,
+        aliases=("CRP", "C-Reactive Protein"),
     ),
     # --- Wave 2: CBC ---
     "wbc": BiomarkerDefinition(

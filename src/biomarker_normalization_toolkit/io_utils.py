@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import csv
 import json
+try:
+    from defusedxml.ElementTree import fromstring as _xml_fromstring
+except ImportError:
+    from xml.etree.ElementTree import fromstring as _xml_fromstring
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -235,7 +239,7 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
             + "</root>"
         )
 
-    root = ET.fromstring(content)
+    root = _xml_fromstring(content)
     rows: list[dict[str, str]] = []
     row_id = 0
 

@@ -146,6 +146,10 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
         "mg/L": Decimal("1"),
         "mg/dL": Decimal("10"),
     },
+    "crp": {
+        "mg/L": Decimal("1"),
+        "mg/dL": Decimal("10"),
+    },
     # --- Wave 2: CBC ---
     "wbc": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
     "hemoglobin": {
@@ -263,7 +267,10 @@ def format_decimal(value: Decimal | None) -> str:
     if value is None:
         return ""
 
-    quantized = value.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+    try:
+        quantized = value.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+    except Exception:
+        return str(value)
     text = format(quantized, "f").rstrip("0").rstrip(".")
     return text or "0"
 
@@ -288,8 +295,10 @@ def parse_decimal(value: str | None) -> Decimal | None:
     stripped = value.strip()
     if not stripped:
         return None
+    # Strip thousands separators (e.g., "250,000" -> "250000")
+    cleaned = stripped.replace(",", "")
     try:
-        result = Decimal(stripped)
+        result = Decimal(cleaned)
         if not result.is_finite():
             return None
         return result
@@ -303,7 +312,7 @@ def parse_reference_range(text: str, fallback_unit: str) -> RangeValue | None:
         return None
 
     match = re.match(
-        r"^\s*(?P<low>-?\d+(?:\.\d+)?)\s*(?:to|–|—|-)\s*(?P<high>-?\d+(?:\.\d+)?)(?:\s+(?P<unit>\S.*))?$",
+        r"^\s*(?P<low>[+-]?\d+(?:\.\d+)?)\s*(?:to|–|—|-)\s*(?P<high>[+-]?\d+(?:\.\d+)?)(?:\s*(?P<unit>[a-zA-Z/\[\]{}%#µμ].*?))?$",
         stripped,
     )
     if not match:
