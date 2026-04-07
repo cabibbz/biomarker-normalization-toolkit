@@ -113,6 +113,7 @@ UNIT_SYNONYMS = {
     "1": "",
     "k/mcl": "K/uL",
     "units/l": "U/L",
+    "mcu/ml": "mIU/L",
     "#/hpf": "#/hpf",
     "ml/min/1.73 m2": "mL/min/1.73m2",
     "ml/min/1.73 m\u00b2": "mL/min/1.73m2",
@@ -237,13 +238,13 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "inr": {"ratio": Decimal("1"), "": Decimal("1")},
     "ptt": {"sec": Decimal("1")},
     # --- Wave 4: Other ---
-    "anion_gap": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "anion_gap": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1"), "": Decimal("1")},
     "lactate": {"mmol/L": Decimal("1"), "mg/dL": Decimal("1") / Decimal("9.01")},
     # --- Wave 4: Electrolytes ---
     "sodium": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     "potassium": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     "chloride": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
-    "bicarbonate": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "bicarbonate": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1"), "": Decimal("1")},
     "calcium": {
         "mg/dL": Decimal("1"),
         "mmol/L": Decimal("4.008"),
@@ -360,9 +361,11 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "igm": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "reticulocyte_absolute": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "M/uL": Decimal("1000")},
     # --- Wave 10: ICU + urine chemistry + endocrine ---
-    "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
-    "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
-    "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000")},
+    # Bands/IG/NRBC accept both absolute and % — many labs report only as percentage.
+    # When unit is %, the value IS the percentage (not convertible to K/uL without total WBC).
+    "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "%": Decimal("1")},
+    "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001"), "%": Decimal("1")},
+    "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000"), "%": Decimal("1")},
     "osmolality_urine": {"mOsm/kg": Decimal("1")},
     "sodium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     "potassium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
