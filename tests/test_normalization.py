@@ -1420,6 +1420,124 @@ class NormalizationTests(unittest.TestCase):
         result = normalize_rows(rows)
         self.assertEqual(result.records[0].mapping_status, "unmapped")
 
+    # --- PhenoAge biological age ---
+
+    def test_phenoage_computes_with_all_inputs(self) -> None:
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+        rows = [
+            {"source_row_id": "pa1", "source_test_name": "Albumin", "raw_value": "4.5", "source_unit": "g/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "pa2", "source_test_name": "Creatinine", "raw_value": "0.9", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "pa3", "source_test_name": "Glucose", "raw_value": "90", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "pa4", "source_test_name": "hs-CRP", "raw_value": "0.5", "source_unit": "mg/L", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "pa5", "source_test_name": "Lymphocytes Percent", "raw_value": "30", "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "pa6", "source_test_name": "MCV", "raw_value": "88", "source_unit": "fL", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "pa7", "source_test_name": "RDW", "raw_value": "12.5", "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "pa8", "source_test_name": "ALP", "raw_value": "55", "source_unit": "U/L", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "pa9", "source_test_name": "WBC", "raw_value": "5.5", "source_unit": "K/uL", "specimen_type": "whole blood", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        pheno = compute_phenoage(result, chronological_age=45)
+        self.assertIsNotNone(pheno)
+        self.assertIsNotNone(pheno["phenoage"])
+        self.assertIsInstance(pheno["phenoage"], float)
+        self.assertIn("age_acceleration", pheno)
+        self.assertIn("interpretation", pheno)
+
+    def test_phenoage_returns_missing_when_inputs_incomplete(self) -> None:
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+        rows = [
+            {"source_row_id": "pm1", "source_test_name": "Albumin", "raw_value": "4.5", "source_unit": "g/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        pheno = compute_phenoage(result, chronological_age=45)
+        self.assertIsNotNone(pheno)
+        self.assertIsNone(pheno["phenoage"])
+        self.assertIn("missing_inputs", pheno)
+        self.assertGreater(len(pheno["missing_inputs"]), 0)
+
+    # --- Derived metrics ---
+
+    def test_derived_metrics_homa_ir(self) -> None:
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        rows = [
+            {"source_row_id": "dm1", "source_test_name": "Glucose", "raw_value": "90", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "dm2", "source_test_name": "Insulin", "raw_value": "5", "source_unit": "uIU/mL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        metrics = compute_derived_metrics(result)
+        self.assertIn("homa_ir", metrics)
+        homa = float(metrics["homa_ir"]["value"])
+        # (90 * 5) / 405 = 1.111
+        self.assertAlmostEqual(homa, 1.11, places=1)
+
+    def test_derived_metrics_tg_hdl_ratio(self) -> None:
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        rows = [
+            {"source_row_id": "dm3", "source_test_name": "Triglycerides", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "dm4", "source_test_name": "HDL", "raw_value": "50", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        metrics = compute_derived_metrics(result)
+        self.assertIn("tg_hdl_ratio", metrics)
+        self.assertEqual(metrics["tg_hdl_ratio"]["value"], "2.00")
+
+    # --- Optimal ranges ---
+
+    def test_optimal_ranges_flags_high_ldl(self) -> None:
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        rows = [
+            {"source_row_id": "or1", "source_test_name": "LDL", "raw_value": "130", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        evals = evaluate_optimal_ranges(result)
+        self.assertEqual(len(evals), 1)
+        self.assertEqual(evals[0]["status"], "above_optimal")
+        self.assertEqual(evals[0]["biomarker_id"], "ldl_cholesterol")
+
+    def test_optimal_ranges_passes_good_values(self) -> None:
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        rows = [
+            {"source_row_id": "or2", "source_test_name": "Glucose", "raw_value": "80", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        evals = evaluate_optimal_ranges(result)
+        self.assertEqual(evals[0]["status"], "optimal")
+
+    # --- Heavy metals ---
+
+    def test_heavy_metals_map(self) -> None:
+        rows = [
+            {"source_row_id": "hm1", "source_test_name": "Mercury", "raw_value": "2.1", "source_unit": "ug/L", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "hm2", "source_test_name": "Lead", "raw_value": "1.5", "source_unit": "ug/dL", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "hm3", "source_test_name": "Arsenic", "raw_value": "5", "source_unit": "ug/L", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "hm4", "source_test_name": "Cadmium", "raw_value": "0.3", "source_unit": "ug/L", "specimen_type": "whole blood", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.summary["mapped"], 4)
+        ids = {r.canonical_biomarker_id for r in result.records}
+        self.assertEqual(ids, {"mercury", "lead", "arsenic", "cadmium"})
+
+    # --- Longevity biomarkers ---
+
+    def test_longevity_wave11_biomarkers_map(self) -> None:
+        rows = [
+            {"source_row_id": "l1", "source_test_name": "IGF-1", "raw_value": "180", "source_unit": "ng/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "l2", "source_test_name": "Cystatin C", "raw_value": "0.85", "source_unit": "mg/L", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "l3", "source_test_name": "Free T3", "raw_value": "3.2", "source_unit": "pg/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "l4", "source_test_name": "Reverse T3", "raw_value": "18", "source_unit": "ng/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "l5", "source_test_name": "TPO Antibodies", "raw_value": "10", "source_unit": "IU/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "l6", "source_test_name": "ApoA1", "raw_value": "155", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "l7", "source_test_name": "Progesterone", "raw_value": "0.5", "source_unit": "ng/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "l8", "source_test_name": "AMH", "raw_value": "3.5", "source_unit": "ng/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "l9", "source_test_name": "Zinc", "raw_value": "90", "source_unit": "ug/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "l10", "source_test_name": "Fructosamine", "raw_value": "220", "source_unit": "umol/L", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.summary["mapped"], 10)
+
+    def test_catalog_count_at_least_162(self) -> None:
+        self.assertGreaterEqual(len(BIOMARKER_CATALOG), 162)
+
 
 if __name__ == "__main__":
     unittest.main()

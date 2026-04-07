@@ -169,6 +169,24 @@ def normalize(
     if emit_fhir:
         response["fhir_bundle"] = build_bundle(result)
 
+    # Longevity intelligence (always included when data is available)
+    from biomarker_normalization_toolkit.derived import compute_derived_metrics
+    from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges, summarize_optimal
+    derived = compute_derived_metrics(result)
+    if derived:
+        response["derived_metrics"] = derived
+    optimal = evaluate_optimal_ranges(result)
+    if optimal:
+        response["optimal_ranges"] = summarize_optimal(optimal)
+
+    # PhenoAge if age provided
+    age = body.get("chronological_age")
+    if age is not None:
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+        pheno = compute_phenoage(result, chronological_age=float(age))
+        if pheno:
+            response["phenoage"] = pheno
+
     return JSONResponse(content=response)
 
 

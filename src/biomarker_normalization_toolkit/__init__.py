@@ -25,6 +25,9 @@ __all__ = [
     "normalize",
     "normalize_file",
     "normalize_rows",
+    "compute_derived_metrics",
+    "compute_phenoage",
+    "evaluate_optimal_ranges",
     "NormalizationResult",
     "NormalizedRecord",
 ]
@@ -52,3 +55,21 @@ def normalize_file(path: str, input_file: str = "", fuzzy_threshold: float = 0.0
     p = Path(path)
     rows = read_input(p)
     return normalize_rows(rows, input_file=input_file or p.name, fuzzy_threshold=fuzzy_threshold)
+
+
+def compute_derived_metrics(result: NormalizationResult) -> dict:
+    """Compute HOMA-IR, TG/HDL, ApoB/ApoA1, and other derived metrics."""
+    from biomarker_normalization_toolkit.derived import compute_derived_metrics as _compute
+    return _compute(result)
+
+
+def compute_phenoage(result: NormalizationResult, chronological_age: float) -> dict | None:
+    """Compute PhenoAge biological age (Levine 2018) from 9 standard biomarkers."""
+    from biomarker_normalization_toolkit.phenoage import compute_phenoage as _compute
+    return _compute(result, chronological_age=chronological_age)
+
+
+def evaluate_optimal_ranges(result: NormalizationResult) -> list[dict]:
+    """Evaluate biomarkers against longevity-optimal ranges."""
+    from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges as _evaluate
+    return _evaluate(result)

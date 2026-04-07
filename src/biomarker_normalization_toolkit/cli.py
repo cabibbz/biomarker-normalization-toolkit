@@ -210,12 +210,23 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
     for warning in result.warnings:
         print(f"WARNING: {warning}", file=sys.stderr)
 
+    # Derived metrics and optimal ranges
+    from biomarker_normalization_toolkit.derived import compute_derived_metrics
+    from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges, summarize_optimal
+    derived = compute_derived_metrics(result)
+    optimal_evals = evaluate_optimal_ranges(result)
+    optimal_summary = summarize_optimal(optimal_evals)
+
     print(f"Normalized {result.summary['total_rows']} rows.")
     print(
         f"Mapped={result.summary['mapped']} "
         f"ReviewNeeded={result.summary['review_needed']} "
         f"Unmapped={result.summary['unmapped']}"
     )
+    if derived:
+        print(f"Derived metrics: {len(derived)}")
+    if optimal_evals:
+        print(f"Optimal range: {optimal_summary['optimal']}/{optimal_summary['total_evaluated']} biomarkers in optimal range ({optimal_summary['optimal_percentage']}%)")
     print(f"JSON output: {json_path}")
     print(f"CSV output: {csv_path}")
     print(f"Summary output: {summary_path}")
