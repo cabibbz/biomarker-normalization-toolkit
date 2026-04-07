@@ -680,7 +680,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "neutrophils": BiomarkerDefinition(
         biomarker_id="neutrophils",
         canonical_name="Neutrophils",
-        loinc="751-8",
+        loinc="26499-4",
         normalized_unit="K/uL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Neutrophils", "Neutrophil Count", "ANC", "Absolute Neutrophil Count",
@@ -690,7 +690,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "lymphocytes": BiomarkerDefinition(
         biomarker_id="lymphocytes",
         canonical_name="Lymphocytes",
-        loinc="731-0",
+        loinc="26474-7",
         normalized_unit="K/uL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Lymphocytes", "Lymphocyte Count", "Lymph",
@@ -701,7 +701,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "monocytes": BiomarkerDefinition(
         biomarker_id="monocytes",
         canonical_name="Monocytes",
-        loinc="742-7",
+        loinc="26484-6",
         normalized_unit="K/uL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Monocytes", "Monocyte Count", "Mono",
@@ -712,7 +712,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "eosinophils": BiomarkerDefinition(
         biomarker_id="eosinophils",
         canonical_name="Eosinophils",
-        loinc="711-2",
+        loinc="26449-9",
         normalized_unit="K/uL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Eosinophils", "Eosinophil Count", "Eos",
@@ -723,7 +723,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "basophils": BiomarkerDefinition(
         biomarker_id="basophils",
         canonical_name="Basophils",
-        loinc="704-7",
+        loinc="26444-0",
         normalized_unit="K/uL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Basophils", "Basophil Count", "Baso",

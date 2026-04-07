@@ -50,6 +50,7 @@ UNIT_SYNONYMS = {
     "pg": "pg",
     "sec": "sec",
     "s": "sec",
+    "seconds": "sec",
     "ratio": "ratio",
     "{inr}": "ratio",
     "10*6/ul": "M/uL",
@@ -155,7 +156,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     # --- Wave 3: Vitamins ---
     "vitamin_d": {
         "ng/mL": Decimal("1"),
-        "nmol/L": Decimal("0.4"),
+        "nmol/L": Decimal("1") / Decimal("2.496"),
     },
     "vitamin_b12": {
         "pg/mL": Decimal("1"),
@@ -173,7 +174,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "ferritin": {"ng/mL": Decimal("1")},
     "magnesium": {
         "mg/dL": Decimal("1"),
-        "mmol/L": Decimal("2.4"),
+        "mmol/L": Decimal("2.431"),
     },
     # --- Wave 4: CBC sub-components ---
     "rbc": {"M/uL": Decimal("1"), "10^12/L": Decimal("1")},

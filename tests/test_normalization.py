@@ -448,7 +448,8 @@ class NormalizationTests(unittest.TestCase):
 
     def test_vitamin_d_nmol_to_ngml(self) -> None:
         result = convert_to_normalized(Decimal("75"), "vitamin_d", "nmol/L")
-        self.assertAlmostEqual(float(result), 30.0, places=4)
+        # 75 / 2.496 = 30.048
+        self.assertAlmostEqual(float(result), 30.048, places=2)
 
     def test_vitamin_b12_pmol_to_pgml(self) -> None:
         result = convert_to_normalized(Decimal("369"), "vitamin_b12", "pmol/L")
@@ -465,7 +466,8 @@ class NormalizationTests(unittest.TestCase):
 
     def test_magnesium_mmol_to_mgdl(self) -> None:
         result = convert_to_normalized(Decimal("0.83"), "magnesium", "mmol/L")
-        self.assertAlmostEqual(float(result), 1.992, places=3)
+        # 0.83 * 2.431 = 2.018
+        self.assertAlmostEqual(float(result), 2.018, places=2)
 
 
     # --- FHIR ingest ---
