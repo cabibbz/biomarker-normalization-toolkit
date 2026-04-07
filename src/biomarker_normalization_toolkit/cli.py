@@ -89,7 +89,7 @@ def command_status() -> int:
     from biomarker_normalization_toolkit import __version__
     print(f"Biomarker Normalization Toolkit v{__version__}")
     print(f"Biomarkers: {len(BIOMARKER_CATALOG)}")
-    print(f"Input formats: CSV, FHIR R4 JSON")
+    print(f"Input formats: CSV, FHIR R4 JSON, HL7 v2.x, C-CDA XML, Excel")
     print(f"Output formats: JSON, CSV, FHIR Bundle, Markdown summary")
     print(f"Deployment: customer-run (CLI, Docker, pip)")
     print("Scope: normalization only - no diagnosis, no hosted PHI")
