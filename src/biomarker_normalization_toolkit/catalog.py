@@ -1634,6 +1634,15 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Arsenic", "As", "Arsenic, Blood",
                  "Arsenic [Mass/volume] in Blood"),
     ),
+    "manganese": BiomarkerDefinition(
+        biomarker_id="manganese",
+        canonical_name="Manganese",
+        loinc="32551-4",
+        normalized_unit="ug/L",
+        allowed_specimens=_BLOOD,
+        aliases=("Manganese", "Mn", "Manganese, Blood",
+                 "Manganese [Mass/volume] in Blood"),
+    ),
     "cadmium": BiomarkerDefinition(
         biomarker_id="cadmium",
         canonical_name="Cadmium",
