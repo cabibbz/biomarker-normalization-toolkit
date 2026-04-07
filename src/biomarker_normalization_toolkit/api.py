@@ -62,6 +62,7 @@ class NormalizeRequest(BaseModel):
     rows: list[dict[str, Any]] = Field(..., description="List of lab result row objects")
     input_file: str = ""
     chronological_age: float | None = Field(None, description="Patient age for PhenoAge (Pro tier)")
+    sex: str | None = Field(None, description="Patient sex (male/female) for sex-specific optimal ranges")
 
 
 class CompareRequest(BaseModel):
@@ -276,13 +277,13 @@ def _read_upload(file: UploadFile) -> tuple[list[dict[str, str]], str | None]:
 
 def _enrich_response(
     result: Any, response: dict[str, Any], features: dict[str, bool],
-    chronological_age: float | None = None,
+    chronological_age: float | None = None, sex: str | None = None,
 ) -> None:
     derived = compute_derived_metrics(result)
     if derived and features.get("derived_metrics"):
         response["derived_metrics"] = derived
     if features.get("optimal_ranges"):
-        optimal = evaluate_optimal_ranges(result)
+        optimal = evaluate_optimal_ranges(result, sex=sex)
         if optimal:
             response["optimal_ranges"] = summarize_optimal(optimal)
     if chronological_age is not None and features.get("phenoage"):
@@ -453,7 +454,7 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
     response["tier"] = license_info["tier"]
     if emit_fhir:
         response["fhir_bundle"] = build_bundle(result)
-    _enrich_response(result, response, features, chronological_age=body.get("chronological_age"))
+    _enrich_response(result, response, features, chronological_age=body.get("chronological_age"), sex=body.get("sex"))
     return JSONResponse(content=response)
 
 

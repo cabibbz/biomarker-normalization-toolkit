@@ -456,15 +456,27 @@ def is_inequality_value(value: str | None) -> bool:
     return bool(re.match(r"^[<>]=?\s*-?\d+(\.\d+)?$", stripped))
 
 
-def parse_decimal(value: str | None) -> Decimal | None:
+def parse_decimal(value: str | None, *, locale: str = "us") -> Decimal | None:
+    """Parse a decimal string. locale="us" (default) or "eu" for European comma-as-decimal."""
     if value is None:
         return None
     stripped = value.strip()
     if not stripped:
         return None
+    # European locale: treat comma as decimal separator
+    if locale == "eu" and "," in stripped and "." not in stripped:
+        stripped = stripped.replace(",", ".")
+        try:
+            result = Decimal(stripped)
+            return result if result.is_finite() else None
+        except Exception:
+            return None
     # Detect European decimal notation: a single comma with 1-3 trailing digits
     # and no other commas (e.g., "1,5" or "5,55").  Thousands separators always
     # have groups of exactly 3 digits after each comma (e.g., "250,000" "1,000,000").
+    # NOTE: "5,123" is ambiguous (5.123 European or 5123 thousands). With exactly
+    # 3 trailing digits AND no other commas, we assume thousands separator (US convention).
+    # Set locale="eu" to treat all single-comma values as European decimals.
     if re.match(r"^-?\d+,\d{1,2}$", stripped):
         return None  # Ambiguous European decimal — reject rather than corrupt
     # Strip thousands separators (e.g., "250,000" -> "250000")

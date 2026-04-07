@@ -2,15 +2,21 @@
 
 Tiers:
 - free: 50 core biomarkers, no PhenoAge, no optimal ranges, 1000 rows/request
-- pro: All 182 biomarkers, PhenoAge, optimal ranges, derived metrics, 100K rows/request
+- pro: All 183 biomarkers, PhenoAge, optimal ranges, derived metrics, 100K rows/request
 - enterprise: Everything in pro + priority support + custom aliases
 
-API keys are validated against BNT_LICENSE_KEY environment variable or
-a remote license server (configurable).
+Validation methods (checked in order):
+1. HMAC-signed keys: BNT_LICENSE_SECRET env var signs keys with expiry
+2. Static keys: BNT_PRO_KEY / BNT_ENTERPRISE_KEY env vars (simple deployment)
+
+For customer-run deployments, the licensing is advisory — the code is open
+under BSL 1.1 and a determined user can bypass it. The value is in the
+support, updates, and alias additions that come with a license.
 """
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import os
 import time
@@ -55,7 +61,30 @@ def validate_api_key(api_key: str | None) -> dict[str, Any]:
             "features": {"phenoage": False, "optimal_ranges": False, "derived_metrics": True, "fuzzy": False},
         }
 
-    # Check against environment variable (constant-time comparison)
+    # Method 1: HMAC-signed keys (format: "tier:expiry_unix:signature")
+    license_secret = os.environ.get("BNT_LICENSE_SECRET", "")
+    if license_secret and ":" in api_key:
+        parts = api_key.split(":", 2)
+        if len(parts) == 3:
+            tier_claim, expiry_str, signature = parts
+            try:
+                expiry = int(expiry_str)
+                expected_sig = hmac.new(
+                    license_secret.encode(), f"{tier_claim}:{expiry_str}".encode(), hashlib.sha256
+                ).hexdigest()[:32]
+                if hmac.compare_digest(signature.encode(), expected_sig.encode()) and time.time() < expiry:
+                    tier = LicenseTier.ENTERPRISE if tier_claim == "enterprise" else LicenseTier.PRO
+                    return {
+                        "tier": tier,
+                        "valid": True,
+                        "max_rows": PRO_MAX_ROWS,
+                        "biomarker_ids": None,
+                        "features": {"phenoage": True, "optimal_ranges": True, "derived_metrics": True, "fuzzy": True},
+                    }
+            except (ValueError, TypeError):
+                pass
+
+    # Method 2: Static keys (simple deployment)
     env_key = os.environ.get("BNT_PRO_KEY", "")
     env_enterprise_key = os.environ.get("BNT_ENTERPRISE_KEY", "")
 

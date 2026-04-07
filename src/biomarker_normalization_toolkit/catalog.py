@@ -26,6 +26,13 @@ def normalize_key(value: str) -> str:
 
 
 def normalize_specimen(specimen: str | None) -> str | None:
+    """Normalize specimen type to canonical form (serum, plasma, whole_blood, urine).
+
+    Unknown specimens (e.g., "CSF", "ascites") are returned as-is (lowercased).
+    This causes them to fail specimen filtering in the normalizer, producing
+    status="review_needed" with reason="no_candidate_for_specimen". This is the
+    intended fail-closed behavior for non-blood/non-urine specimens.
+    """
     if specimen is None:
         return None
 

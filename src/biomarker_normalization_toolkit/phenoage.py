@@ -29,21 +29,31 @@ def _get_value(result: NormalizationResult, *biomarker_ids: str) -> float | None
     return None
 
 
-# Levine 2018 PhenoAge coefficients (Table S6 from supplementary materials)
-# These are the Gompertz mortality hazard model parameters
+# Levine 2018 PhenoAge coefficients
+# Source: Levine ME et al. "An epigenetic biomarker of aging for lifespan and
+# healthspan." Aging (2018) 10(4):573-591. Table S6, Supplementary Materials.
+# These are the Gompertz proportional hazard model parameters from NHANES III
+# mortality-linked cohort (n=9,926, 20+ years follow-up).
+# Glucose enters as ln(glucose_mg_dL) per the log-linear mortality model.
 _COEFFICIENTS = {
-    "albumin_g_dl": -0.0336,
-    "creatinine_mg_dl": 0.0095,
-    "glucose_mg_dl": 0.1953,
-    "crp_ln_mg_dl": 0.0954,  # ln(CRP in mg/dL)
-    "lymphocyte_pct": -0.0120,
-    "mcv_fl": 0.0268,
-    "rdw_pct": 0.3306,
-    "alp_u_l": 0.0019,
-    "wbc_1000_ul": 0.0554,
-    "age": 0.0804,
+    "albumin_g_dl": -0.0336,       # Table S6 row 1
+    "creatinine_mg_dl": 0.0095,    # Table S6 row 2
+    "glucose_mg_dl": 0.1953,       # Table S6 row 3 (applied to ln(glucose))
+    "crp_ln_mg_dl": 0.0954,       # Table S6 row 4 (ln(CRP in mg/dL))
+    "lymphocyte_pct": -0.0120,     # Table S6 row 5
+    "mcv_fl": 0.0268,             # Table S6 row 6
+    "rdw_pct": 0.3306,            # Table S6 row 7
+    "alp_u_l": 0.0019,            # Table S6 row 8
+    "wbc_1000_ul": 0.0554,        # Table S6 row 9
+    "age": 0.0804,                # Table S6 row 10
 }
-_INTERCEPT = -19.9067
+_INTERCEPT = -19.9067             # Table S6 intercept
+
+# Gompertz inversion constants (derived from NHANES III mortality parameters)
+# Used to convert the linear predictor (xb) back to a biological age.
+# gamma = Gompertz shape parameter from the mortality model
+# 141.50225, -0.00553, 0.090165 are the PhenoAge inversion constants from
+# the supplementary R code (BioAge package, function phenoage()).
 
 
 def compute_phenoage(

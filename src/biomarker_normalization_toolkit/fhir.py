@@ -101,7 +101,7 @@ def _observation_uuid(record: NormalizedRecord, input_file: str = "") -> str:
     return str(uuid.uuid5(_BNT_NAMESPACE, seed))
 
 
-def build_observation(record: NormalizedRecord, input_file: str = "") -> dict | None:
+def build_observation(record: NormalizedRecord, input_file: str = "", effective_datetime: str | None = None) -> dict | None:
     if record.mapping_status != "mapped":
         return None
 
@@ -132,7 +132,7 @@ def build_observation(record: NormalizedRecord, input_file: str = "") -> dict | 
             ],
             "text": record.canonical_biomarker_name,
         },
-        "effectiveDateTime": "1970-01-01T00:00:00Z",  # Placeholder — source data lacks timestamps
+        "effectiveDateTime": effective_datetime or "1970-01-01T00:00:00Z",
         "valueQuantity": _build_value_quantity(record),
         "note": [
             {

@@ -115,12 +115,47 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "adiponectin": (Decimal("5"), Decimal("20"), "ug/mL", "Higher = better insulin sensitivity"),
 }
 
+# Sex-specific overrides (when sex is provided)
+OPTIMAL_RANGES_MALE: dict[str, tuple[Decimal, Decimal, str, str]] = {
+    "testosterone_total": (Decimal("500"), Decimal("900"), "ng/dL", "Male optimal"),
+    "free_testosterone": (Decimal("10"), Decimal("25"), "pg/mL", "Male optimal"),
+    "hemoglobin": (Decimal("14.0"), Decimal("16.5"), "g/dL", "Male 14-17.5"),
+    "hematocrit": (Decimal("42"), Decimal("50"), "%", "Male 41-53"),
+    "ferritin": (Decimal("40"), Decimal("150"), "ng/mL", "Male: higher normal range"),
+    "rbc": (Decimal("4.5"), Decimal("5.5"), "M/uL", "Male range"),
+    "leptin": (Decimal("1"), Decimal("6"), "ng/mL", "Male: 2-5.6"),
+}
 
-def evaluate_optimal_ranges(result: NormalizationResult) -> list[dict[str, Any]]:
+OPTIMAL_RANGES_FEMALE: dict[str, tuple[Decimal, Decimal, str, str]] = {
+    "testosterone_total": (Decimal("15"), Decimal("70"), "ng/dL", "Female optimal"),
+    "free_testosterone": (Decimal("0.5"), Decimal("5"), "pg/mL", "Female optimal"),
+    "hemoglobin": (Decimal("12.5"), Decimal("15.0"), "g/dL", "Female 12-15.5"),
+    "hematocrit": (Decimal("37"), Decimal("45"), "%", "Female 36-46"),
+    "ferritin": (Decimal("30"), Decimal("100"), "ng/mL", "Female: lower normal range"),
+    "rbc": (Decimal("4.0"), Decimal("5.0"), "M/uL", "Female range"),
+    "leptin": (Decimal("3"), Decimal("12"), "ng/mL", "Female: 3.7-11.1"),
+    "hdl_cholesterol": (Decimal("60"), Decimal("100"), "mg/dL", "Female: higher target"),
+}
+
+
+def evaluate_optimal_ranges(
+    result: NormalizationResult,
+    sex: str | None = None,
+) -> list[dict[str, Any]]:
     """Evaluate each mapped biomarker against longevity-optimal ranges.
+
+    Args:
+        result: NormalizationResult with mapped records.
+        sex: "male", "female", or None for unisex ranges.
 
     Returns a list of evaluations, one per mapped biomarker that has an optimal range.
     """
+    # Build effective ranges: start with base, overlay sex-specific
+    effective = dict(OPTIMAL_RANGES)
+    if sex and sex.lower() in ("male", "m"):
+        effective.update(OPTIMAL_RANGES_MALE)
+    elif sex and sex.lower() in ("female", "f"):
+        effective.update(OPTIMAL_RANGES_FEMALE)
     evaluations: list[dict[str, Any]] = []
 
     for record in result.records:
@@ -128,7 +163,7 @@ def evaluate_optimal_ranges(result: NormalizationResult) -> list[dict[str, Any]]
             continue
 
         bio_id = record.canonical_biomarker_id
-        optimal = OPTIMAL_RANGES.get(bio_id)
+        optimal = effective.get(bio_id)
         if optimal is None:
             continue
 
