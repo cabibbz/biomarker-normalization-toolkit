@@ -39,6 +39,7 @@ UCUM_CODES: dict[str, str] = {
     "mmHg": "mm[Hg]",
     "pH": "[pH]",
     "units": "[pH]",
+    "ng/L": "ng/L",
     "ug/mL": "ug/mL",
     "IU/mL": "[IU]/mL",
 }
@@ -81,16 +82,17 @@ def _build_value_quantity(record: NormalizedRecord) -> dict:
     return vq
 
 
-def _observation_uuid(record: NormalizedRecord) -> str:
+def _observation_uuid(record: NormalizedRecord, input_file: str = "") -> str:
     key = record.source_row_id or f"row-{record.source_row_number}"
-    return str(uuid.uuid5(_BNT_NAMESPACE, f"observation-{key}"))
+    seed = f"observation-{input_file}-{key}" if input_file else f"observation-{key}"
+    return str(uuid.uuid5(_BNT_NAMESPACE, seed))
 
 
-def build_observation(record: NormalizedRecord) -> dict | None:
+def build_observation(record: NormalizedRecord, input_file: str = "") -> dict | None:
     if record.mapping_status != "mapped":
         return None
 
-    obs_id = _observation_uuid(record)
+    obs_id = _observation_uuid(record, input_file)
     observation = {
         "resourceType": "Observation",
         "id": obs_id,
@@ -126,13 +128,15 @@ def build_observation(record: NormalizedRecord) -> dict | None:
                 )
             }
         ],
-        "identifier": [
+    }
+
+    if record.source_row_id:
+        observation["identifier"] = [
             {
                 "system": "urn:source-row-id",
                 "value": record.source_row_id,
             }
-        ],
-    }
+        ]
 
     ref_range = _build_reference_range(record)
     if ref_range:
@@ -147,7 +151,7 @@ def build_observation(record: NormalizedRecord) -> dict | None:
 def build_bundle(result: NormalizationResult) -> dict:
     entries = []
     for record in result.records:
-        observation = build_observation(record)
+        observation = build_observation(record, input_file=result.input_file)
         if observation is None:
             continue
         entries.append(
@@ -160,6 +164,7 @@ def build_bundle(result: NormalizationResult) -> dict:
     return {
         "resourceType": "Bundle",
         "type": "collection",
+        "total": len(entries),
         "meta": {"profile": ["http://hl7.org/fhir/StructureDefinition/Bundle"]},
         "identifier": {
             "system": "urn:input-file",

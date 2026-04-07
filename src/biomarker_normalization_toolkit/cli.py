@@ -108,8 +108,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve.add_argument(
         "--host",
-        default="0.0.0.0",
-        help="Host to bind to (default: 0.0.0.0).",
+        default="127.0.0.1",
+        help="Host to bind to (default: 127.0.0.1). Use 0.0.0.0 for all interfaces.",
     )
     serve.add_argument(
         "--port",

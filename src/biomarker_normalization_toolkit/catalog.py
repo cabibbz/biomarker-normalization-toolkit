@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import logging
 from pathlib import Path
 import re
+
+logger = logging.getLogger("bnt.catalog")
 
 
 @dataclass(frozen=True)
@@ -38,7 +41,17 @@ def normalize_specimen(specimen: str | None) -> str | None:
         "blood": "whole_blood",
         "bld": "whole_blood",
         "wb": "whole_blood",
+        "venous blood": "whole_blood",
+        "arterial blood": "whole_blood",
+        "capillary blood": "whole_blood",
+        "mixed venous blood": "whole_blood",
+        "cord blood": "whole_blood",
         "urine": "urine",
+        "random urine": "urine",
+        "spot urine": "urine",
+        "24h urine": "urine",
+        "24 hour urine": "urine",
+        "timed urine": "urine",
     }
     return mapping.get(specimen_key, specimen_key or None)
 
@@ -59,12 +72,16 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
             "Glucose, Serum",
             "Glucose, Plasma",
             "Serum Glucose",
+            "Blood Glucose",
             "GLU",
+            "FBS",
             "Fasting Glucose",
+            "Fasting Blood Sugar",
             "Glucose SerPl",
             "Glucose [Mass/volume] in Blood",
             "Glucose [Mass/volume] in Serum or Plasma",
             "Glucose [Moles/volume] in Blood",
+            "Glucose [Moles/volume] in Serum or Plasma",
         ),
     ),
     "glucose_urine": BiomarkerDefinition(
@@ -87,6 +104,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
             "A1C",
             "HbA1c",
             "Glycated Hemoglobin",
+            "Glycated Hb",
+            "GlycoHb",
             "Hgb A1C",
             "Glycohemoglobin A1C",
             "Hemoglobin A1c/Hemoglobin.total in Blood",
@@ -99,6 +118,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
         aliases=("Total Cholesterol", "Cholesterol, Total", "Cholesterol Total", "CHOL TOTAL",
+                 "Chol", "TCHOL", "TC",
                  "Cholesterol [Mass/volume] in Serum or Plasma"),
     ),
     "ldl_cholesterol": BiomarkerDefinition(
@@ -137,7 +157,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2160-0",
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
-        aliases=("Creatinine", "Creatinine, Serum", "Creatinine, Plasma", "Creat", "Crea", "Creatinine SerPl",
+        aliases=("Creatinine", "Creatinine, Serum", "Creatinine, Plasma", "Creat", "Crea", "SCr",
+                 "Serum Creatinine", "Creatinine SerPl",
                  "Creatinine [Mass/volume] in Blood", "Creatinine [Mass/volume] in Serum or Plasma"),
     ),
     "creatinine_urine": BiomarkerDefinition(
@@ -220,7 +241,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="3094-0",
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
-        aliases=("BUN", "Urea Nitrogen", "Blood Urea Nitrogen",
+        aliases=("BUN", "Urea Nitrogen", "Blood Urea Nitrogen", "Urea", "Urea N",
                  "Urea nitrogen [Mass/volume] in Blood", "Urea nitrogen [Mass/volume] in Serum or Plasma"),
     ),
     # --- Wave 2: Inflammation ---
@@ -249,6 +270,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="K/uL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("WBC", "White Blood Cells", "Leukocytes", "White Cell Count",
+                 "WBC Count", "Leukocyte Count", "White Blood Cell Count",
                  "Leukocytes [#/volume] in Blood by Automated count"),
     ),
     "hemoglobin": BiomarkerDefinition(
@@ -257,7 +279,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="718-7",
         normalized_unit="g/dL",
         allowed_specimens=_WHOLE_BLOOD,
-        aliases=("Hemoglobin", "Hgb", "HGB", "Hb",
+        aliases=("Hemoglobin", "Hgb", "HGB", "Hb", "Haemoglobin",
                  "Hemoglobin [Mass/volume]", "Hemoglobin [Mass/volume] in Blood"),
     ),
     "hematocrit": BiomarkerDefinition(
@@ -276,7 +298,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="777-3",
         normalized_unit="K/uL",
         allowed_specimens=_WHOLE_BLOOD,
-        aliases=("Platelets", "PLT", "Platelet Count", "Thrombocytes",
+        aliases=("Platelets", "PLT", "Platelet Count", "Thrombocytes", "Plt Count",
                  "Platelets [#/volume] in Blood",
                  "Platelets [#/volume] in Blood by Automated count"),
     ),
@@ -287,7 +309,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="14979-9",
         normalized_unit="ng/mL",
         allowed_specimens=_BLOOD,
-        aliases=("Vitamin D", "25-OH Vitamin D", "25-Hydroxyvitamin D", "Vit D", "D 25-OH"),
+        aliases=("Vitamin D", "25-OH Vitamin D", "25-Hydroxyvitamin D", "Vit D", "D 25-OH",
+                 "Vitamin D, 25-OH", "25-OH-D", "25OH Vitamin D", "Vitamin D 25-Hydroxy"),
     ),
     "vitamin_b12": BiomarkerDefinition(
         biomarker_id="vitamin_b12",
@@ -695,7 +718,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Neutrophils", "Neutrophil Count", "ANC", "Absolute Neutrophil Count",
                  "Neutrophils [#/volume] in Blood",
-                 "Neutrophils/100 leukocytes in Blood by Automated count"),
+                 "Neutrophils [#/volume] in Blood by Automated count"),
     ),
     "lymphocytes": BiomarkerDefinition(
         biomarker_id="lymphocytes",
@@ -706,7 +729,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Lymphocytes", "Lymphocyte Count", "Lymph",
                  "Absolute Lymphocyte Count",
                  "Lymphocytes [#/volume] in Blood",
-                 "Lymphocytes/100 leukocytes in Blood by Automated count"),
+                 "Lymphocytes [#/volume] in Blood by Automated count"),
     ),
     "monocytes": BiomarkerDefinition(
         biomarker_id="monocytes",
@@ -717,7 +740,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Monocytes", "Monocyte Count", "Mono",
                  "Absolute Monocyte Count",
                  "Monocytes [#/volume] in Blood",
-                 "Monocytes/100 leukocytes in Blood by Automated count"),
+                 "Monocytes [#/volume] in Blood by Automated count"),
     ),
     "eosinophils": BiomarkerDefinition(
         biomarker_id="eosinophils",
@@ -728,7 +751,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Eosinophils", "Eosinophil Count", "Eos",
                  "Absolute Eosinophil Count",
                  "Eosinophils [#/volume] in Blood",
-                 "Eosinophils/100 leukocytes in Blood by Automated count"),
+                 "Eosinophils [#/volume] in Blood by Automated count"),
     ),
     "basophils": BiomarkerDefinition(
         biomarker_id="basophils",
@@ -739,7 +762,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Basophils", "Basophil Count", "Baso",
                  "Absolute Basophil Count",
                  "Basophils [#/volume] in Blood",
-                 "Basophils/100 leukocytes in Blood by Automated count"),
+                 "Basophils [#/volume] in Blood by Automated count"),
     ),
     # --- Wave 5: Other ---
     "total_protein": BiomarkerDefinition(
@@ -758,6 +781,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mL/min/1.73m2",
         allowed_specimens=_BLOOD,
         aliases=("eGFR", "GFR", "Estimated GFR", "Estimated Glomerular Filtration Rate",
+                 "eGFR-MDRD", "eGFR-CKD-EPI", "eGFR CKD-EPI",
                  "Glomerular filtration rate/1.73 sq M.predicted",
                  "Glomerular filtration rate [Volume Rate/Area] in Serum or Plasma by Creatinine-based formula (MDRD)/1.73 sq M"),
     ),
@@ -790,6 +814,7 @@ def load_custom_aliases(path: Path) -> int:
     added = 0
     for biomarker_id, aliases in data.items():
         if biomarker_id not in BIOMARKER_CATALOG:
+            logger.warning("Custom alias file references unknown biomarker_id: %r (skipped)", biomarker_id)
             continue
         if not isinstance(aliases, list):
             continue

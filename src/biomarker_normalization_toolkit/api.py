@@ -1,7 +1,7 @@
 """REST API for the Biomarker Normalization Toolkit.
 
-Start with: bnt serve --host 0.0.0.0 --port 8000
-Or: uvicorn biomarker_normalization_toolkit.api:app --host 0.0.0.0 --port 8000
+Start with: bnt serve --port 8000
+Or: uvicorn biomarker_normalization_toolkit.api:app --host 127.0.0.1 --port 8000
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ logger = logging.getLogger("bnt.api")
 
 MAX_ROWS = 100_000
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+MAX_JSON_BODY_BYTES = 50 * 1024 * 1024  # 50 MB
 ALLOWED_EXTENSIONS = {".csv", ".json", ".hl7", ".oru", ".xml", ".xlsx", ".xls"}
 
 CORS_ORIGINS = os.environ.get("BNT_CORS_ORIGINS", "*").split(",")
@@ -43,6 +44,23 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+
+from starlette.middleware.base import BaseHTTPMiddleware
+
+
+class BodySizeLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > MAX_JSON_BODY_BYTES:
+            return JSONResponse(
+                status_code=413,
+                content={"error": f"Request body too large. Maximum is {MAX_JSON_BODY_BYTES // (1024 * 1024)} MB."},
+            )
+        return await call_next(request)
+
+
+app.add_middleware(BodySizeLimitMiddleware)
 
 
 @app.exception_handler(Exception)
@@ -100,12 +118,15 @@ def _validate_rows(body: dict[str, Any]) -> tuple[list[dict[str, str]], str | No
         return [], "No rows provided. Send {\"rows\": [{...}, ...]}"
     if len(rows) > MAX_ROWS:
         return [], f"Too many rows ({len(rows)}). Maximum is {MAX_ROWS}."
+    non_dict = sum(1 for r in rows if not isinstance(r, dict))
+    if non_dict:
+        return [], f"{non_dict} row(s) are not objects. Each row must be a JSON object."
     return [_coerce_row(r) for r in rows], None
 
 
 def _read_upload(file: UploadFile) -> tuple[list[dict[str, str]], str | None]:
     """Read an uploaded file with size and extension validation. Returns (rows, error_message)."""
-    filename = file.filename or "upload.csv"
+    filename = Path(file.filename or "upload.csv").name  # Strip path components
     suffix = Path(filename).suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
         return [], f"Unsupported file type: {suffix}. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
@@ -161,7 +182,8 @@ def normalize_upload(
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
-    result = normalize_rows(rows, input_file=file.filename or "")
+    safe_name = Path(file.filename or "").name
+    result = normalize_rows(rows, input_file=safe_name)
     response = result.to_json_dict()
     if emit_fhir:
         response["fhir_bundle"] = build_bundle(result)
@@ -176,7 +198,7 @@ def analyze(body: dict[str, Any]) -> JSONResponse:
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
-    input_file = str(body.get("input_file", ""))
+    input_file = Path(str(body.get("input_file", ""))).name
     result = normalize_rows(rows, input_file=input_file)
     return JSONResponse(content=_build_analysis(result))
 
@@ -189,7 +211,8 @@ def analyze_upload(file: UploadFile = File(...)) -> JSONResponse:
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
-    result = normalize_rows(rows, input_file=file.filename or "")
+    safe_name = Path(file.filename or "").name
+    result = normalize_rows(rows, input_file=safe_name)
     return JSONResponse(content=_build_analysis(result))
 
 
@@ -229,7 +252,7 @@ def _build_analysis(result: Any) -> dict[str, Any]:
 def main() -> None:
     """Entry point for bnt serve."""
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
 
 
 if __name__ == "__main__":

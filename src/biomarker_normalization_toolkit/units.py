@@ -24,6 +24,7 @@ UNIT_SYNONYMS = {
     "g/l": "g/L",
     "g/dl": "g/dL",
     "ng/ml": "ng/mL",
+    "ng/l": "ng/L",
     "pg/ml": "pg/mL",
     "miu/l": "mIU/L",
     "uiu/ml": "mIU/L",
@@ -53,6 +54,7 @@ UNIT_SYNONYMS = {
     "seconds": "sec",
     "ratio": "ratio",
     "{inr}": "ratio",
+    "{ratio}": "ratio",
     "10*6/ul": "M/uL",
     "thou/ul": "K/uL",
     "x10e3/ul": "K/uL",
@@ -64,7 +66,6 @@ UNIT_SYNONYMS = {
     "miu/ml": "mIU/L",
     "iu/ml": "IU/mL",
     "ug/ml": "ug/mL",
-    "10*3/ul": "K/uL",
     "ml/min/1.73m2": "mL/min/1.73m2",
     "ml/min/{1.73_m2}": "mL/min/1.73m2",
     "ml/min": "mL/min",
@@ -78,6 +79,22 @@ UNIT_SYNONYMS = {
     "mm[hg]": "mmHg",
     "#/ul": "#/uL",
     "cells/ul": "#/uL",
+    # UCUM bracket notations (for FHIR round-trip)
+    "m[iu]/l": "mIU/L",
+    "m[iu]/ml": "mIU/L",
+    "[iu]/ml": "IU/mL",
+    # Legacy / alternate notations
+    "gm/dl": "g/dL",
+    "gm/l": "g/L",
+    "gm%": "g/dL",
+    "ug/l": "ug/L",
+    "cells/cumm": "#/uL",
+    "thou/cumm": "K/uL",
+    "k/cumm": "K/uL",
+    "mill/cumm": "M/uL",
+    "/ul": "#/uL",
+    "x10e9/l": "10^9/L",
+    "x10e12/l": "10^12/L",
 }
 
 
@@ -225,6 +242,9 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "rdw_sd": {"fL": Decimal("1")},
     "mpv": {"fL": Decimal("1")},
     "pdw": {"fL": Decimal("1")},
+    # NOTE: mL/min and mL/min/1.73m2 are treated as equivalent — most labs
+    # report eGFR already BSA-adjusted, and the distinction is rarely preserved
+    # in source data.  Accept both to avoid unnecessary review_needed rows.
     "egfr": {"mL/min/1.73m2": Decimal("1"), "mL/min": Decimal("1")},
     # --- Wave 6: Enzymes ---
     "ldh": {"U/L": Decimal("1")},
@@ -232,7 +252,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "ck": {"U/L": Decimal("1")},
     "ck_mb": {"ng/mL": Decimal("1")},
     # --- Wave 6: Cardiac ---
-    "troponin_t": {"ng/mL": Decimal("1")},
+    "troponin_t": {"ng/mL": Decimal("1"), "ng/L": Decimal("0.001"), "pg/mL": Decimal("0.001")},
     # --- Wave 6: Blood gases ---
     "pco2": {"mmHg": Decimal("1")},
     "po2": {"mmHg": Decimal("1")},
@@ -295,6 +315,11 @@ def parse_decimal(value: str | None) -> Decimal | None:
     stripped = value.strip()
     if not stripped:
         return None
+    # Detect European decimal notation: a single comma with 1-3 trailing digits
+    # and no other commas (e.g., "1,5" or "5,55").  Thousands separators always
+    # have groups of exactly 3 digits after each comma (e.g., "250,000" "1,000,000").
+    if re.match(r"^-?\d+,\d{1,2}$", stripped):
+        return None  # Ambiguous European decimal — reject rather than corrupt
     # Strip thousands separators (e.g., "250,000" -> "250000")
     cleaned = stripped.replace(",", "")
     try:
@@ -311,15 +336,23 @@ def parse_reference_range(text: str, fallback_unit: str) -> RangeValue | None:
     if not stripped:
         return None
 
+    # Strip thousands-separator commas from the numeric portions before matching
+    # e.g., "150,000-400,000 K/uL" -> "150000-400000 K/uL"
+    cleaned = re.sub(r"(\d),(\d{3})", r"\1\2", stripped)
+    # Repeat to handle multi-group: "1,000,000" -> "1000,000" -> "1000000"
+    cleaned = re.sub(r"(\d),(\d{3})", r"\1\2", cleaned)
+
     match = re.match(
         r"^\s*(?P<low>[+-]?\d+(?:\.\d+)?)\s*(?:to|–|—|-)\s*(?P<high>[+-]?\d+(?:\.\d+)?)(?:\s+(?P<unit>.+?))?$",
-        stripped,
+        cleaned,
     )
     if not match:
         return None
 
     low = Decimal(match.group("low"))
     high = Decimal(match.group("high"))
+    if low > high:
+        return None
     raw_unit = (match.group("unit") or "").strip()
     unit = normalize_unit(raw_unit or fallback_unit)
     return RangeValue(low=low, high=high, unit=unit)

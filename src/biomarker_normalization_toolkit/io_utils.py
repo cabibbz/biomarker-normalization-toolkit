@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
-try:
-    from defusedxml.ElementTree import fromstring as _xml_fromstring
-except ImportError:
-    from xml.etree.ElementTree import fromstring as _xml_fromstring
+from defusedxml.ElementTree import fromstring as _xml_fromstring
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -40,7 +37,7 @@ def read_input(path: Path) -> list[dict[str, str]]:
 
 def read_fhir_input(path: Path) -> list[dict[str, str]]:
     """Read a FHIR Bundle JSON and extract Observation resources into input rows."""
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
 
     if data.get("resourceType") == "Observation":
         entries = [{"resource": data}]
@@ -152,6 +149,8 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
             # OBR-4: Universal Service Identifier (test/panel name)
             obr4_parts = fields[4].split(comp_sep)
             current_obr_name = obr4_parts[1] if len(obr4_parts) > 1 else obr4_parts[0]
+            # Reset specimen for new panel — prevents leakage from previous OBR
+            current_specimen = ""
             # OBR-15: Specimen Source (component 1 = specimen type)
             if len(fields) > 15 and fields[15]:
                 spec_parts = fields[15].split(comp_sep)
@@ -325,11 +324,18 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
                     if ref_unit:
                         ref_range += f" {ref_unit}"
 
-        # Get interpretation (abnormal flag)
-        interp_el = obs.find("interpretationCode")
-        abnormal_flag = ""
-        if interp_el is not None:
-            abnormal_flag = interp_el.attrib.get("code", "")
+        # Get specimen type from specimen/specimenRole/specimenPlayingEntity/code
+        specimen = ""
+        for spec_path in (
+            ".//specimen/specimenRole/specimenPlayingEntity/code",
+            f".//{_HL7V3}specimen/{_HL7V3}specimenRole/{_HL7V3}specimenPlayingEntity/{_HL7V3}code",
+        ):
+            spec_el = obs.find(spec_path)
+            if spec_el is not None:
+                specimen = spec_el.attrib.get("displayName", "")
+                if not specimen:
+                    specimen = spec_el.attrib.get("code", "")
+                break
 
         row_id += 1
         rows.append({
@@ -339,7 +345,7 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
             "source_test_name": test_name,
             "raw_value": raw_value,
             "source_unit": unit,
-            "specimen_type": "",
+            "specimen_type": specimen,
             "source_reference_range": ref_range,
         })
 

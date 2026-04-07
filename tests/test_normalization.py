@@ -695,5 +695,324 @@ class NormalizationTests(unittest.TestCase):
             self.assertIn("files", result.stdout)
 
 
+    # --- Scrutiny fix: specimen normalization (Fix 3) ---
+
+    def test_venous_blood_normalizes_to_whole_blood(self) -> None:
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        self.assertEqual(normalize_specimen("Venous Blood"), "whole_blood")
+        self.assertEqual(normalize_specimen("ARTERIAL BLOOD"), "whole_blood")
+        self.assertEqual(normalize_specimen("Capillary Blood"), "whole_blood")
+        self.assertEqual(normalize_specimen("Mixed Venous Blood"), "whole_blood")
+        self.assertEqual(normalize_specimen("Cord Blood"), "whole_blood")
+
+    def test_urine_variants_normalize(self) -> None:
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        self.assertEqual(normalize_specimen("Random Urine"), "urine")
+        self.assertEqual(normalize_specimen("Spot Urine"), "urine")
+        self.assertEqual(normalize_specimen("24h Urine"), "urine")
+        self.assertEqual(normalize_specimen("24 Hour Urine"), "urine")
+        self.assertEqual(normalize_specimen("Timed Urine"), "urine")
+
+    def test_venous_blood_specimen_maps_glucose(self) -> None:
+        rows = [{"source_row_id": "vb1", "source_test_name": "Glucose", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "Venous Blood",
+                 "source_reference_range": "70-99 mg/dL"}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "glucose_serum")
+
+    # --- Scrutiny fix: FHIR identifier guard (Fix 2) ---
+
+    def test_fhir_observation_no_identifier_when_row_id_empty(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_observation
+        from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_source_record
+        rows = [{"source_row_id": "", "source_test_name": "TSH", "raw_value": "2.5",
+                 "source_unit": "mIU/L", "specimen_type": "", "source_reference_range": ""}]
+        record = normalize_source_record(build_source_records(rows)[0])
+        obs = build_observation(record)
+        self.assertIsNotNone(obs)
+        self.assertNotIn("identifier", obs)
+
+    def test_fhir_observation_has_identifier_when_row_id_present(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_observation
+        from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_source_record
+        rows = [{"source_row_id": "abc", "source_test_name": "TSH", "raw_value": "2.5",
+                 "source_unit": "mIU/L", "specimen_type": "", "source_reference_range": ""}]
+        record = normalize_source_record(build_source_records(rows)[0])
+        obs = build_observation(record)
+        self.assertIn("identifier", obs)
+        self.assertEqual(obs["identifier"][0]["value"], "abc")
+
+    # --- Scrutiny fix: FHIR UUID uniqueness across files (Fix 6) ---
+
+    def test_fhir_uuid_differs_across_input_files(self) -> None:
+        rows_a = [{"source_row_id": "1", "source_test_name": "Glucose", "raw_value": "100",
+                   "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        rows_b = [{"source_row_id": "1", "source_test_name": "Glucose", "raw_value": "105",
+                   "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result_a = normalize_rows(rows_a, input_file="file_a.csv")
+        result_b = normalize_rows(rows_b, input_file="file_b.csv")
+        bundle_a = build_bundle(result_a)
+        bundle_b = build_bundle(result_b)
+        uuid_a = bundle_a["entry"][0]["resource"]["id"]
+        uuid_b = bundle_b["entry"][0]["resource"]["id"]
+        self.assertNotEqual(uuid_a, uuid_b)
+
+    # --- Scrutiny fix: {ratio} unit synonym (Fix 7) ---
+
+    def test_ratio_ucum_unit_normalizes(self) -> None:
+        from biomarker_normalization_toolkit.units import normalize_unit
+        self.assertEqual(normalize_unit("{ratio}"), "ratio")
+        self.assertEqual(normalize_unit("{INR}"), "ratio")
+
+    def test_inr_with_ratio_ucum_unit_maps(self) -> None:
+        rows = [{"source_row_id": "r1", "source_test_name": "INR", "raw_value": "1.1",
+                 "source_unit": "{ratio}", "specimen_type": "", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "inr")
+
+    # --- Scrutiny fix: troponin T ng/L and pg/mL conversion (Fix 10) ---
+
+    def test_troponin_t_ng_per_l_converts(self) -> None:
+        result = convert_to_normalized(Decimal("14"), "troponin_t", "ng/L")
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(float(result), 0.014, places=4)
+
+    def test_troponin_t_pg_per_ml_converts(self) -> None:
+        result = convert_to_normalized(Decimal("50"), "troponin_t", "pg/mL")
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(float(result), 0.05, places=4)
+
+    # --- Scrutiny fix: WBC differential aliases correctness (Fix 5) ---
+
+    def test_wbc_differential_percentage_alias_removed(self) -> None:
+        from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, normalize_key
+        # The old "/100 leukocytes" alias should no longer exist
+        bad_key = normalize_key("Neutrophils/100 leukocytes in Blood by Automated count")
+        if bad_key in ALIAS_INDEX:
+            self.fail(f"Percentage LOINC alias should have been removed: {bad_key}")
+
+    def test_wbc_differential_absolute_alias_works(self) -> None:
+        from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, normalize_key
+        abs_key = normalize_key("Neutrophils [#/volume] in Blood by Automated count")
+        self.assertIn(abs_key, ALIAS_INDEX)
+        self.assertIn("neutrophils", ALIAS_INDEX[abs_key])
+
+    # --- Scrutiny fix: defusedxml import (Fix 1) ---
+
+    def test_defusedxml_is_used(self) -> None:
+        from biomarker_normalization_toolkit import io_utils
+        import defusedxml.ElementTree
+        self.assertIs(io_utils._xml_fromstring, defusedxml.ElementTree.fromstring)
+
+    # --- Scrutiny fix: C-CDA specimen extraction (Fix 4) ---
+
+    def test_ccda_with_specimen_element(self) -> None:
+        """Verify that C-CDA specimen element is extracted when present."""
+        ccda_xml = """
+        <observation classCode="OBS" moodCode="EVN">
+          <code code="2345-7" codeSystem="2.16.840.1.113883.6.1" displayName="Glucose"/>
+          <value xsi:type="PQ" value="100" unit="mg/dL"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+          <specimen>
+            <specimenRole>
+              <specimenPlayingEntity>
+                <code displayName="Venous Blood"/>
+              </specimenPlayingEntity>
+            </specimenRole>
+          </specimen>
+        </observation>
+        """
+        with tempfile.NamedTemporaryFile(suffix=".xml", mode="w", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["specimen_type"], "Venous Blood")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+
+    # --- Scrutiny pass: HL7 specimen leakage between panels (Fix #1) ---
+
+    def test_hl7_specimen_does_not_leak_between_panels(self) -> None:
+        """OBR without OBR-15 must NOT inherit specimen from previous OBR."""
+        hl7_msg = (
+            "MSH|^~\\&|LAB|HOSP|EHR|HOSP|20240101120000||ORU^R01|MSG001|P|2.5\r"
+            "PID|1||12345^^^HOSP||DOE^JOHN\r"
+            "OBR|1||CBC001|58410-2^CBC|||20240101080000||||||||Whole Blood^WB\r"
+            "OBX|1|NM|6690-2^WBC||7.5|10*3/uL|4.5-11.0|N||F\r"
+            "OBR|2||UA001|24356-8^Urinalysis|||20240101080000\r"
+            "OBX|1|NM|5811-5^Specific Gravity||1.020||1.005-1.030|N||F\r"
+        )
+        with tempfile.NamedTemporaryFile(suffix=".hl7", mode="w", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            tmp = Path(f.name)
+        try:
+            rows = read_hl7_input(tmp)
+            self.assertEqual(len(rows), 2)
+            # First OBX should have specimen from OBR-15
+            self.assertIn("Whole Blood", rows[0]["specimen_type"])
+            # Second OBX must NOT inherit "Whole Blood" from first OBR
+            self.assertEqual(rows[1]["specimen_type"], "")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    # --- Scrutiny pass: UCUM code synonyms for FHIR round-trip (Fix #2) ---
+
+    def test_ucum_bracket_units_normalize(self) -> None:
+        from biomarker_normalization_toolkit.units import normalize_unit
+        self.assertEqual(normalize_unit("m[IU]/L"), "mIU/L")
+        self.assertEqual(normalize_unit("m[IU]/mL"), "mIU/L")
+        self.assertEqual(normalize_unit("[IU]/mL"), "IU/mL")
+
+    def test_fhir_round_trip_tsh(self) -> None:
+        """Export to FHIR then re-import should preserve the mapping."""
+        from biomarker_normalization_toolkit.fhir import build_bundle
+        rows = [{"source_row_id": "rt1", "source_test_name": "TSH", "raw_value": "2.5",
+                 "source_unit": "mIU/L", "specimen_type": "", "source_reference_range": "0.4-4.0 mIU/L"}]
+        result = normalize_rows(rows, input_file="round_trip.csv")
+        bundle = build_bundle(result)
+        # The FHIR bundle uses UCUM code m[IU]/L — simulate re-ingest
+        obs = bundle["entry"][0]["resource"]
+        ucum_unit = obs["valueQuantity"]["code"]  # should be "m[IU]/L"
+        reimport_rows = [{
+            "source_row_id": "rt1", "source_test_name": "TSH",
+            "raw_value": str(obs["valueQuantity"]["value"]),
+            "source_unit": ucum_unit, "specimen_type": "", "source_reference_range": "",
+        }]
+        result2 = normalize_rows(reimport_rows)
+        self.assertEqual(result2.records[0].mapping_status, "mapped")
+        self.assertEqual(result2.records[0].canonical_biomarker_id, "tsh")
+
+    # --- Scrutiny pass: European comma decimal detection (Fix #3) ---
+
+    def test_european_comma_decimal_rejected(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        # "1,5" (European for 1.5) must NOT become 15
+        self.assertIsNone(parse_decimal("1,5"))
+        self.assertIsNone(parse_decimal("5,55"))
+        self.assertIsNone(parse_decimal("-3,7"))
+        # Thousands separators (groups of 3) must still work
+        self.assertEqual(parse_decimal("250,000"), Decimal("250000"))
+        self.assertEqual(parse_decimal("1,000,000"), Decimal("1000000"))
+        # Normal decimals still work
+        self.assertEqual(parse_decimal("1.5"), Decimal("1.5"))
+
+    def test_european_comma_gives_invalid_raw_value(self) -> None:
+        rows = [{"source_row_id": "eu1", "source_test_name": "Glucose", "raw_value": "5,5",
+                 "source_unit": "mmol/L", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "review_needed")
+        self.assertEqual(result.records[0].status_reason, "invalid_raw_value")
+
+    # --- Scrutiny pass: Reference range low <= high validation (Fix #4) ---
+
+    def test_reversed_reference_range_rejected(self) -> None:
+        self.assertIsNone(parse_reference_range("200-100 mg/dL", "mg/dL"))
+        self.assertIsNone(parse_reference_range("10-5", "mg/dL"))
+
+    def test_equal_reference_range_accepted(self) -> None:
+        result = parse_reference_range("5-5 mg/dL", "mg/dL")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.low, result.high)
+
+    # --- Scrutiny pass: FHIR bundle includes total (Fix #7) ---
+
+    def test_fhir_bundle_has_total(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_bundle
+        rows = [{"source_row_id": "t1", "source_test_name": "Glucose", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows, input_file="total_test.csv")
+        bundle = build_bundle(result)
+        self.assertIn("total", bundle)
+        self.assertEqual(bundle["total"], len(bundle["entry"]))
+
+    # --- Scrutiny pass: API validates non-dict rows (Fix #7) ---
+
+    def test_api_rejects_non_dict_rows(self) -> None:
+        from fastapi.testclient import TestClient
+        from biomarker_normalization_toolkit.api import app
+        client = TestClient(app)
+        response = client.post("/normalize", json={"rows": ["not a dict", 123]})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("not objects", response.json()["error"])
+
+    # --- Deep scrutiny pass 2: Legacy unit synonyms ---
+
+    def test_legacy_unit_synonyms_normalize(self) -> None:
+        from biomarker_normalization_toolkit.units import normalize_unit
+        self.assertEqual(normalize_unit("gm/dL"), "g/dL")
+        self.assertEqual(normalize_unit("gm/L"), "g/L")
+        self.assertEqual(normalize_unit("gm%"), "g/dL")
+        self.assertEqual(normalize_unit("cells/cumm"), "#/uL")
+        self.assertEqual(normalize_unit("thou/cumm"), "K/uL")
+        self.assertEqual(normalize_unit("K/cumm"), "K/uL")
+        self.assertEqual(normalize_unit("mill/cumm"), "M/uL")
+        self.assertEqual(normalize_unit("ug/L"), "ug/L")
+
+    # --- Deep scrutiny pass 2: New aliases map correctly ---
+
+    def test_new_glucose_aliases_map(self) -> None:
+        for alias in ("Blood Glucose", "FBS", "Fasting Blood Sugar"):
+            rows = [{"source_row_id": "a1", "source_test_name": alias, "raw_value": "100",
+                     "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+            result = normalize_rows(rows)
+            self.assertEqual(result.records[0].mapping_status, "mapped",
+                             f"Alias '{alias}' should map")
+            self.assertEqual(result.records[0].canonical_biomarker_id, "glucose_serum")
+
+    def test_scr_alias_maps_to_creatinine(self) -> None:
+        rows = [{"source_row_id": "sc1", "source_test_name": "SCr", "raw_value": "1.0",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "creatinine")
+
+    def test_urea_alias_maps_to_bun(self) -> None:
+        rows = [{"source_row_id": "u1", "source_test_name": "Urea", "raw_value": "15",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "bun")
+
+    def test_wbc_count_alias_maps(self) -> None:
+        rows = [{"source_row_id": "w1", "source_test_name": "WBC Count", "raw_value": "7.5",
+                 "source_unit": "K/uL", "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "wbc")
+
+    # --- Deep scrutiny pass 2: Reference range with commas ---
+
+    def test_reference_range_with_thousands_commas(self) -> None:
+        result = parse_reference_range("150,000-400,000 K/uL", "K/uL")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.low, Decimal("150000"))
+        self.assertEqual(result.high, Decimal("400000"))
+        self.assertEqual(result.unit, "K/uL")
+
+    # --- Deep scrutiny pass 2: API filename sanitization ---
+
+    def test_api_sanitizes_upload_filename(self) -> None:
+        from fastapi.testclient import TestClient
+        from biomarker_normalization_toolkit.api import app
+        client = TestClient(app)
+        csv_content = (
+            b"source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+            b"1,Glucose,100,mg/dL,serum,70-99 mg/dL\n"
+        )
+        response = client.post(
+            "/normalize/upload",
+            files={"file": ("../../etc/passwd.csv", csv_content, "text/csv")},
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # Filename should be sanitized — no path traversal in output
+        self.assertEqual(data["input_file"], "passwd.csv")
+
+
 if __name__ == "__main__":
     unittest.main()
