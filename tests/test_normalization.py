@@ -287,6 +287,30 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(BIOMARKER_CATALOG["potassium"].loinc, "2823-3")
         self.assertEqual(BIOMARKER_CATALOG["uric_acid"].loinc, "3084-1")
 
+    def test_catalog_loinc_check_digits_valid(self) -> None:
+        def loinc_check_digit(num_str: str) -> int:
+            digits = [int(d) for d in num_str]
+            total = 0
+            for i, d in enumerate(reversed(digits)):
+                if i % 2 == 0:
+                    doubled = d * 2
+                    total += doubled // 10 + doubled % 10
+                else:
+                    total += d
+            return (10 - (total % 10)) % 10
+
+        invalid = []
+        for bio_id, bio in BIOMARKER_CATALOG.items():
+            parts = bio.loinc.split("-")
+            if len(parts) != 2:
+                invalid.append(f"{bio_id}: malformed LOINC {bio.loinc}")
+                continue
+            expected = loinc_check_digit(parts[0])
+            actual = int(parts[1])
+            if expected != actual:
+                invalid.append(f"{bio_id}: {bio.loinc} has invalid check digit (expected {expected})")
+        self.assertEqual(invalid, [])
+
     def test_catalog_loinc_codes_are_unique(self) -> None:
         seen: dict[str, str] = {}
         duplicates: dict[str, list[str]] = {}

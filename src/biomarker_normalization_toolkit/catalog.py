@@ -263,7 +263,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "hematocrit": BiomarkerDefinition(
         biomarker_id="hematocrit",
         canonical_name="Hematocrit",
-        loinc="4544-0",
+        loinc="4544-3",
         normalized_unit="%",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Hematocrit", "Hct", "HCT", "PCV", "Packed Cell Volume",
@@ -317,7 +317,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "ferritin": BiomarkerDefinition(
         biomarker_id="ferritin",
         canonical_name="Ferritin",
-        loinc="2516-1",
+        loinc="2276-4",
         normalized_unit="ng/mL",
         allowed_specimens=_BLOOD,
         aliases=("Ferritin", "Serum Ferritin"),
@@ -325,7 +325,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "magnesium": BiomarkerDefinition(
         biomarker_id="magnesium",
         canonical_name="Magnesium",
-        loinc="2635-3",
+        loinc="19123-9",
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
         aliases=("Magnesium", "Mag", "Mg", "Serum Magnesium"),
