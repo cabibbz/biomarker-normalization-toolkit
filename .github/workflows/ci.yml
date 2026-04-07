@@ -33,7 +33,6 @@ jobs:
         run: |
           bnt --version
           bnt status
-          bnt catalog | head -5
           bnt demo --output-dir demo_out
 
   build:
