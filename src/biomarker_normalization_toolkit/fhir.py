@@ -55,6 +55,7 @@ UCUM_CODES: dict[str, str] = {
     "ug/L": "ug/L",
     "nmol/min/mL": "nmol/min/mL",
     "#/hpf": "/[HPF]",
+    "#/lpf": "/[LPF]",
     "U/mL": "U/mL",
     "nm": "nm",
 }

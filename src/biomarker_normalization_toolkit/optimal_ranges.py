@@ -219,6 +219,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "atypical_lymphocytes_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
     "metamyelocytes_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
     "myelocytes_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
+    "blasts_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
     # Other
     "eag": (Decimal("70"), Decimal("100"), "mg/dL", "Estimated from HbA1c; < 117 = normal A1c"),
     "rdw_sd": (Decimal("36"), Decimal("46"), "fL", "36-47 normal"),
@@ -268,6 +269,8 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "rheumatoid_factor": (Decimal("0"), Decimal("14"), "IU/mL", "< 14 negative"),
     "urine_rbc": (Decimal("0"), Decimal("3"), "#/uL", "0-2 normal"),
     "urine_wbc": (Decimal("0"), Decimal("5"), "#/uL", "0-5 normal"),
+    "epithelial_cells_urine": (Decimal("0"), Decimal("5"), "#/hpf", "0-5 normal"),
+    "hyaline_casts": (Decimal("0"), Decimal("2"), "#/lpf", "0-2 normal"),
     # NMR LipoProfile
     "small_ldl_particle": (Decimal("0"), Decimal("500"), "nmol/L", "< 500 longevity target; fewer small LDL = less atherogenic"),
     "hdl_particle": (Decimal("30"), Decimal("45"), "umol/L", "30-45 umol/L optimal; higher HDL-P = better cholesterol efflux"),

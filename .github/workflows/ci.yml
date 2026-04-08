@@ -26,8 +26,8 @@ jobs:
 
       - name: Install package
         run: |
-          pip install --no-cache-dir -e ".[all]"
-          pip install pytest httpx python-multipart hypothesis
+          python -m pip install --no-cache-dir -e ".[all]"
+          python -m pip install pytest httpx python-multipart hypothesis
 
       - name: Run normalization tests
         run: pytest tests/test_normalization.py -v
@@ -57,13 +57,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build wheel
+      - name: Build distributions
         run: |
-          pip install build
+          python -m pip install build twine
           python -m build
+          python -m twine check dist/*
 
-      - name: Upload wheel
+      - name: Upload distributions
         uses: actions/upload-artifact@v6
         with:
-          name: wheel
-          path: dist/*.whl
+          name: dist
+          path: dist/*

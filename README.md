@@ -25,7 +25,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ## Coverage
 
-216 biomarkers across preventive health, inpatient, longevity, and specialty panels:
+223 biomarkers across preventive health, inpatient, longevity, and specialty panels:
 
 | Panel | Biomarkers |
 |-------|-----------|
@@ -37,17 +37,17 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 | Hormones | DHEA-S, Estradiol, LH, FSH, Testosterone (total/free/bioavailable), SHBG, Cortisol, PTH |
 | Inflammation | hs-CRP, CRP, ESR, Procalcitonin |
 | CBC | WBC, RBC, Hemoglobin, Hematocrit, Platelets, MCV, MCH, MCHC, RDW, RDW-SD, MPV, PDW, Reticulocytes |
-| WBC Differential | Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, Atypical Lymphocytes, Metamyelocytes, Myelocytes (absolute + percentage where applicable) |
+| WBC Differential | Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, Atypical Lymphocytes, Metamyelocytes, Myelocytes, Blasts (absolute + percentage where applicable) |
 | ICU Hematology | Bands, Immature Granulocytes, Nucleated RBC |
 | Coagulation | PT, INR, PTT, Fibrinogen, D-Dimer |
-| Cardiac | Troponin T, Troponin I, BNP, NT-proBNP, CK, CK-MB, CK-MB Index |
+| Cardiac | Troponin T, Troponin I, BNP, NT-proBNP, CK, CK-MB, CK-MB Index, Myoglobin |
 | Electrolytes | Sodium, Potassium, Chloride, Bicarbonate |
 | Vitamins | D (25-OH), B12, Folate |
 | Minerals | Iron, Ferritin, TIBC, Transferrin, Transferrin Saturation, Magnesium |
 | Immunology | IgA, IgG, IgM, Complement C3, C4, Haptoglobin |
 | Blood Gas | pH, pO2, pCO2, Base Excess, Base Deficit, Oxygen Saturation, Oxyhemoglobin, Carboxyhemoglobin, Methemoglobin, Oxygen Content, Lactate |
-| Drug Monitoring | Vancomycin, Vancomycin Trough |
-| Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin, Blood, Nitrite, Leukocyte Esterase, Urobilinogen, RBC, WBC |
+| Drug Monitoring | Vancomycin, Vancomycin Trough, Digoxin, Tacrolimus, Salicylates |
+| Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin, Blood, Nitrite, Leukocyte Esterase, Urobilinogen, RBC, WBC, Epithelial Cells, Hyaline Casts |
 | Cancer Screening | PSA |
 | Urine Chemistry | Sodium, Potassium, Chloride, BUN, Albumin, Total Protein, Osmolality, Creatinine |
 
@@ -72,7 +72,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ```bash
 pip install biomarker-normalization-toolkit
-bnt status       # Shows 216 biomarkers, supported formats
+bnt status       # Shows 223 biomarkers, supported formats
 bnt catalog      # Lists all biomarkers with LOINC codes
 bnt demo --output-dir demo_out  # Run on bundled sample data
 ```

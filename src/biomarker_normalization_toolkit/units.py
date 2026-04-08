@@ -170,6 +170,9 @@ UNIT_SYNONYMS = {
     "units/l": "U/L",
     "mcu/ml": "mIU/mL",
     "#/hpf": "#/hpf",
+    "/[hpf]": "#/hpf",
+    "#/lpf": "#/lpf",
+    "/[lpf]": "#/lpf",
     "u/ml": "U/mL",
     "nmol/min/ml": "nmol/min/mL",
     "ml/min/1.73 m2": "mL/min/1.73m2",
@@ -339,6 +342,10 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "troponin_t": {"ng/mL": Decimal("1"), "ng/L": Decimal("0.001"), "pg/mL": Decimal("0.001")},
     "vancomycin": {"ug/mL": Decimal("1"), "mg/L": Decimal("1")},
     "vancomycin_trough": {"ug/mL": Decimal("1"), "mg/L": Decimal("1")},
+    "digoxin": {"ng/mL": Decimal("1")},
+    "tacrolimus": {"ng/mL": Decimal("1")},
+    "salicylates": {"mg/dL": Decimal("1")},
+    "myoglobin": {"ng/mL": Decimal("1")},
     # --- Wave 6: Blood gases ---
     "pco2": {"mmHg": Decimal("1"), "kPa": Decimal("7.50062")},
     "po2": {"mmHg": Decimal("1"), "kPa": Decimal("7.50062")},
@@ -370,6 +377,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "atypical_lymphocytes_pct": {"%": Decimal("1")},
     "metamyelocytes_pct": {"%": Decimal("1")},
     "myelocytes_pct": {"%": Decimal("1")},
+    "blasts_pct": {"%": Decimal("1")},
     # --- Wave 7: New biomarkers ---
     "ggt": {"U/L": Decimal("1")},
     "amylase": {"U/L": Decimal("1")},
@@ -416,6 +424,8 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "urobilinogen": {"mg/dL": Decimal("1")},
     "urine_rbc": {"#/uL": Decimal("1"), "#/hpf": Decimal("1")},
     "urine_wbc": {"#/uL": Decimal("1"), "#/hpf": Decimal("1")},
+    "epithelial_cells_urine": {"#/hpf": Decimal("1")},
+    "hyaline_casts": {"#/lpf": Decimal("1")},
     "haptoglobin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "transferrin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     # --- Wave 9: Clinical depth ---

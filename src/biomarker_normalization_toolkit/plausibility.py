@@ -76,6 +76,7 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "atypical_lymphocytes_pct": (Decimal("0"), Decimal("100")),
     "metamyelocytes_pct": (Decimal("0"), Decimal("100")),
     "myelocytes_pct":   (Decimal("0"),    Decimal("100")),
+    "blasts_pct":       (Decimal("0"),    Decimal("100")),
     # Electrolytes
     "sodium":           (Decimal("80"),   Decimal("200")),
     "potassium":        (Decimal("1"),    Decimal("12")),
@@ -102,6 +103,10 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "ck_mb_index":      (Decimal("0"),    Decimal("100")),
     "vancomycin":       (Decimal("0"),    Decimal("100")),
     "vancomycin_trough":(Decimal("0"),    Decimal("100")),
+    "digoxin":          (Decimal("0"),    Decimal("10")),
+    "tacrolimus":       (Decimal("0"),    Decimal("100")),
+    "salicylates":      (Decimal("0"),    Decimal("100")),
+    "myoglobin":        (Decimal("0"),    Decimal("100000")),
     "ldh":              (Decimal("10"),   Decimal("50000")),
     # Vitamins & minerals
     "vitamin_d":        (Decimal("1"),    Decimal("200")),
@@ -170,6 +175,8 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "nrbc_pct":             (Decimal("0"),    Decimal("100")),
     "urine_rbc":            (Decimal("0"),    Decimal("100000")),
     "urine_wbc":            (Decimal("0"),    Decimal("100000")),
+    "epithelial_cells_urine": (Decimal("0"),  Decimal("1000")),
+    "hyaline_casts":      (Decimal("0"),    Decimal("1000")),
     "osmolality_urine":     (Decimal("50"),   Decimal("1400")),
     "sodium_urine":         (Decimal("0"),    Decimal("500")),
     "potassium_urine":      (Decimal("0"),    Decimal("300")),
