@@ -23,6 +23,7 @@ UCUM_CODES: dict[str, str] = {
     "pg/mL": "pg/mL",
     "ug/dL": "ug/dL",
     "mg/L": "mg/L",
+    "mg/24h": "mg/(24.h)",
     "K/uL": "10*3/uL",
     "10^9/L": "10*9/L",
     "L/L": "L/L",

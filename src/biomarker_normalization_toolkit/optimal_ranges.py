@@ -229,6 +229,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "rdw_sd": (Decimal("36"), Decimal("46"), "fL", "36-47 normal"),
     "reticulocyte_absolute": (Decimal("20"), Decimal("100"), "K/uL", "25-75 normal"),
     "total_protein_urine": (Decimal("0"), Decimal("150"), "mg/dL", "< 150 mg/day normal"),
+    "total_protein_urine_24h": (Decimal("0"), Decimal("150"), "mg/24h", "< 150 mg/24h normal"),
     "creatinine_urine": (Decimal("20"), Decimal("300"), "mg/dL", "Varies with muscle mass and hydration"),
     "glucose_urine": (Decimal("0"), Decimal("15"), "mg/dL", "< 15 normal (trace)"),
     "urine_protein": (Decimal("0"), Decimal("15"), "mg/dL", "< 20 normal dipstick"),

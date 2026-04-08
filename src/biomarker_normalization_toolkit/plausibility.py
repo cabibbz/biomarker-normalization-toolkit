@@ -170,6 +170,7 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "albumin_urine":    (Decimal("0"),   Decimal("5000")),
     "albumin_creatinine_ratio": (Decimal("0"), Decimal("10000")),
     "total_protein_urine": (Decimal("0"), Decimal("5000")),
+    "total_protein_urine_24h": (Decimal("0"), Decimal("50000")),
     "iga":              (Decimal("10"),  Decimal("1000")),
     "igg":              (Decimal("100"), Decimal("5000")),
     "igm":              (Decimal("10"),  Decimal("1000")),
