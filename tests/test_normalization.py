@@ -5691,26 +5691,32 @@ class CatalogIntegrityTests(unittest.TestCase):
                 seen.add(nk)
         self.assertEqual(violations, [], f"Duplicate aliases found:\n" + "\n".join(violations))
 
-    def test_no_alias_key_collision_without_specimen_disambiguation(self) -> None:
-        """When an alias maps to 2+ biomarkers, their allowed_specimens must not overlap."""
+    def test_no_alias_key_collision_without_specimen_or_unit_disambiguation(self) -> None:
+        """Alias collisions are only allowed when specimen or source unit can separate them."""
+        def supported_units(bio_id: str) -> set[str]:
+            units = set(CONVERSION_TO_NORMALIZED.get(bio_id, {}))
+            if bio_id == "hba1c":
+                units.add("mmol/mol")
+            return units
+
         violations: list[str] = []
         for alias_key, bio_ids in ALIAS_INDEX.items():
             if len(bio_ids) < 2:
                 continue
-            # Check all pairs for specimen overlap
             for i in range(len(bio_ids)):
                 for j in range(i + 1, len(bio_ids)):
                     specs_i = BIOMARKER_CATALOG[bio_ids[i]].allowed_specimens
                     specs_j = BIOMARKER_CATALOG[bio_ids[j]].allowed_specimens
-                    overlap = specs_i & specs_j
-                    if overlap:
+                    specimen_overlap = specs_i & specs_j
+                    unit_overlap = supported_units(bio_ids[i]) & supported_units(bio_ids[j])
+                    if specimen_overlap and unit_overlap:
                         violations.append(
                             f"Alias key {alias_key!r} -> [{bio_ids[i]}, {bio_ids[j]}] "
-                            f"share specimen(s): {sorted(overlap)}"
+                            f"share specimen(s): {sorted(specimen_overlap)} and unit(s): {sorted(unit_overlap)}"
                         )
         self.assertEqual(
             violations, [],
-            f"Alias collisions without specimen disambiguation:\n" + "\n".join(violations),
+            f"Alias collisions without specimen or unit disambiguation:\n" + "\n".join(violations),
         )
 
     def test_every_loinc_is_unique(self) -> None:
