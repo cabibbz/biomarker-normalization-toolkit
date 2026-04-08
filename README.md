@@ -25,27 +25,28 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ## Coverage
 
-204 biomarkers across preventive health, inpatient, longevity, and specialty panels:
+216 biomarkers across preventive health, inpatient, longevity, and specialty panels:
 
 | Panel | Biomarkers |
 |-------|-----------|
 | Metabolic | Glucose, HbA1c, BUN, Calcium, Ionized Calcium, Phosphate, Uric Acid, Insulin, Homocysteine, Ammonia |
 | Lipid | Total Cholesterol, LDL, HDL, Triglycerides, ApoB, Lp(a), Non-HDL Cholesterol, Chol/HDL Ratio |
 | Renal | Creatinine (serum + urine), eGFR, BUN/Creatinine Ratio, Osmolality, Urine Albumin, ACR |
-| Liver | ALT, AST, ALP, GGT, Total/Direct/Indirect Bilirubin, Albumin, A/G Ratio, LDH, Globulin, Amylase, Lipase |
+| Liver | ALT, AST, ALP, GGT, Total/Direct/Indirect Bilirubin, Albumin, Prealbumin, A/G Ratio, LDH, Globulin, Amylase, Lipase |
 | Thyroid | TSH, Free T4, T3 Total, T4 Total |
 | Hormones | DHEA-S, Estradiol, LH, FSH, Testosterone (total/free/bioavailable), SHBG, Cortisol, PTH |
 | Inflammation | hs-CRP, CRP, ESR, Procalcitonin |
 | CBC | WBC, RBC, Hemoglobin, Hematocrit, Platelets, MCV, MCH, MCHC, RDW, RDW-SD, MPV, PDW, Reticulocytes |
-| WBC Differential | Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils (absolute + percentage) |
+| WBC Differential | Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, Atypical Lymphocytes, Metamyelocytes, Myelocytes (absolute + percentage where applicable) |
 | ICU Hematology | Bands, Immature Granulocytes, Nucleated RBC |
 | Coagulation | PT, INR, PTT, Fibrinogen, D-Dimer |
-| Cardiac | Troponin T, Troponin I, BNP, NT-proBNP, CK, CK-MB |
+| Cardiac | Troponin T, Troponin I, BNP, NT-proBNP, CK, CK-MB, CK-MB Index |
 | Electrolytes | Sodium, Potassium, Chloride, Bicarbonate |
 | Vitamins | D (25-OH), B12, Folate |
 | Minerals | Iron, Ferritin, TIBC, Transferrin, Transferrin Saturation, Magnesium |
 | Immunology | IgA, IgG, IgM, Complement C3, C4, Haptoglobin |
-| Blood Gas | pH, pO2, pCO2, Base Excess, Oxygen Saturation, Lactate |
+| Blood Gas | pH, pO2, pCO2, Base Excess, Base Deficit, Oxygen Saturation, Oxyhemoglobin, Carboxyhemoglobin, Methemoglobin, Oxygen Content, Lactate |
+| Drug Monitoring | Vancomycin, Vancomycin Trough |
 | Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin, Blood, Nitrite, Leukocyte Esterase, Urobilinogen, RBC, WBC |
 | Cancer Screening | PSA |
 | Urine Chemistry | Sodium, Potassium, Chloride, BUN, Albumin, Total Protein, Osmolality, Creatinine |
@@ -71,7 +72,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ```bash
 pip install biomarker-normalization-toolkit
-bnt status       # Shows 204 biomarkers, supported formats
+bnt status       # Shows 216 biomarkers, supported formats
 bnt catalog      # Lists all biomarkers with LOINC codes
 bnt demo --output-dir demo_out  # Run on bundled sample data
 ```

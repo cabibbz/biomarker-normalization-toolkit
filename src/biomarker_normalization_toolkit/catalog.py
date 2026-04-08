@@ -186,7 +186,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2161-8",
         normalized_unit="mg/dL",
         allowed_specimens=_URINE,
-        aliases=("Creatinine", "Urine Creatinine", "Creat", "Crea", "Creatinine, Urine"),
+        aliases=("Creatinine", "Urine Creatinine", "Urinary Creatinine", "Creat", "Crea", "Creatinine, Urine"),
     ),
     # --- Wave 2: Liver panel ---
     "alt": BiomarkerDefinition(
@@ -631,6 +631,15 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_BLOOD,
         aliases=("CK-MB", "Creatine Kinase, MB Isoenzyme", "CKMB", "CPK-MB"),
     ),
+    "ck_mb_index": BiomarkerDefinition(
+        biomarker_id="ck_mb_index",
+        canonical_name="CK-MB Index",
+        loinc="12189-7",
+        normalized_unit="%",
+        allowed_specimens=_BLOOD,
+        aliases=("CK-MB Index", "CKMB Index", "CPK-MB INDEX",
+                 "Creatine kinase.MB/Creatine kinase.total [Pure catalytic fraction] in Serum or Plasma by Calculation"),
+    ),
     # --- Wave 6: Cardiac ---
     "troponin_t": BiomarkerDefinition(
         biomarker_id="troponin_t",
@@ -639,6 +648,24 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="ng/mL",
         allowed_specimens=_BLOOD,
         aliases=("Troponin T", "cTnT", "Cardiac Troponin T"),
+    ),
+    "vancomycin": BiomarkerDefinition(
+        biomarker_id="vancomycin",
+        canonical_name="Vancomycin",
+        loinc="20578-1",
+        normalized_unit="ug/mL",
+        allowed_specimens=_BLOOD,
+        aliases=("Vancomycin", "Vancomycin Random",
+                 "Vancomycin [Mass/volume] in Serum or Plasma --random"),
+    ),
+    "vancomycin_trough": BiomarkerDefinition(
+        biomarker_id="vancomycin_trough",
+        canonical_name="Vancomycin Trough",
+        loinc="4092-3",
+        normalized_unit="ug/mL",
+        allowed_specimens=_BLOOD,
+        aliases=("Vancomycin Trough", "Vanc Trough",
+                 "Vancomycin [Mass/volume] in Serum or Plasma --trough"),
     ),
     # --- Wave 6: Blood gases ---
     "pco2": BiomarkerDefinition(
@@ -671,6 +698,15 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_BLOOD,
         aliases=("Base Excess", "BE",
                  "Base excess in Blood by calculation"),
+    ),
+    "base_deficit": BiomarkerDefinition(
+        biomarker_id="base_deficit",
+        canonical_name="Base Deficit",
+        loinc="30318-0",
+        normalized_unit="mEq/L",
+        allowed_specimens=_BLOOD,
+        aliases=("Base Deficit", "BD",
+                 "Base deficit in Blood"),
     ),
     # --- Wave 6: Other ---
     "globulin": BiomarkerDefinition(
@@ -722,6 +758,42 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="%",
         allowed_specimens=_BLOOD,
         aliases=("Oxygen Saturation", "O2 Sat", "SpO2", "SaO2", "O2Sat"),
+    ),
+    "oxyhemoglobin": BiomarkerDefinition(
+        biomarker_id="oxyhemoglobin",
+        canonical_name="Oxyhemoglobin",
+        loinc="11559-2",
+        normalized_unit="%",
+        allowed_specimens=_BLOOD,
+        aliases=("Oxyhemoglobin", "Oxyhemoglobin Percent", "O2Hb", "FO2Hb",
+                 "Fractional oxyhemoglobin in Blood"),
+    ),
+    "carboxyhemoglobin": BiomarkerDefinition(
+        biomarker_id="carboxyhemoglobin",
+        canonical_name="Carboxyhemoglobin",
+        loinc="20563-3",
+        normalized_unit="%",
+        allowed_specimens=_BLOOD,
+        aliases=("Carboxyhemoglobin", "Carboxyhemoglobin Percent", "COHb",
+                 "Carboxyhemoglobin/Hemoglobin.total in Blood"),
+    ),
+    "methemoglobin": BiomarkerDefinition(
+        biomarker_id="methemoglobin",
+        canonical_name="Methemoglobin",
+        loinc="2614-6",
+        normalized_unit="%",
+        allowed_specimens=_BLOOD,
+        aliases=("Methemoglobin", "Methemoglobin Percent", "MetHb", "MetHgb",
+                 "Methemoglobin/Hemoglobin.total in Blood"),
+    ),
+    "oxygen_content": BiomarkerDefinition(
+        biomarker_id="oxygen_content",
+        canonical_name="Oxygen Content",
+        loinc="57800-5",
+        normalized_unit="mL/dL",
+        allowed_specimens=_BLOOD,
+        aliases=("O2 Content", "Oxygen Content", "ctO2",
+                 "Oxygen content in Blood by calculation"),
     ),
     # --- Urinalysis ---
     "urine_specific_gravity": BiomarkerDefinition(
@@ -891,6 +963,35 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
                  "Basophils/100 leukocytes in Blood by Automated count",
                  "Basophils/Leukocytes in Blood by Automated count"),
     ),
+    "atypical_lymphocytes_pct": BiomarkerDefinition(
+        biomarker_id="atypical_lymphocytes_pct",
+        canonical_name="Atypical Lymphocytes %",
+        loinc="13046-8",
+        normalized_unit="%",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=("Atypical Lymphocytes", "Atypical Lymphocytes Percent",
+                 "Reactive Lymphocytes", "Reactive Lymphocytes Percent",
+                 "Variant Lymphocytes", "Variant Lymphocytes Percent",
+                 "Variant lymphocytes/100 leukocytes in Blood"),
+    ),
+    "metamyelocytes_pct": BiomarkerDefinition(
+        biomarker_id="metamyelocytes_pct",
+        canonical_name="Metamyelocytes %",
+        loinc="28541-1",
+        normalized_unit="%",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=("Metamyelocytes", "Metamyelocytes Percent",
+                 "Metamyelocytes/100 leukocytes in Blood"),
+    ),
+    "myelocytes_pct": BiomarkerDefinition(
+        biomarker_id="myelocytes_pct",
+        canonical_name="Myelocytes %",
+        loinc="26498-6",
+        normalized_unit="%",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=("Myelocytes", "Myelocytes Percent",
+                 "Myelocytes/100 leukocytes in Blood"),
+    ),
     # --- Wave 5: Other ---
     "total_protein": BiomarkerDefinition(
         biomarker_id="total_protein",
@@ -900,6 +1001,15 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_BLOOD,
         aliases=("Total Protein", "Protein, Total", "Protein", "TP",
                  "Protein [Mass/volume] in Serum or Plasma"),
+    ),
+    "prealbumin": BiomarkerDefinition(
+        biomarker_id="prealbumin",
+        canonical_name="Prealbumin",
+        loinc="14338-8",
+        normalized_unit="mg/dL",
+        allowed_specimens=_BLOOD,
+        aliases=("Prealbumin", "Transthyretin", "Serum Prealbumin",
+                 "Prealbumin [Mass/volume] in Serum or Plasma"),
     ),
     "egfr": BiomarkerDefinition(
         biomarker_id="egfr",
@@ -1100,7 +1210,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2502-3",
         normalized_unit="%",
         allowed_specimens=_BLOOD,
-        aliases=("Transferrin Saturation", "TSAT", "Iron Saturation", "Transferrin Sat",
+        aliases=("Transferrin Saturation", "TSAT", "Iron Saturation", "Fe/TIBC Ratio", "Transferrin Sat",
                  "Iron saturation [Mass Fraction] in Serum or Plasma"),
     ),
     "lpa": BiomarkerDefinition(
@@ -1430,7 +1540,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2955-3",
         normalized_unit="mEq/L",
         allowed_specimens=_URINE,
-        aliases=("Sodium, Urine", "Urine Sodium", "Na, Urine"),
+        aliases=("Sodium, Urine", "Urine Sodium", "Urinary Sodium", "Na, Urine"),
     ),
     "potassium_urine": BiomarkerDefinition(
         biomarker_id="potassium_urine",

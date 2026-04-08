@@ -41,6 +41,7 @@ UCUM_CODES: dict[str, str] = {
     "units": "[pH]",
     "ng/L": "ng/L",
     "ug/mL": "ug/mL",
+    "mL/dL": "mL/dL",
     "IU/mL": "[IU]/mL",
     "kPa": "kPa",
     "pg/dL": "pg/dL",

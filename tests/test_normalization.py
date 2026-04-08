@@ -338,6 +338,18 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(BIOMARKER_CATALOG["bands_pct"].loinc, "26508-2")
         self.assertEqual(BIOMARKER_CATALOG["nrbc"].loinc, "30392-5")
         self.assertEqual(BIOMARKER_CATALOG["nrbc_pct"].loinc, "19048-8")
+        self.assertEqual(BIOMARKER_CATALOG["prealbumin"].loinc, "14338-8")
+        self.assertEqual(BIOMARKER_CATALOG["ck_mb_index"].loinc, "12189-7")
+        self.assertEqual(BIOMARKER_CATALOG["vancomycin"].loinc, "20578-1")
+        self.assertEqual(BIOMARKER_CATALOG["vancomycin_trough"].loinc, "4092-3")
+        self.assertEqual(BIOMARKER_CATALOG["base_deficit"].loinc, "30318-0")
+        self.assertEqual(BIOMARKER_CATALOG["carboxyhemoglobin"].loinc, "20563-3")
+        self.assertEqual(BIOMARKER_CATALOG["methemoglobin"].loinc, "2614-6")
+        self.assertEqual(BIOMARKER_CATALOG["oxyhemoglobin"].loinc, "11559-2")
+        self.assertEqual(BIOMARKER_CATALOG["oxygen_content"].loinc, "57800-5")
+        self.assertEqual(BIOMARKER_CATALOG["atypical_lymphocytes_pct"].loinc, "13046-8")
+        self.assertEqual(BIOMARKER_CATALOG["metamyelocytes_pct"].loinc, "28541-1")
+        self.assertEqual(BIOMARKER_CATALOG["myelocytes_pct"].loinc, "26498-6")
 
     def test_catalog_loinc_check_digits_valid(self) -> None:
         def loinc_check_digit(num_str: str) -> int:
@@ -385,6 +397,27 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(result.records[0].mapping_status, "mapped")
         self.assertEqual(result.records[0].canonical_biomarker_id, "creatinine_urine")
         self.assertEqual(result.records[0].loinc, "2161-8")
+
+    def test_urinary_creatinine_alias_maps_without_specimen(self) -> None:
+        rows = [
+            {"source_row_id": "uc2", "source_test_name": "Urinary Creatinine", "raw_value": "89.9",
+             "source_unit": "mg/dL", "specimen_type": "", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "creatinine_urine")
+        self.assertEqual(result.records[0].status_reason, "mapped_by_unique_alias")
+
+    def test_fe_tibc_ratio_alias_maps_to_transferrin_saturation(self) -> None:
+        rows = [
+            {"source_row_id": "iron1", "source_test_name": "Fe/TIBC Ratio", "raw_value": "21",
+             "source_unit": "%", "specimen_type": "", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "transferrin_saturation")
+        self.assertEqual(result.records[0].normalized_value, "21")
+        self.assertEqual(result.records[0].normalized_unit, "%")
 
     # --- Latest wave coverage and blank-unit reference ranges ---
 
@@ -734,6 +767,49 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(result.records[0].mapping_status, "mapped")
         self.assertEqual(result.records[0].canonical_biomarker_id, "eag")
 
+    def test_high_value_unknown_aliases_now_map(self) -> None:
+        rows = [
+            {"source_row_id": "pre", "source_test_name": "prealbumin", "raw_value": "25.4",
+             "source_unit": "mg/dL", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "cki", "source_test_name": "CK-MB Index", "raw_value": "2.5",
+             "source_unit": "%", "specimen_type": "Blood", "source_reference_range": "0-6 %"},
+            {"source_row_id": "vanc", "source_test_name": "Vancomycin - random", "raw_value": "14.2",
+             "source_unit": "mcg/mL", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "vanc_trough", "source_test_name": "Vancomycin - trough", "raw_value": "16.0",
+             "source_unit": "ug/mL", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "bd", "source_test_name": "Base Deficit", "raw_value": "6.5",
+             "source_unit": "mEq/L", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "cohb", "source_test_name": "Carboxyhemoglobin", "raw_value": "1.2",
+             "source_unit": "%", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "methb", "source_test_name": "Methemoglobin", "raw_value": "0.4",
+             "source_unit": "%", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "oxy", "source_test_name": "Oxyhemoglobin", "raw_value": "98.5",
+             "source_unit": "%", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "o2ct", "source_test_name": "O2 Content", "raw_value": "18.6",
+             "source_unit": "mL/dL", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "atyp", "source_test_name": "Atypical Lymphocytes", "raw_value": "1",
+             "source_unit": "%", "specimen_type": "Blood", "source_reference_range": "0-0 %"},
+            {"source_row_id": "meta", "source_test_name": "Metamyelocytes", "raw_value": "1",
+             "source_unit": "%", "specimen_type": "Blood", "source_reference_range": "0-0 %"},
+            {"source_row_id": "myelo", "source_test_name": "Myelocytes", "raw_value": "1",
+             "source_unit": "%", "specimen_type": "Blood", "source_reference_range": "0-0 %"},
+        ]
+        result = normalize_rows(rows)
+        by_id = {record.source_row_id: record for record in result.records}
+        self.assertEqual(by_id["pre"].canonical_biomarker_id, "prealbumin")
+        self.assertEqual(by_id["cki"].canonical_biomarker_id, "ck_mb_index")
+        self.assertEqual(by_id["vanc"].canonical_biomarker_id, "vancomycin")
+        self.assertEqual(by_id["vanc_trough"].canonical_biomarker_id, "vancomycin_trough")
+        self.assertEqual(by_id["bd"].canonical_biomarker_id, "base_deficit")
+        self.assertEqual(by_id["cohb"].canonical_biomarker_id, "carboxyhemoglobin")
+        self.assertEqual(by_id["methb"].canonical_biomarker_id, "methemoglobin")
+        self.assertEqual(by_id["oxy"].canonical_biomarker_id, "oxyhemoglobin")
+        self.assertEqual(by_id["o2ct"].canonical_biomarker_id, "oxygen_content")
+        self.assertEqual(by_id["atyp"].canonical_biomarker_id, "atypical_lymphocytes_pct")
+        self.assertEqual(by_id["meta"].canonical_biomarker_id, "metamyelocytes_pct")
+        self.assertEqual(by_id["myelo"].canonical_biomarker_id, "myelocytes_pct")
+        self.assertTrue(all(record.mapping_status == "mapped" for record in by_id.values()))
+
     # --- Batch command ---
 
     def test_batch_processes_fixture_directory(self) -> None:
@@ -1025,12 +1101,21 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(normalize_unit("pct"), "%")
         self.assertEqual(normalize_unit("secs"), "sec")
         self.assertEqual(normalize_unit("million/mm3"), "M/uL")
+        self.assertEqual(normalize_unit("M/mcL"), "M/uL")
         self.assertEqual(normalize_unit("10 trillion/L"), "10^12/L")
+        self.assertEqual(normalize_unit("10^12L"), "10^12/L")
         self.assertEqual(normalize_unit("cells/cumm"), "#/uL")
         self.assertEqual(normalize_unit("thou/cumm"), "K/uL")
         self.assertEqual(normalize_unit("K/cumm"), "K/uL")
         self.assertEqual(normalize_unit("mill/cumm"), "M/uL")
         self.assertEqual(normalize_unit("ug/L"), "ug/L")
+        self.assertEqual(normalize_unit("mcg/mL"), "ug/mL")
+        self.assertEqual(normalize_unit("mls/dL"), "mL/dL")
+        self.assertEqual(normalize_unit("µg/mL"), "ug/mL")
+        self.assertEqual(normalize_unit("/µL"), "#/uL")
+        self.assertEqual(normalize_unit("/μL"), "#/uL")
+        self.assertEqual(normalize_unit("10^3/µL"), "K/uL")
+        self.assertEqual(normalize_unit("10³/µL"), "K/uL")
 
     def test_hba1c_ifcc_input_normalizes_value_and_range(self) -> None:
         rows = [{
@@ -1097,6 +1182,40 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(record.normalized_value, "4.5")
         self.assertEqual(record.normalized_reference_range, "4-5.2 M/uL")
 
+    def test_rbc_maps_without_specimen_when_unit_is_blood_specific(self) -> None:
+        rows = [{
+            "source_row_id": "rbc-no-specimen",
+            "source_test_name": "RBC",
+            "raw_value": "4.5",
+            "source_unit": "M/mcL",
+            "specimen_type": "",
+            "source_reference_range": "",
+        }]
+        result = normalize_rows(rows)
+        record = result.records[0]
+        self.assertEqual(record.mapping_status, "mapped")
+        self.assertEqual(record.status_reason, "mapped_by_alias_and_unit")
+        self.assertEqual(record.canonical_biomarker_id, "rbc")
+        self.assertEqual(record.normalized_unit, "M/uL")
+        self.assertEqual(record.normalized_value, "4.5")
+
+    def test_rbc_maps_without_specimen_when_unit_missing_slash_normalizes(self) -> None:
+        rows = [{
+            "source_row_id": "rbc-missing-slash",
+            "source_test_name": "RBC",
+            "raw_value": "4.5",
+            "source_unit": "10^12L",
+            "specimen_type": "",
+            "source_reference_range": "",
+        }]
+        result = normalize_rows(rows)
+        record = result.records[0]
+        self.assertEqual(record.mapping_status, "mapped")
+        self.assertEqual(record.status_reason, "mapped_by_alias_and_unit")
+        self.assertEqual(record.canonical_biomarker_id, "rbc")
+        self.assertEqual(record.normalized_unit, "M/uL")
+        self.assertEqual(record.normalized_value, "4.5")
+
     # --- Deep scrutiny pass 2: New aliases map correctly ---
 
     def test_new_glucose_aliases_map(self) -> None:
@@ -1128,6 +1247,16 @@ class NormalizationTests(unittest.TestCase):
         result = normalize_rows(rows)
         self.assertEqual(result.records[0].mapping_status, "mapped")
         self.assertEqual(result.records[0].canonical_biomarker_id, "wbc")
+
+    def test_wbc_per_microliter_unicode_unit_maps(self) -> None:
+        rows = [{"source_row_id": "wbc-micro", "source_test_name": "WBC Count", "raw_value": "6500",
+                 "source_unit": "/µL", "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        record = result.records[0]
+        self.assertEqual(record.mapping_status, "mapped")
+        self.assertEqual(record.canonical_biomarker_id, "wbc")
+        self.assertEqual(record.normalized_value, "6.5")
+        self.assertEqual(record.normalized_unit, "K/uL")
 
     # --- Deep scrutiny pass 2: Reference range with commas ---
 
@@ -1197,6 +1326,58 @@ class NormalizationTests(unittest.TestCase):
             self.assertEqual(record.mapping_status, "mapped",
                              f"{record.source_row_id} should be mapped")
             self.assertEqual(record.canonical_biomarker_id, expected[record.source_row_id])
+
+    def test_high_frequency_unknown_lab_aliases_map(self) -> None:
+        rows = [
+            {"source_row_id": "hf_1", "source_test_name": "CPK-MB INDEX", "raw_value": "2.3",
+             "source_unit": "%", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "hf_2", "source_test_name": "Base Deficit", "raw_value": "4",
+             "source_unit": "mEq/L", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "hf_3", "source_test_name": "Carboxyhemoglobin", "raw_value": "1.2",
+             "source_unit": "%", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "hf_4", "source_test_name": "Methemoglobin", "raw_value": "0.4",
+             "source_unit": "%", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "hf_5", "source_test_name": "Oxyhemoglobin", "raw_value": "96.5",
+             "source_unit": "%", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "hf_6", "source_test_name": "O2 Content", "raw_value": "19.1",
+             "source_unit": "mls/dL", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "hf_7", "source_test_name": "Vancomycin - random", "raw_value": "15.2",
+             "source_unit": "mcg/mL", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "hf_8", "source_test_name": "Vancomycin - trough", "raw_value": "17.8",
+             "source_unit": "mcg/mL", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "hf_9", "source_test_name": "prealbumin", "raw_value": "24",
+             "source_unit": "mg/dL", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "hf_10", "source_test_name": "Atypical Lymphocytes", "raw_value": "2",
+             "source_unit": "%", "specimen_type": "Blood", "source_reference_range": "0-0 %"},
+            {"source_row_id": "hf_11", "source_test_name": "Metamyelocytes", "raw_value": "1",
+             "source_unit": "%", "specimen_type": "Blood", "source_reference_range": "0-0 %"},
+            {"source_row_id": "hf_12", "source_test_name": "Myelocytes", "raw_value": "1",
+             "source_unit": "%", "specimen_type": "Blood", "source_reference_range": "0-0 %"},
+            {"source_row_id": "hf_13", "source_test_name": "urinary sodium", "raw_value": "45",
+             "source_unit": "mmol/L", "specimen_type": "", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        expected = {
+            "hf_1": ("ck_mb_index", "%"),
+            "hf_2": ("base_deficit", "mEq/L"),
+            "hf_3": ("carboxyhemoglobin", "%"),
+            "hf_4": ("methemoglobin", "%"),
+            "hf_5": ("oxyhemoglobin", "%"),
+            "hf_6": ("oxygen_content", "mL/dL"),
+            "hf_7": ("vancomycin", "ug/mL"),
+            "hf_8": ("vancomycin_trough", "ug/mL"),
+            "hf_9": ("prealbumin", "mg/dL"),
+            "hf_10": ("atypical_lymphocytes_pct", "%"),
+            "hf_11": ("metamyelocytes_pct", "%"),
+            "hf_12": ("myelocytes_pct", "%"),
+            "hf_13": ("sodium_urine", "mEq/L"),
+        }
+        self.assertEqual(result.summary["mapped"], len(rows))
+        for record in result.records:
+            self.assertEqual(record.mapping_status, "mapped", record.source_row_id)
+            biomarker_id, unit = expected[record.source_row_id]
+            self.assertEqual(record.canonical_biomarker_id, biomarker_id)
+            self.assertEqual(record.normalized_unit, unit)
 
     def test_bands_alias_is_disambiguated_by_unit(self) -> None:
         rows = [

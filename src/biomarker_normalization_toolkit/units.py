@@ -9,6 +9,7 @@ from biomarker_normalization_toolkit.models import RangeValue
 # Pre-compiled regexes for hot-path functions (30% of CPU per profiling)
 _RE_WHITESPACE = re.compile(r"\s+")
 _RE_SLASH_SPACES = re.compile(r"\s*/\s*")
+_RE_SUPERSCRIPT_POWER = re.compile(r"10([¹²³⁴⁵⁶⁷⁸⁹⁰]+)")
 
 # is_inequality_value
 _RE_INEQUALITY = re.compile(r"^[<>]=?\s*-?\d+(\.\d+)?$")
@@ -31,6 +32,18 @@ _RE_ONE_SIDED = re.compile(
 
 _HBA1C_IFCC_TO_NGSP_SLOPE = Decimal("0.09148")
 _HBA1C_IFCC_TO_NGSP_INTERCEPT = Decimal("2.152")
+_SUPERSCRIPT_DIGITS = str.maketrans({
+    "⁰": "0",
+    "¹": "1",
+    "²": "2",
+    "³": "3",
+    "⁴": "4",
+    "⁵": "5",
+    "⁶": "6",
+    "⁷": "7",
+    "⁸": "8",
+    "⁹": "9",
+})
 
 UNIT_SYNONYMS = {
     "mg/dl": "mg/dL",
@@ -54,6 +67,7 @@ UNIT_SYNONYMS = {
     "ng/ml": "ng/mL",
     "ng/l": "ng/L",
     "pg/ml": "pg/mL",
+    "mcg/ml": "ug/mL",
     "miu/l": "mIU/L",
     "uiu/ml": "mIU/L",
     "µiu/ml": "mIU/L",
@@ -74,8 +88,11 @@ UNIT_SYNONYMS = {
     "meq/l": "mEq/L",
     "meq l": "mEq/L",
     "m/ul": "M/uL",
+    "m/mcl": "M/uL",
     "10^12/l": "10^12/L",
     "10*12/l": "10^12/L",
+    "10^12l": "10^12/L",
+    "10*12l": "10^12/L",
     "10 trillion/l": "10^12/L",
     "fl": "fL",
     "pg": "pg",
@@ -101,6 +118,8 @@ UNIT_SYNONYMS = {
     "ml/min/1.73m2": "mL/min/1.73m2",
     "ml/min/{1.73_m2}": "mL/min/1.73m2",
     "ml/min": "mL/min",
+    "ml/dl": "mL/dL",
+    "mls/dl": "mL/dL",
     "ph": "pH",
     "units": "units",
     "{nominal}": "",
@@ -129,6 +148,7 @@ UNIT_SYNONYMS = {
     "/ul": "#/uL",
     "x10e9/l": "10^9/L",
     "x10e12/l": "10^12/L",
+    "x10e12l": "10^12/L",
     "thous/mcl": "K/uL",
     "thous/ul": "K/uL",
     "kpa": "kPa",
@@ -313,12 +333,16 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "lipase": {"U/L": Decimal("1")},
     "ck": {"U/L": Decimal("1")},
     "ck_mb": {"ng/mL": Decimal("1")},
+    "ck_mb_index": {"%": Decimal("1")},
     # --- Wave 6: Cardiac ---
     "troponin_t": {"ng/mL": Decimal("1"), "ng/L": Decimal("0.001"), "pg/mL": Decimal("0.001")},
+    "vancomycin": {"ug/mL": Decimal("1"), "mg/L": Decimal("1")},
+    "vancomycin_trough": {"ug/mL": Decimal("1"), "mg/L": Decimal("1")},
     # --- Wave 6: Blood gases ---
     "pco2": {"mmHg": Decimal("1"), "kPa": Decimal("7.50062")},
     "po2": {"mmHg": Decimal("1"), "kPa": Decimal("7.50062")},
     "base_excess": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
+    "base_deficit": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     # --- Wave 6: Other ---
     "globulin": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
     "ionized_calcium": {"mmol/L": Decimal("1"), "mg/dL": Decimal("1") / Decimal("4.008")},
@@ -326,6 +350,10 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "eag": {"mg/dL": Decimal("1")},
     "blood_ph": {"pH": Decimal("1"), "units": Decimal("1"), "": Decimal("1")},
     "oxygen_saturation": {"%": Decimal("1")},
+    "oxyhemoglobin": {"%": Decimal("1")},
+    "carboxyhemoglobin": {"%": Decimal("1")},
+    "methemoglobin": {"%": Decimal("1")},
+    "oxygen_content": {"mL/dL": Decimal("1")},
     # --- Urinalysis ---
     "urine_specific_gravity": {"": Decimal("1")},
     "urine_ph": {"pH": Decimal("1"), "": Decimal("1"), "units": Decimal("1")},
@@ -338,6 +366,9 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "monocytes_pct": {"%": Decimal("1")},
     "eosinophils_pct": {"%": Decimal("1")},
     "basophils_pct": {"%": Decimal("1")},
+    "atypical_lymphocytes_pct": {"%": Decimal("1")},
+    "metamyelocytes_pct": {"%": Decimal("1")},
+    "myelocytes_pct": {"%": Decimal("1")},
     # --- Wave 7: New biomarkers ---
     "ggt": {"U/L": Decimal("1")},
     "amylase": {"U/L": Decimal("1")},
@@ -388,6 +419,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "transferrin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     # --- Wave 9: Clinical depth ---
     "indirect_bilirubin": {"mg/dL": Decimal("1"), "umol/L": Decimal("1") / Decimal("17.1")},
+    "prealbumin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "cortisol": {"ug/dL": Decimal("1"), "nmol/L": Decimal("1") / Decimal("27.59")},
     "esr": {"mm/hr": Decimal("1")},
     "osmolality_serum": {"mOsm/kg": Decimal("1")},
@@ -497,6 +529,10 @@ def normalize_unit(value: str | None) -> str:
     # Collapse whitespace, remove spaces around slashes (e.g., "mg / dL" -> "mg/dl")
     key = _RE_WHITESPACE.sub(" ", stripped.lower())
     key = _RE_SLASH_SPACES.sub("/", key)
+    # Fold common Unicode/mojibake variants from lab exports into the ASCII forms
+    # already covered by UNIT_SYNONYMS.
+    key = key.replace("âµ", "u").replace("î¼", "u").replace("µ", "u").replace("μ", "u")
+    key = _RE_SUPERSCRIPT_POWER.sub(lambda m: "10^" + m.group(1).translate(_SUPERSCRIPT_DIGITS), key)
     return UNIT_SYNONYMS.get(key, stripped)
 
 

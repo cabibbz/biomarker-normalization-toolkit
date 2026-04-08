@@ -39,6 +39,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "ggt": (Decimal("9"), Decimal("20"), "U/L", "Low GGT associated with lower mortality; UK Biobank 2024"),
     "total_bilirubin": (Decimal("0.3"), Decimal("1.0"), "mg/dL", "0.1-1.2 normal; slightly elevated = antioxidant"),
     "albumin": (Decimal("4.2"), Decimal("5.0"), "g/dL", "3.5-5.0 normal; > 4.2 associated with longevity"),
+    "prealbumin": (Decimal("20"), Decimal("40"), "mg/dL", "20-40 normal; lower values track malnutrition/inflammation"),
 
     # Kidney
     "creatinine": (Decimal("0.7"), Decimal("1.1"), "mg/dL", "Age/muscle dependent"),
@@ -92,6 +93,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     # Cardiac
     "bnp": (Decimal("0"), Decimal("50"), "pg/mL", "< 100 normal; < 50 optimal cardiac function"),
     "troponin_i": (Decimal("0"), Decimal("0.01"), "ng/mL", "High sensitivity; < 0.01 = no myocardial injury"),
+    "ck_mb_index": (Decimal("0"), Decimal("3"), "%", "< 3% normal"),
 
     # Micronutrients
     "zinc": (Decimal("80"), Decimal("120"), "ug/dL", "60-120 normal; 80-120 optimal for immune function"),
@@ -162,7 +164,12 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "pco2": (Decimal("38"), Decimal("42"), "mmHg", "35-45 normal"),
     "po2": (Decimal("85"), Decimal("100"), "mmHg", "80-100 normal on room air"),
     "base_excess": (Decimal("-2"), Decimal("2"), "mEq/L", "-2 to +2 normal"),
+    "base_deficit": (Decimal("0"), Decimal("2"), "mEq/L", "0-2 normal"),
     "oxygen_saturation": (Decimal("96"), Decimal("100"), "%", "> 95% normal"),
+    "oxyhemoglobin": (Decimal("95"), Decimal("100"), "%", "Fractional oxyhemoglobin typically parallels arterial oxygenation"),
+    "carboxyhemoglobin": (Decimal("0"), Decimal("2"), "%", "< 2% typical in non-smokers"),
+    "methemoglobin": (Decimal("0"), Decimal("1.5"), "%", "< 1.5% normal"),
+    "oxygen_content": (Decimal("16"), Decimal("22"), "mL/dL", "Calculated arterial oxygen content is typically ~16-22 mL/dL"),
     "lactate": (Decimal("0.5"), Decimal("1.5"), "mmol/L", "0.5-2.0 normal; < 1.5 optimal"),
     # Hormones
     "progesterone": (Decimal("0.1"), Decimal("0.5"), "ng/mL", "Male/follicular phase baseline"),
@@ -185,6 +192,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "shbg": (Decimal("20"), Decimal("60"), "nmol/L", "Male: 10-57; Female: 18-144"),
     "haptoglobin": (Decimal("30"), Decimal("200"), "mg/dL", "30-200 normal"),
     "procalcitonin": (Decimal("0"), Decimal("0.05"), "ng/mL", "< 0.05 normal; > 0.5 suggests bacterial infection"),
+    "vancomycin_trough": (Decimal("10"), Decimal("20"), "ug/mL", "Common therapeutic trough target for serious infections"),
     # Cancer screening
     "psa": (Decimal("0"), Decimal("2.5"), "ng/mL", "< 4 normal; < 2.5 optimal for longevity screening"),
     # Urinalysis
@@ -208,6 +216,9 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "monocytes_pct": (Decimal("2"), Decimal("8"), "%", "2-10% normal"),
     "eosinophils_pct": (Decimal("1"), Decimal("4"), "%", "1-4% normal"),
     "basophils_pct": (Decimal("0"), Decimal("1"), "%", "0-1% normal"),
+    "atypical_lymphocytes_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
+    "metamyelocytes_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
+    "myelocytes_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
     # Other
     "eag": (Decimal("70"), Decimal("100"), "mg/dL", "Estimated from HbA1c; < 117 = normal A1c"),
     "rdw_sd": (Decimal("36"), Decimal("46"), "fL", "36-47 normal"),
