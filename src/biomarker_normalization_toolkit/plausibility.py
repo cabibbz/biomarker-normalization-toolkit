@@ -185,6 +185,7 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "urine_wbc":            (Decimal("0"),    Decimal("100000")),
     "epithelial_cells_urine": (Decimal("0"),  Decimal("1000")),
     "hyaline_casts":      (Decimal("0"),    Decimal("1000")),
+    "granular_casts":     (Decimal("0"),    Decimal("1000")),
     "osmolality_urine":     (Decimal("50"),   Decimal("1400")),
     "sodium_urine":         (Decimal("0"),    Decimal("500")),
     "potassium_urine":      (Decimal("0"),    Decimal("300")),

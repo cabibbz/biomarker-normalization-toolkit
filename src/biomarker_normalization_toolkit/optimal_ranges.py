@@ -276,6 +276,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "urine_wbc": (Decimal("0"), Decimal("5"), "#/uL", "0-5 normal"),
     "epithelial_cells_urine": (Decimal("0"), Decimal("5"), "#/hpf", "0-5 normal"),
     "hyaline_casts": (Decimal("0"), Decimal("2"), "#/lpf", "0-2 normal"),
+    "granular_casts": (Decimal("0"), Decimal("0"), "#/lpf", "Normally absent"),
     # NMR LipoProfile
     "small_ldl_particle": (Decimal("0"), Decimal("500"), "nmol/L", "< 500 longevity target; fewer small LDL = less atherogenic"),
     "hdl_particle": (Decimal("30"), Decimal("45"), "umol/L", "30-45 umol/L optimal; higher HDL-P = better cholesterol efflux"),

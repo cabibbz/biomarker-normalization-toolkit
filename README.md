@@ -25,7 +25,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ## Coverage
 
-235 biomarkers across preventive health, inpatient, longevity, and specialty panels:
+236 biomarkers across preventive health, inpatient, longevity, and specialty panels:
 
 | Panel | Biomarkers |
 |-------|-----------|
@@ -47,7 +47,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 | Immunology | IgA, IgG, IgM, Complement C3, C4, Haptoglobin |
 | Blood Gas | pH, pO2, pCO2, Base Excess, Base Deficit, Oxygen Saturation, Oxyhemoglobin, Carboxyhemoglobin, Methemoglobin, Oxygen Content, Alveolar-Arterial Gradient, Lactate |
 | Drug Monitoring / Toxicology | Vancomycin, Vancomycin Trough, Digoxin, Tacrolimus, Salicylates, Ethanol, Phenytoin, Acetaminophen |
-| Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin, Blood, Nitrite, Leukocyte Esterase, Urobilinogen, RBC, WBC, Epithelial Cells, Hyaline Casts, Glucose/Protein/Ketones/Bilirubin Presence |
+| Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin, Blood, Nitrite, Leukocyte Esterase, Urobilinogen, RBC, WBC, Epithelial Cells, Hyaline Casts, Granular Casts, Glucose/Protein/Ketones/Bilirubin Presence |
 | Cancer Screening | PSA |
 | Urine Chemistry | Sodium, Potassium, Chloride, BUN, Albumin, Total Protein, 24h Total Protein, Osmolality, Creatinine |
 
@@ -72,7 +72,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ```bash
 pip install biomarker-normalization-toolkit
-bnt status       # Shows 235 biomarkers, supported formats
+bnt status       # Shows 236 biomarkers, supported formats
 bnt catalog      # Lists all biomarkers with LOINC codes
 bnt demo --output-dir demo_out  # Run on bundled sample data
 ```

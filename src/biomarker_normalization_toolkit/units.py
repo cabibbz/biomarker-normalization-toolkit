@@ -444,6 +444,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "urine_wbc": {"#/uL": Decimal("1"), "#/hpf": Decimal("1")},
     "epithelial_cells_urine": {"#/hpf": Decimal("1")},
     "hyaline_casts": {"#/lpf": Decimal("1")},
+    "granular_casts": {"#/lpf": Decimal("1")},
     "haptoglobin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "transferrin": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     # --- Wave 9: Clinical depth ---
