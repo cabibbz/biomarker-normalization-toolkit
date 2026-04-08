@@ -24,7 +24,7 @@ jobs:
       - name: Install package
         run: |
           pip install --no-cache-dir -e ".[all]"
-          pip install pytest httpx python-multipart
+          pip install pytest httpx python-multipart hypothesis
 
       - name: Run normalization tests
         run: pytest tests/test_normalization.py -v
