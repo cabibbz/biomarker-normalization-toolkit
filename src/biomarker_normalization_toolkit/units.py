@@ -297,6 +297,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "pt": {"sec": Decimal("1")},
     "inr": {"ratio": Decimal("1"), "": Decimal("1")},
     "ptt": {"sec": Decimal("1")},
+    "ptt_ratio": {"ratio": Decimal("1")},
     # --- Wave 4: Other ---
     "anion_gap": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1"), "": Decimal("1")},
     "lactate": {"mmol/L": Decimal("1"), "mg/dL": Decimal("1") / Decimal("9.01")},
@@ -345,6 +346,9 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "digoxin": {"ng/mL": Decimal("1")},
     "tacrolimus": {"ng/mL": Decimal("1")},
     "salicylates": {"mg/dL": Decimal("1")},
+    "ethanol": {"mg/dL": Decimal("1")},
+    "phenytoin": {"ug/mL": Decimal("1"), "mg/L": Decimal("1")},
+    "acetaminophen": {"ug/mL": Decimal("1"), "mg/L": Decimal("1")},
     "myoglobin": {"ng/mL": Decimal("1")},
     # --- Wave 6: Blood gases ---
     "pco2": {"mmHg": Decimal("1"), "kPa": Decimal("7.50062")},
@@ -362,6 +366,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "carboxyhemoglobin": {"%": Decimal("1")},
     "methemoglobin": {"%": Decimal("1")},
     "oxygen_content": {"mL/dL": Decimal("1")},
+    "alveolar_arterial_gradient": {"mmHg": Decimal("1"), "mm[Hg]": Decimal("1")},
     # --- Urinalysis ---
     "urine_specific_gravity": {"": Decimal("1")},
     "urine_ph": {"pH": Decimal("1"), "": Decimal("1"), "units": Decimal("1")},
@@ -377,6 +382,8 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "atypical_lymphocytes_pct": {"%": Decimal("1")},
     "metamyelocytes_pct": {"%": Decimal("1")},
     "myelocytes_pct": {"%": Decimal("1")},
+    "promyelocytes_pct": {"%": Decimal("1")},
+    "other_cells_pct": {"%": Decimal("1")},
     "blasts_pct": {"%": Decimal("1")},
     # --- Wave 7: New biomarkers ---
     "ggt": {"U/L": Decimal("1")},

@@ -152,6 +152,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "pt": (Decimal("11"), Decimal("13.5"), "sec", "11-13.5 normal"),
     "inr": (Decimal("0.8"), Decimal("1.1"), "ratio", "0.8-1.1 normal (not on anticoagulant)"),
     "ptt": (Decimal("25"), Decimal("35"), "sec", "25-35 normal"),
+    "ptt_ratio": (Decimal("0.8"), Decimal("1.2"), "ratio", "0.8-1.2 typical when not anticoagulated"),
     "fibrinogen": (Decimal("200"), Decimal("400"), "mg/dL", "200-400 normal"),
     "d_dimer": (Decimal("0"), Decimal("250"), "ng/mL", "< 500 normal; < 250 optimal"),
     # Cardiac
@@ -170,6 +171,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "carboxyhemoglobin": (Decimal("0"), Decimal("2"), "%", "< 2% typical in non-smokers"),
     "methemoglobin": (Decimal("0"), Decimal("1.5"), "%", "< 1.5% normal"),
     "oxygen_content": (Decimal("16"), Decimal("22"), "mL/dL", "Calculated arterial oxygen content is typically ~16-22 mL/dL"),
+    "alveolar_arterial_gradient": (Decimal("5"), Decimal("20"), "mmHg", "Typical room-air A-a gradient is low and rises with age"),
     "lactate": (Decimal("0.5"), Decimal("1.5"), "mmol/L", "0.5-2.0 normal; < 1.5 optimal"),
     # Hormones
     "progesterone": (Decimal("0.1"), Decimal("0.5"), "ng/mL", "Male/follicular phase baseline"),
@@ -219,6 +221,8 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "atypical_lymphocytes_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
     "metamyelocytes_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
     "myelocytes_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
+    "promyelocytes_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
+    "other_cells_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
     "blasts_pct": (Decimal("0"), Decimal("0"), "%", "Normally absent"),
     # Other
     "eag": (Decimal("70"), Decimal("100"), "mg/dL", "Estimated from HbA1c; < 117 = normal A1c"),

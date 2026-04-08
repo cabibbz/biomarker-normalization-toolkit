@@ -109,8 +109,8 @@ class NormalizationTests(unittest.TestCase):
             self.assertTrue(csv_output.exists())
 
             payload = json.loads(json_output.read_text(encoding="utf-8"))
-            self.assertEqual(payload["summary"]["mapped"], 4)
-            self.assertEqual(payload["summary"]["review_needed"], 1)
+            self.assertEqual(payload["summary"]["mapped"], 5)
+            self.assertEqual(payload["summary"]["review_needed"], 0)
             self.assertEqual(payload["summary"]["unmapped"], 1)
 
     def test_cli_rejects_missing_headers(self) -> None:
@@ -142,7 +142,7 @@ class NormalizationTests(unittest.TestCase):
 
         bundle = build_bundle(result)
         self.assertEqual(bundle["resourceType"], "Bundle")
-        self.assertEqual(len(bundle["entry"]), 4)
+        self.assertEqual(len(bundle["entry"]), 5)
 
         first = bundle["entry"][0]["resource"]
         self.assertEqual(first["resourceType"], "Observation")
@@ -177,7 +177,7 @@ class NormalizationTests(unittest.TestCase):
 
             bundle = json.loads(fhir_output.read_text(encoding="utf-8"))
             self.assertEqual(bundle["resourceType"], "Bundle")
-            self.assertEqual(len(bundle["entry"]), 4)
+            self.assertEqual(len(bundle["entry"]), 5)
 
     def test_installed_bnt_demo_command_writes_demo_outputs(self) -> None:
         bnt_path = shutil.which("bnt")
@@ -203,7 +203,7 @@ class NormalizationTests(unittest.TestCase):
             self.assertTrue(summary_output.exists())
             summary_text = summary_output.read_text(encoding="utf-8")
             self.assertIn("# Normalization Summary", summary_text)
-            self.assertIn("Mapped: 4", summary_text)
+            self.assertIn("Mapped: 5", summary_text)
 
 
     # --- Reference range parsing edge cases ---
@@ -780,10 +780,18 @@ class NormalizationTests(unittest.TestCase):
 
     def test_high_value_unknown_aliases_now_map(self) -> None:
         rows = [
+            {"source_row_id": "etoh", "source_test_name": "ethanol", "raw_value": "145",
+             "source_unit": "mg/dL", "specimen_type": "", "source_reference_range": ""},
             {"source_row_id": "pre", "source_test_name": "prealbumin", "raw_value": "25.4",
              "source_unit": "mg/dL", "specimen_type": "", "source_reference_range": ""},
             {"source_row_id": "cki", "source_test_name": "CK-MB Index", "raw_value": "2.5",
              "source_unit": "%", "specimen_type": "Blood", "source_reference_range": "0-6 %"},
+            {"source_row_id": "pttr", "source_test_name": "PTT ratio", "raw_value": "1.1",
+             "source_unit": "ratio", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "pheny", "source_test_name": "Phenytoin", "raw_value": "14.2",
+             "source_unit": "ug/mL", "specimen_type": "", "source_reference_range": ""},
+            {"source_row_id": "apap", "source_test_name": "APAP", "raw_value": "20",
+             "source_unit": "ug/mL", "specimen_type": "", "source_reference_range": ""},
             {"source_row_id": "vanc", "source_test_name": "Vancomycin - random", "raw_value": "14.2",
              "source_unit": "mcg/mL", "specimen_type": "", "source_reference_range": ""},
             {"source_row_id": "vanc_trough", "source_test_name": "Vancomycin - trough", "raw_value": "16.0",
@@ -807,8 +815,12 @@ class NormalizationTests(unittest.TestCase):
         ]
         result = normalize_rows(rows)
         by_id = {record.source_row_id: record for record in result.records}
+        self.assertEqual(by_id["etoh"].canonical_biomarker_id, "ethanol")
         self.assertEqual(by_id["pre"].canonical_biomarker_id, "prealbumin")
         self.assertEqual(by_id["cki"].canonical_biomarker_id, "ck_mb_index")
+        self.assertEqual(by_id["pttr"].canonical_biomarker_id, "ptt_ratio")
+        self.assertEqual(by_id["pheny"].canonical_biomarker_id, "phenytoin")
+        self.assertEqual(by_id["apap"].canonical_biomarker_id, "acetaminophen")
         self.assertEqual(by_id["vanc"].canonical_biomarker_id, "vancomycin")
         self.assertEqual(by_id["vanc_trough"].canonical_biomarker_id, "vancomycin_trough")
         self.assertEqual(by_id["bd"].canonical_biomarker_id, "base_deficit")

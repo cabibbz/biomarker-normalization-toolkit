@@ -76,6 +76,8 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "atypical_lymphocytes_pct": (Decimal("0"), Decimal("100")),
     "metamyelocytes_pct": (Decimal("0"), Decimal("100")),
     "myelocytes_pct":   (Decimal("0"),    Decimal("100")),
+    "promyelocytes_pct": (Decimal("0"),   Decimal("100")),
+    "other_cells_pct":  (Decimal("0"),    Decimal("100")),
     "blasts_pct":       (Decimal("0"),    Decimal("100")),
     # Electrolytes
     "sodium":           (Decimal("80"),   Decimal("200")),
@@ -91,6 +93,7 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "pt":               (Decimal("5"),    Decimal("200")),
     "inr":              (Decimal("0.5"),  Decimal("15")),
     "ptt":              (Decimal("10"),   Decimal("200")),
+    "ptt_ratio":        (Decimal("0.1"),  Decimal("10")),
     "fibrinogen":       (Decimal("10"),   Decimal("2000")),
     "d_dimer":          (Decimal("0"),    Decimal("100000")),
     # Cardiac
@@ -106,6 +109,9 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "digoxin":          (Decimal("0"),    Decimal("10")),
     "tacrolimus":       (Decimal("0"),    Decimal("100")),
     "salicylates":      (Decimal("0"),    Decimal("100")),
+    "ethanol":          (Decimal("0"),    Decimal("1000")),
+    "phenytoin":        (Decimal("0"),    Decimal("100")),
+    "acetaminophen":    (Decimal("0"),    Decimal("500")),
     "myoglobin":        (Decimal("0"),    Decimal("100000")),
     "ldh":              (Decimal("10"),   Decimal("50000")),
     # Vitamins & minerals
@@ -125,6 +131,7 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "carboxyhemoglobin":(Decimal("0"),    Decimal("100")),
     "methemoglobin":    (Decimal("0"),    Decimal("100")),
     "oxygen_content":   (Decimal("0"),    Decimal("30")),
+    "alveolar_arterial_gradient": (Decimal("0"), Decimal("700")),
     "lactate":          (Decimal("0"),    Decimal("30")),
     # Urinalysis
     "urine_specific_gravity": (Decimal("1.000"), Decimal("1.050")),

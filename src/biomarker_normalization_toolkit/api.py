@@ -212,7 +212,7 @@ app = FastAPI(
     title="Biomarker Normalization Toolkit",
         description=(
             "Normalize messy lab data into canonical machine-readable output. "
-            "223 biomarkers, PhenoAge biological age, optimal longevity ranges, "
+            "230 biomarkers, PhenoAge biological age, optimal longevity ranges, "
             "derived metabolic metrics, longitudinal tracking."
         ),
     version=__version__,

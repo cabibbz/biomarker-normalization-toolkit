@@ -2,7 +2,7 @@
 
 Tiers:
 - free: 50 core biomarkers, no PhenoAge, no optimal ranges, 1000 rows/request
-- pro: All 223 biomarkers, PhenoAge, optimal ranges, derived metrics, 100K rows/request
+- pro: All 230 biomarkers, PhenoAge, optimal ranges, derived metrics, 100K rows/request
 - enterprise: Everything in pro + priority support + custom aliases
 
 Validation methods (checked in order):

@@ -44,6 +44,16 @@ _SAFE_RAW_SOURCE_KEYS = frozenset({
     "specimen_type", "source_reference_range", "source_lab_name", "source_panel_name",
 })
 
+_CONTEXTUAL_ALIAS_OVERRIDES = (
+    {
+        "alias_key": "oxygen",
+        "panel_key": "blood gas",
+        "source_unit": "%",
+        "specimens": frozenset({"", "whole_blood"}),
+        "biomarker_id": "oxygen_saturation",
+    },
+)
+
 
 def _str_field(row: dict, key: str) -> str:
     """Safely extract a string field from a row dict, coercing non-string values."""
@@ -140,6 +150,35 @@ def _filter_candidates_by_unit(candidate_ids: list[str], source_unit: str) -> li
     return filtered if len(filtered) == 1 else candidate_ids
 
 
+def _disambiguate_ambiguous_alias_by_reference_range(
+    candidate_ids: list[str], source: SourceRecord
+) -> tuple[str, RangeValue] | None:
+    if source.specimen_type:
+        return None
+
+    source_range = parse_reference_range(source.source_reference_range, source.source_unit)
+    if source_range is None:
+        return None
+
+    candidate_pair = frozenset(candidate_ids)
+
+    if candidate_pair == frozenset({"glucose_serum", "glucose_urine"}) and source_range.unit == "mg/dL":
+        # Serum glucose intervals are decisively higher than urine glucose trace ranges.
+        if source_range.low >= Decimal("60") and source_range.high >= Decimal("80"):
+            return "glucose_serum", source_range
+        if source_range.high <= Decimal("20"):
+            return "glucose_urine", source_range
+
+    if candidate_pair == frozenset({"creatinine", "creatinine_urine"}) and source_range.unit == "mg/dL":
+        # Blood creatinine stays in low single digits; urine creatinine does not.
+        if source_range.high <= Decimal("5"):
+            return "creatinine", source_range
+        if source_range.low >= Decimal("20"):
+            return "creatinine_urine", source_range
+
+    return None
+
+
 def _convert_range(range_value: RangeValue | None, biomarker_id: str) -> RangeValue | None:
     if range_value is None:
         return None
@@ -155,9 +194,35 @@ def _convert_range(range_value: RangeValue | None, biomarker_id: str) -> RangeVa
 _LOINC_INDEX: dict[str, str] = {bio.loinc: bio_id for bio_id, bio in BIOMARKER_CATALOG.items()}
 
 
+def _contextual_alias_override(source: SourceRecord) -> str | None:
+    panel_key = normalize_key(source.source_panel_name)
+    for rule in _CONTEXTUAL_ALIAS_OVERRIDES:
+        if source.alias_key != rule["alias_key"]:
+            continue
+        if source.source_unit != rule["source_unit"]:
+            continue
+        if panel_key != rule["panel_key"]:
+            continue
+        if source.specimen_type not in rule["specimens"]:
+            continue
+        return str(rule["biomarker_id"])
+    return None
+
+
 def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.0) -> NormalizedRecord:
     candidate_ids = ALIAS_INDEX.get(source.alias_key, [])
     fuzzy_result: tuple[str, float] | None = None
+    contextual_override_biomarker_id: str | None = None
+    reference_range_disambiguated = False
+    reference_range_signal = ""
+    source_range: RangeValue | None = None
+
+    # Fallback: use tightly-scoped context rules for vendor labels that are
+    # too generic to add as unconditional aliases.
+    if not candidate_ids:
+        contextual_override_biomarker_id = _contextual_alias_override(source)
+        if contextual_override_biomarker_id:
+            candidate_ids = [contextual_override_biomarker_id]
 
     # Fallback: try LOINC code lookup (source test name may be a LOINC code)
     if not candidate_ids:
@@ -194,8 +259,15 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
         unit_filtered = specimen_filtered
 
     if len(candidate_ids) > 1 and len(unit_filtered) > 1 and not source.specimen_type:
-        reason = "fuzzy_match_ambiguous_requires_specimen" if fuzzy_result else "ambiguous_alias_requires_specimen"
-        return _build_record(source, status="review_needed", reason=reason)
+        reference_range_match = _disambiguate_ambiguous_alias_by_reference_range(unit_filtered, source)
+        if reference_range_match is not None:
+            unit_filtered = [reference_range_match[0]]
+            source_range = reference_range_match[1]
+            reference_range_disambiguated = True
+            reference_range_signal = format_range(source_range)
+        else:
+            reason = "fuzzy_match_ambiguous_requires_specimen" if fuzzy_result else "ambiguous_alias_requires_specimen"
+            return _build_record(source, status="review_needed", reason=reason)
 
     if len(unit_filtered) > 1:
         return _build_record(source, status="review_needed", reason="ambiguous_alias_after_specimen_filter")
@@ -240,7 +312,8 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
             loinc=candidate.loinc,
         )
 
-    source_range = parse_reference_range(source.source_reference_range, source.source_unit)
+    if source_range is None:
+        source_range = parse_reference_range(source.source_reference_range, source.source_unit)
     normalized_range = _convert_range(source_range, candidate.biomarker_id)
 
     # Determine confidence and reason
@@ -255,11 +328,29 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
             status = "review_needed"
             reason = "fuzzy_match_low_confidence"
         mapping_rule = f"fuzzy:{best_score:.2f}|source:{source.alias_key}|match:{best_alias}|biomarker:{candidate.biomarker_id}"
+    elif contextual_override_biomarker_id:
+        confidence = "medium"
+        status = "mapped"
+        reason = "mapped_by_contextual_alias"
+        mapping_rule = (
+            f"contextual_alias:{source.alias_key}|panel:{normalize_key(source.source_panel_name)}"
+            f"|unit:{source.source_unit}|biomarker:{candidate.biomarker_id}"
+        )
+        if source.specimen_type:
+            mapping_rule += f"|specimen:{source.specimen_type}"
     elif panel_prefix_stripped:
         confidence = "medium"
         status = "mapped"
         reason = "panel_prefix_stripped"
         mapping_rule = f"panel_strip:{source.alias_key}|biomarker:{candidate.biomarker_id}"
+    elif reference_range_disambiguated:
+        confidence = "medium"
+        status = "mapped"
+        reason = "mapped_by_alias_and_reference_range"
+        mapping_rule = (
+            f"alias:{source.alias_key}|biomarker:{candidate.biomarker_id}"
+            f"|reference_range:{reference_range_signal}"
+        )
     elif unit_disambiguated:
         confidence = "high"
         status = "mapped"
