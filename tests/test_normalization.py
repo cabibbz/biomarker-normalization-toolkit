@@ -2563,5 +2563,1649 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(r.loinc, "2345-7")
         self.assertEqual(r.normalized_unit, "mg/dL")
 
+    def test_conversion_factor_pinning(self) -> None:
+        """Pin every non-trivial conversion factor to catch regressions.
+
+        Each tuple is (biomarker_id, input_value, input_unit, expected_output).
+        Input value is Decimal("100") for all cases so that the expected output
+        directly reflects the factor * 100, making it easy to verify against the
+        CONVERSION_TO_NORMALIZED table.
+        """
+        from decimal import Decimal
+        from biomarker_normalization_toolkit.units import convert_to_normalized
+
+        cases = [
+            # --- Metabolic panel ---
+            ("glucose_serum", Decimal("100"), "mmol/L", 1800.0),
+            ("glucose_urine", Decimal("100"), "mmol/L", 1800.0),
+            ("creatinine", Decimal("100"), "umol/L", 1.1312),
+            ("creatinine_urine", Decimal("100"), "umol/L", 1.1312),
+            ("bun", Decimal("100"), "mmol/L", 280.0),
+            ("calcium", Decimal("100"), "mmol/L", 400.8),
+            ("phosphate", Decimal("100"), "mmol/L", 309.7),
+            ("magnesium", Decimal("100"), "mmol/L", 243.1),
+            ("uric_acid", Decimal("100"), "umol/L", 1.6812),
+            ("lactate", Decimal("100"), "mg/dL", 11.0988),
+            ("ionized_calcium", Decimal("100"), "mg/dL", 24.9501),
+            # --- Lipid panel ---
+            ("total_cholesterol", Decimal("100"), "mmol/L", 3867.0),
+            ("ldl_cholesterol", Decimal("100"), "mmol/L", 3867.0),
+            ("hdl_cholesterol", Decimal("100"), "mmol/L", 3867.0),
+            ("non_hdl_cholesterol", Decimal("100"), "mmol/L", 3867.0),
+            ("vldl_cholesterol", Decimal("100"), "mmol/L", 3867.0),
+            ("triglycerides", Decimal("100"), "mmol/L", 8857.0),
+            # --- Liver panel ---
+            ("total_bilirubin", Decimal("100"), "umol/L", 5.848),
+            ("direct_bilirubin", Decimal("100"), "umol/L", 5.848),
+            ("indirect_bilirubin", Decimal("100"), "umol/L", 5.848),
+            ("albumin", Decimal("100"), "g/L", 10.0),
+            ("fibrinogen", Decimal("100"), "g/L", 10000.0),
+            # --- CBC ---
+            ("hemoglobin", Decimal("100"), "g/L", 10.0),
+            ("hematocrit", Decimal("100"), "L/L", 10000.0),
+            ("wbc", Decimal("100"), "#/uL", 0.1),
+            ("platelets", Decimal("100"), "#/uL", 0.1),
+            ("rbc", Decimal("100"), "#/uL", 0.0001),
+            ("mchc", Decimal("100"), "g/L", 10.0),
+            # --- WBC differentials ---
+            ("neutrophils", Decimal("100"), "#/uL", 0.1),
+            ("lymphocytes", Decimal("100"), "#/uL", 0.1),
+            ("monocytes", Decimal("100"), "#/uL", 0.1),
+            ("eosinophils", Decimal("100"), "#/uL", 0.1),
+            ("basophils", Decimal("100"), "#/uL", 0.1),
+            ("bands", Decimal("100"), "#/uL", 0.1),
+            ("immature_granulocytes", Decimal("100"), "#/uL", 0.1),
+            ("reticulocyte_absolute", Decimal("100"), "#/uL", 0.1),
+            ("reticulocyte_absolute", Decimal("100"), "M/uL", 100000.0),
+            ("nrbc", Decimal("100"), "K/uL", 100000.0),
+            # --- Thyroid ---
+            ("tsh", Decimal("100"), "mIU/mL", 100000.0),
+            ("free_t4", Decimal("100"), "pmol/L", 7.77),
+            ("free_t3", Decimal("100"), "pmol/L", 65.1042),
+            ("t3_total", Decimal("100"), "nmol/L", 6510.4167),
+            ("t4_total", Decimal("100"), "nmol/L", 7.77),
+            # --- Vitamins ---
+            ("vitamin_d", Decimal("100"), "nmol/L", 40.0641),
+            ("vitamin_b12", Decimal("100"), "pmol/L", 135.5),
+            ("folate", Decimal("100"), "nmol/L", 44.1306),
+            ("vitamin_a", Decimal("100"), "umol/L", 2864.5087),
+            ("vitamin_c", Decimal("100"), "umol/L", 1.7612),
+            ("vitamin_e", Decimal("100"), "umol/L", 43.0663),
+            # --- Minerals ---
+            ("iron", Decimal("100"), "umol/L", 558.5),
+            ("zinc", Decimal("100"), "umol/L", 653.6),
+            ("selenium", Decimal("100"), "umol/L", 7896.0),
+            ("copper", Decimal("100"), "umol/L", 635.5),
+            # --- Hormones ---
+            ("testosterone_total", Decimal("100"), "nmol/L", 2884.338),
+            ("estradiol", Decimal("100"), "pmol/L", 27.2405),
+            ("cortisol", Decimal("100"), "nmol/L", 3.6245),
+            ("insulin", Decimal("100"), "pmol/L", 14.3988),
+            ("insulin", Decimal("100"), "mIU/mL", 100000.0),
+            ("dhea_s", Decimal("100"), "umol/L", 3684.5984),
+            ("progesterone", Decimal("100"), "nmol/L", 31.4465),
+            ("dht", Decimal("100"), "nmol/L", 2906.9767),
+            ("estrone", Decimal("100"), "pmol/L", 27.0343),
+            ("amh", Decimal("100"), "pmol/L", 13.9997),
+            ("acth", Decimal("100"), "pmol/L", 454.1326),
+            # --- Pituitary / reproductive ---
+            ("lh", Decimal("100"), "mIU/mL", 100.0),  # identity (factor=1)
+            ("lh", Decimal("100"), "mIU/L", 0.1),
+            ("fsh", Decimal("100"), "mIU/mL", 100.0),  # identity (factor=1)
+            ("fsh", Decimal("100"), "mIU/L", 0.1),
+            ("prolactin", Decimal("100"), "mIU/L", 4.717),
+            ("prolactin", Decimal("100"), "mIU/mL", 4716.9811),
+            # --- Inflammation ---
+            ("hscrp", Decimal("100"), "mg/dL", 1000.0),
+            ("crp", Decimal("100"), "mg/dL", 1000.0),
+            # --- Cardiac ---
+            ("troponin_t", Decimal("100"), "ng/L", 0.1),
+            ("troponin_t", Decimal("100"), "pg/mL", 0.1),
+            ("troponin_i", Decimal("100"), "ng/L", 0.1),
+            ("troponin_i", Decimal("100"), "pg/mL", 0.1),
+            ("bnp", Decimal("100"), "pg/dL", 1.0),
+            ("d_dimer", Decimal("100"), "ug/mL", 100000.0),
+            ("d_dimer", Decimal("100"), "mg/L", 100000.0),
+            # --- Peptides ---
+            ("c_peptide", Decimal("100"), "nmol/L", 302.1),
+            # --- Blood gases ---
+            ("pco2", Decimal("100"), "kPa", 750.062),
+            ("po2", Decimal("100"), "kPa", 750.062),
+            # --- Proteins ---
+            ("total_protein", Decimal("100"), "g/L", 10.0),
+            ("globulin", Decimal("100"), "g/L", 10.0),
+            ("apob", Decimal("100"), "g/L", 10000.0),
+            ("apoa1", Decimal("100"), "g/L", 10000.0),
+            ("haptoglobin", Decimal("100"), "g/L", 10000.0),
+            ("transferrin", Decimal("100"), "g/L", 10000.0),
+            ("complement_c3", Decimal("100"), "g/L", 10000.0),
+            ("complement_c4", Decimal("100"), "g/L", 10000.0),
+            ("iga", Decimal("100"), "g/L", 10000.0),
+            ("igg", Decimal("100"), "g/L", 10000.0),
+            ("igm", Decimal("100"), "g/L", 10000.0),
+            ("igfbp3", Decimal("100"), "mg/L", 100000.0),
+            ("cystatin_c", Decimal("100"), "nmol/L", 1.33),
+            ("beta2_microglobulin", Decimal("100"), "nmol/L", 1.1779),
+            # --- Iron studies ---
+            ("tibc", Decimal("100"), "umol/L", 558.5),
+            # --- Miscellaneous ---
+            ("ammonia", Decimal("100"), "ug/dL", 58.72),
+            ("lpa", Decimal("100"), "mg/dL", 239.9808),
+            ("albumin_creatinine_ratio", Decimal("100"), "mg/mmol", 884.0),
+            ("albumin_urine", Decimal("100"), "mg/dL", 1000.0),
+            ("total_protein_urine", Decimal("100"), "mg/L", 10.0),
+            ("afp", Decimal("100"), "IU/mL", 121.0),
+            # --- Heavy metals ---
+            ("lead", Decimal("100"), "umol/L", 2072.1094),
+            ("mercury", Decimal("100"), "nmol/L", 20.0602),
+            ("cadmium", Decimal("100"), "nmol/L", 11.2397),
+        ]
+
+        for bio_id, value, unit, expected in cases:
+            with self.subTest(biomarker=bio_id, unit=unit):
+                result = convert_to_normalized(value, bio_id, unit)
+                self.assertIsNotNone(result, f"{bio_id} {unit} returned None")
+                self.assertAlmostEqual(
+                    float(result), expected, places=1,
+                    msg=f"{bio_id}: {value} {unit} -> {result}, expected ~{expected}",
+                )
+
+
+    # ===================================================================
+    # Fuzzy matching, blocklist, normalizer edge cases (comprehensive)
+    # ===================================================================
+
+    # --- Fuzzy matching ---
+
+    def test_fuzzy_threshold_zero_glucos_unmapped(self) -> None:
+        """With fuzzy_threshold=0 (default), misspelled 'Glucos' stays unmapped."""
+        rows = [{"source_row_id": "fz1", "source_test_name": "Glucos", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows, fuzzy_threshold=0.0)
+        self.assertEqual(result.records[0].mapping_status, "unmapped")
+
+    def test_fuzzy_threshold_070_glucos_maps(self) -> None:
+        """With fuzzy_threshold=0.7, 'Glucos' maps to glucose_serum (requires rapidfuzz)."""
+        try:
+            import rapidfuzz  # noqa: F401
+        except ImportError:
+            self.skipTest("rapidfuzz not installed")
+        rows = [{"source_row_id": "fz2", "source_test_name": "Glucos", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows, fuzzy_threshold=0.7)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "glucose_serum")
+
+    def test_fuzzy_blocklist_hemoglobin_c_not_hba1c(self) -> None:
+        """Hemoglobin C must NOT fuzzy-match to hba1c."""
+        try:
+            import rapidfuzz  # noqa: F401
+        except ImportError:
+            self.skipTest("rapidfuzz not installed")
+        rows = [{"source_row_id": "fz3", "source_test_name": "Hemoglobin C", "raw_value": "0",
+                 "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows, fuzzy_threshold=0.7)
+        self.assertNotEqual(result.records[0].canonical_biomarker_id, "hba1c")
+
+    def test_fuzzy_blocklist_alt_not_alp(self) -> None:
+        """ALT should NOT fuzzy-match to ALP, and vice versa."""
+        try:
+            import rapidfuzz  # noqa: F401
+        except ImportError:
+            self.skipTest("rapidfuzz not installed")
+        from biomarker_normalization_toolkit.fuzzy import fuzzy_match
+        # "alt" queried should not produce alp
+        alt_results = fuzzy_match("alt", threshold=0.70)
+        alt_bio_ids = [bio_id for _, bio_id, _ in alt_results]
+        self.assertNotIn("alp", alt_bio_ids)
+        # "alp" queried should not produce alt
+        alp_results = fuzzy_match("alp", threshold=0.70)
+        alp_bio_ids = [bio_id for _, bio_id, _ in alp_results]
+        self.assertNotIn("alt", alp_bio_ids)
+
+    def test_fuzzy_query_blocklist_presence(self) -> None:
+        """Test names containing 'presence' should never fuzzy match."""
+        try:
+            import rapidfuzz  # noqa: F401
+        except ImportError:
+            self.skipTest("rapidfuzz not installed")
+        from biomarker_normalization_toolkit.fuzzy import fuzzy_match
+        self.assertEqual(fuzzy_match("Glucose [Presence] in Urine", threshold=0.70), [])
+
+    def test_fuzzy_query_blocklist_antibod(self) -> None:
+        """Test names containing 'antibod' should never fuzzy match."""
+        try:
+            import rapidfuzz  # noqa: F401
+        except ImportError:
+            self.skipTest("rapidfuzz not installed")
+        from biomarker_normalization_toolkit.fuzzy import fuzzy_match
+        self.assertEqual(fuzzy_match("Thyroid Peroxidase Antibodies", threshold=0.70), [])
+
+    def test_fuzzy_query_blocklist_blood_pressure(self) -> None:
+        """Test names containing 'blood pressure' should never fuzzy match."""
+        try:
+            import rapidfuzz  # noqa: F401
+        except ImportError:
+            self.skipTest("rapidfuzz not installed")
+        from biomarker_normalization_toolkit.fuzzy import fuzzy_match
+        self.assertEqual(fuzzy_match("Systolic blood pressure", threshold=0.70), [])
+
+    def test_fuzzy_threshold_099_glucos_unmapped(self) -> None:
+        """With fuzzy_threshold=0.99, 'Glucos' stays unmapped (too strict)."""
+        try:
+            import rapidfuzz  # noqa: F401
+        except ImportError:
+            self.skipTest("rapidfuzz not installed")
+        rows = [{"source_row_id": "fz6", "source_test_name": "Glucos", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows, fuzzy_threshold=0.99)
+        self.assertIn(result.records[0].mapping_status, ("unmapped", "review_needed"))
+
+    # --- Panel prefix stripping ---
+
+    def test_panel_prefix_basic_metabolic_sodium(self) -> None:
+        """'BASIC METABOLIC PANEL:SODIUM' maps to sodium via prefix stripping."""
+        rows = [{"source_row_id": "ps1", "source_test_name": "BASIC METABOLIC PANEL:SODIUM",
+                 "raw_value": "140", "source_unit": "mEq/L", "specimen_type": "serum",
+                 "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.canonical_biomarker_id, "sodium")
+        self.assertEqual(r.status_reason, "panel_prefix_stripped")
+
+    def test_panel_prefix_lipid_hdl_with_space(self) -> None:
+        """'LIPID PANEL: HDL CHOLESTEROL' (space after colon) maps to hdl_cholesterol."""
+        rows = [{"source_row_id": "ps2", "source_test_name": "LIPID PANEL: HDL CHOLESTEROL",
+                 "raw_value": "55", "source_unit": "mg/dL", "specimen_type": "serum",
+                 "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.canonical_biomarker_id, "hdl_cholesterol")
+        self.assertEqual(r.status_reason, "panel_prefix_stripped")
+
+    def test_no_colon_maps_normally(self) -> None:
+        """A test name with NO colon still maps normally via alias."""
+        rows = [{"source_row_id": "ps3", "source_test_name": "Glucose",
+                 "raw_value": "95", "source_unit": "mg/dL", "specimen_type": "serum",
+                 "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.canonical_biomarker_id, "glucose_serum")
+        self.assertEqual(r.match_confidence, "high")
+        self.assertNotEqual(r.status_reason, "panel_prefix_stripped")
+
+    def test_colon_in_alias_exact_match_no_stripping(self) -> None:
+        """A colon in a test name that matches an exact alias should not trigger stripping."""
+        # "Glucose, Serum" is an exact alias; inserting a colon variant that still matches
+        # directly should use alias match, not panel stripping.
+        rows = [{"source_row_id": "ps4", "source_test_name": "Glucose, Serum",
+                 "raw_value": "90", "source_unit": "mg/dL", "specimen_type": "serum",
+                 "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.canonical_biomarker_id, "glucose_serum")
+        # Should be an exact alias match, NOT panel_prefix_stripped
+        self.assertNotEqual(r.status_reason, "panel_prefix_stripped")
+
+    # --- normalize_key tests ---
+
+    def test_normalize_key_strips_non_alphanumeric(self) -> None:
+        """normalize_key strips all non-alphanumeric: 'HbA1c (%)' -> 'hba1c'."""
+        from biomarker_normalization_toolkit.catalog import normalize_key
+        self.assertEqual(normalize_key("HbA1c (%)"), "hba1c")
+
+    def test_normalize_key_empty_string(self) -> None:
+        """normalize_key handles empty string -> ''."""
+        from biomarker_normalization_toolkit.catalog import normalize_key
+        self.assertEqual(normalize_key(""), "")
+
+    def test_normalize_key_collapses_multiple_spaces(self) -> None:
+        """normalize_key collapses multiple spaces."""
+        from biomarker_normalization_toolkit.catalog import normalize_key
+        result = normalize_key("Total   Cholesterol")
+        self.assertNotIn("  ", result)
+        self.assertEqual(result, "total cholesterol")
+
+    # --- normalize_specimen tests ---
+
+    def test_normalize_specimen_serum(self) -> None:
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        self.assertEqual(normalize_specimen("serum"), "serum")
+
+    def test_normalize_specimen_serum_uppercase(self) -> None:
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        self.assertEqual(normalize_specimen("SERUM"), "serum")
+
+    def test_normalize_specimen_plasma(self) -> None:
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        self.assertEqual(normalize_specimen("Plasma"), "plasma")
+
+    def test_normalize_specimen_whole_blood(self) -> None:
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        self.assertEqual(normalize_specimen("Whole Blood"), "whole_blood")
+
+    def test_normalize_specimen_venous_blood(self) -> None:
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        self.assertEqual(normalize_specimen("venous blood"), "whole_blood")
+
+    def test_normalize_specimen_urine(self) -> None:
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        self.assertEqual(normalize_specimen("urine"), "urine")
+
+    def test_normalize_specimen_random_string(self) -> None:
+        """Unknown specimen returns the lowered key (fail-closed behavior)."""
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        result = normalize_specimen("random string")
+        # Unknown specimens are returned as lowered key, not None
+        self.assertEqual(result, "random string")
+
+    def test_normalize_specimen_empty_string(self) -> None:
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        self.assertIsNone(normalize_specimen(""))
+
+    # --- LOINC fallback tests ---
+
+    def test_loinc_code_2345_7_maps_to_glucose_serum(self) -> None:
+        """LOINC code '2345-7' as source_test_name maps to glucose_serum."""
+        rows = [{"source_row_id": "lf1", "source_test_name": "2345-7", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "glucose_serum")
+
+    def test_invalid_loinc_format_does_not_crash(self) -> None:
+        """Invalid LOINC format 'XXXX-Y' should not crash, just remain unmapped."""
+        rows = [{"source_row_id": "lf2", "source_test_name": "XXXX-Y", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertIn(result.records[0].mapping_status, ("unmapped", "review_needed"))
+
+    # --- Sibling redirect tests ---
+
+    def test_sibling_redirect_neutrophils_pct(self) -> None:
+        """'Neutrophils' with unit '%' redirects to neutrophils_pct."""
+        rows = [{"source_row_id": "sb1", "source_test_name": "Neutrophils", "raw_value": "65",
+                 "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.canonical_biomarker_id, "neutrophils_pct")
+        self.assertEqual(r.status_reason, "sibling_unit_redirect")
+
+    def test_sibling_redirect_rdw_sd(self) -> None:
+        """'RDW' with unit 'fL' redirects to rdw_sd."""
+        rows = [{"source_row_id": "sb2", "source_test_name": "RDW", "raw_value": "43",
+                 "source_unit": "fL", "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.canonical_biomarker_id, "rdw_sd")
+        self.assertEqual(r.status_reason, "sibling_unit_redirect")
+
+    def test_sibling_redirect_reticulocyte_absolute(self) -> None:
+        """'Reticulocytes' with absolute unit redirects to reticulocyte_absolute."""
+        rows = [{"source_row_id": "sb3", "source_test_name": "Reticulocytes", "raw_value": "50",
+                 "source_unit": "K/uL", "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.canonical_biomarker_id, "reticulocyte_absolute")
+        self.assertEqual(r.status_reason, "sibling_unit_redirect")
+
+    def test_sibling_redirect_immature_granulocytes_pct(self) -> None:
+        """'Immature Granulocytes' with unit '%' redirects to immature_granulocytes_pct."""
+        rows = [{"source_row_id": "sb4", "source_test_name": "Immature Granulocytes", "raw_value": "0.8",
+                 "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.canonical_biomarker_id, "immature_granulocytes_pct")
+        self.assertEqual(r.status_reason, "sibling_unit_redirect")
+
+
+    # ===================================================================
+    # COMPREHENSIVE OPTIMAL RANGES TESTS
+    # ===================================================================
+
+    def test_summarize_optimal_counts_add_up(self) -> None:
+        """summarize_optimal returns counts where optimal + below + above = total."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges, summarize_optimal
+        result = self._make_result_with({
+            "glucose_serum": "80",       # optimal (72-85)
+            "ldl_cholesterol": "130",    # above_optimal (50-70)
+            "vitamin_d": "20",           # below_optimal (40-60)
+            "hdl_cholesterol": "60",     # optimal (55-90)
+            "hscrp": "3.0",             # above_optimal (0-0.5)
+        })
+        evals = evaluate_optimal_ranges(result)
+        summary = summarize_optimal(evals)
+        self.assertEqual(summary["total_evaluated"], 5)
+        self.assertEqual(
+            summary["optimal"] + summary["below_optimal"] + summary["above_optimal"],
+            summary["total_evaluated"],
+        )
+        self.assertEqual(summary["optimal"], 2)
+        self.assertEqual(summary["below_optimal"], 1)
+        self.assertEqual(summary["above_optimal"], 2)
+        self.assertAlmostEqual(summary["optimal_percentage"], 40.0)
+
+    def test_optimal_all_three_statuses(self) -> None:
+        """Verify optimal, below_optimal, above_optimal with specific known values."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result_with({
+            "glucose_serum": "80",   # optimal (72-85)
+            "ferritin": "20",        # below_optimal (40-100)
+            "triglycerides": "200",  # above_optimal (40-100)
+        })
+        evals = evaluate_optimal_ranges(result)
+        by_id = {e["biomarker_id"]: e for e in evals}
+        self.assertEqual(by_id["glucose_serum"]["status"], "optimal")
+        self.assertEqual(by_id["ferritin"]["status"], "below_optimal")
+        self.assertEqual(by_id["triglycerides"]["status"], "above_optimal")
+
+    def test_sex_specific_ggt(self) -> None:
+        """Male GGT 18 = optimal, female GGT 18 = above_optimal."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result_with({"ggt": "18"})
+        male_eval = evaluate_optimal_ranges(result, sex="male")
+        female_eval = evaluate_optimal_ranges(result, sex="female")
+        m = next(e for e in male_eval if e["biomarker_id"] == "ggt")
+        f = next(e for e in female_eval if e["biomarker_id"] == "ggt")
+        # Male GGT optimal 9-20, so 18 = optimal
+        self.assertEqual(m["status"], "optimal")
+        # Female GGT optimal 5-15, so 18 = above_optimal
+        self.assertEqual(f["status"], "above_optimal")
+
+    def test_qualitative_biomarker_excluded_from_optimal(self) -> None:
+        """Qualitative biomarkers like ana_screen should not appear in optimal evaluations."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result_with({"ana_screen": "Positive"})
+        evals = evaluate_optimal_ranges(result)
+        ana_evals = [e for e in evals if e["biomarker_id"] == "ana_screen"]
+        self.assertEqual(len(ana_evals), 0)
+
+    def test_nmr_lp_ir_score_optimal_ranges(self) -> None:
+        """LP-IR score 20 = optimal, 50 = above_optimal."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        # LP-IR optimal is 0-27
+        result_ok = self._make_result_with({"lp_ir_score": "20"})
+        evals_ok = evaluate_optimal_ranges(result_ok)
+        lp = next(e for e in evals_ok if e["biomarker_id"] == "lp_ir_score")
+        self.assertEqual(lp["status"], "optimal")
+
+        result_high = self._make_result_with({"lp_ir_score": "50"})
+        evals_high = evaluate_optimal_ranges(result_high)
+        lp_high = next(e for e in evals_high if e["biomarker_id"] == "lp_ir_score")
+        self.assertEqual(lp_high["status"], "above_optimal")
+
+    # ===================================================================
+    # COMPREHENSIVE DERIVED METRICS TESTS
+    # ===================================================================
+
+    def test_all_15_derived_metrics_computed(self) -> None:
+        """All 15 unique derived metrics are produced from a comprehensive input set."""
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({
+            "glucose_serum": "90", "insulin": "5",
+            "total_cholesterol": "200", "hdl_cholesterol": "60",
+            "ldl_cholesterol": "110", "triglycerides": "120",
+            "apob": "90", "apoa1": "150",
+            "ast": "25", "alt": "20", "platelets": "250",
+            "albumin": "4.2", "creatinine": "1.0",
+            "neutrophils": "4.0", "lymphocytes": "2.0",
+            "iron": "80", "tibc": "300",
+        })
+        metrics = compute_derived_metrics(result)
+        expected = {
+            "homa_ir", "homa_beta", "tyg_index",
+            "tg_hdl_ratio", "apob_apoa1_ratio", "ldl_hdl_ratio",
+            "remnant_cholesterol", "atherogenic_index",
+            "de_ritis_ratio", "fib4_no_age",
+            "albumin_creatinine_serum_ratio",
+            "nlr", "plr", "sii", "uibc",
+        }
+        self.assertEqual(set(metrics.keys()), expected)
+        self.assertEqual(len(metrics), 15)
+
+    def test_homa_ir_excluded_when_glucose_zero(self) -> None:
+        """HOMA-IR should not be computed when glucose is 0."""
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({"glucose_serum": "0", "insulin": "5"})
+        metrics = compute_derived_metrics(result)
+        self.assertNotIn("homa_ir", metrics)
+
+    def test_homa_beta_excluded_when_glucose_63(self) -> None:
+        """HOMA-Beta should not be computed when glucose = 63 (denominator = 0)."""
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({"glucose_serum": "63", "insulin": "10"})
+        metrics = compute_derived_metrics(result)
+        self.assertNotIn("homa_beta", metrics)
+
+    def test_tyg_index_manual_calculation(self) -> None:
+        """TyG index = ln(TG * Glucose / 2) matches manual calculation."""
+        import math
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        tg, gluc = 80, 95
+        result = self._make_result_with({"triglycerides": str(tg), "glucose_serum": str(gluc)})
+        metrics = compute_derived_metrics(result)
+        expected = math.log(tg * gluc / 2)
+        self.assertAlmostEqual(float(metrics["tyg_index"]["value"]), expected, places=2)
+
+    def test_aip_manual_calculation(self) -> None:
+        """AIP = log10(TG[mmol/L] / HDL[mmol/L]) matches manual calculation."""
+        import math
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        tg_mg, hdl_mg = 100, 55
+        result = self._make_result_with({"triglycerides": str(tg_mg), "hdl_cholesterol": str(hdl_mg)})
+        metrics = compute_derived_metrics(result)
+        tg_mmol = tg_mg / 88.57
+        hdl_mmol = hdl_mg / 38.67
+        expected = math.log10(tg_mmol / hdl_mmol)
+        self.assertAlmostEqual(float(metrics["atherogenic_index"]["value"]), expected, places=3)
+
+    def test_uibc_equals_tibc_minus_iron(self) -> None:
+        """UIBC = TIBC - Iron."""
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({"tibc": "350", "iron": "100"})
+        metrics = compute_derived_metrics(result)
+        self.assertIn("uibc", metrics)
+        self.assertAlmostEqual(float(metrics["uibc"]["value"]), 250.0, places=2)
+
+    def test_plr_and_sii_with_known_inputs(self) -> None:
+        """PLR = Platelets/Lymphocytes, SII = (Neutrophils*Platelets)/Lymphocytes."""
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({
+            "platelets": "200", "lymphocytes": "2.5", "neutrophils": "3.0",
+        })
+        metrics = compute_derived_metrics(result)
+        # PLR = 200 / 2.5 = 80.0
+        self.assertAlmostEqual(float(metrics["plr"]["value"]), 80.0, places=0)
+        # SII = (3.0 * 200) / 2.5 = 240
+        self.assertAlmostEqual(float(metrics["sii"]["value"]), 240, places=-1)
+
+    def test_fib4_note_mentions_multiply_by_age(self) -> None:
+        """FIB-4 note should instruct user to multiply by patient age."""
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({"ast": "30", "alt": "25", "platelets": "200"})
+        metrics = compute_derived_metrics(result)
+        self.assertIn("fib4_no_age", metrics)
+        note = metrics["fib4_no_age"].get("note", "") + metrics["fib4_no_age"].get("formula", "")
+        self.assertIn("multiply", note.lower())
+        self.assertIn("age", note.lower())
+
+    # ===================================================================
+    # COMPREHENSIVE LONGITUDINAL TESTS
+    # ===================================================================
+
+    def test_longitudinal_all_five_directions(self) -> None:
+        """Verify all 5 directions: improved, worsened, stable, improving, worsening."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        # glucose optimal 72-85
+        # improved: 95 -> 80 (above -> optimal)
+        # stable: hba1c 5.0 -> 5.1 (optimal -> optimal, range 4.8-5.2)
+        # improving: ldl 40 -> 48 (below -> still below but closer to 50-70)
+        # worsened: triglycerides 60 -> 150 (optimal -> above, range 40-100)
+        # worsening: hscrp 1.0 -> 2.0 (above -> still above, farther from 0-0.5)
+        before = self._make_result_with({
+            "glucose_serum": "95",
+            "hba1c": "5.0",
+            "ldl_cholesterol": "40",
+            "triglycerides": "60",
+            "hscrp": "1.0",
+        })
+        after = self._make_result_with({
+            "glucose_serum": "80",
+            "hba1c": "5.1",
+            "ldl_cholesterol": "48",
+            "triglycerides": "150",
+            "hscrp": "2.0",
+        })
+        result = compare_results(before, after)
+        by_id = {d["biomarker_id"]: d["direction"] for d in result["deltas"]}
+        self.assertEqual(by_id["glucose_serum"], "improved")
+        self.assertEqual(by_id["hba1c"], "stable")
+        self.assertEqual(by_id["ldl_cholesterol"], "improving")
+        self.assertEqual(by_id["triglycerides"], "worsened")
+        self.assertEqual(by_id["hscrp"], "worsening")
+
+    def test_longitudinal_improvement_rate(self) -> None:
+        """improvement_rate = improved / total * 100."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        # 2 biomarkers: one improves (above->optimal), one worsens (optimal->above)
+        before = self._make_result_with({
+            "glucose_serum": "95",     # above -> will become optimal
+            "triglycerides": "60",     # optimal -> will become above
+        })
+        after = self._make_result_with({
+            "glucose_serum": "80",
+            "triglycerides": "150",
+        })
+        result = compare_results(before, after)
+        # 1 improved, 1 worsened => improvement_rate = 50.0
+        self.assertEqual(result["improved"], 1)
+        self.assertEqual(result["worsened"], 1)
+        self.assertAlmostEqual(result["improvement_rate"], 50.0)
+
+    def test_longitudinal_velocity_equals_delta_when_30_days(self) -> None:
+        """velocity_per_month with days_between=30 equals absolute_delta."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result_with({"glucose_serum": "100"})
+        after = self._make_result_with({"glucose_serum": "80"})
+        result = compare_results(before, after, days_between=30)
+        delta = result["deltas"][0]
+        # velocity_per_month = abs_delta / 30 * 30 = abs_delta
+        self.assertAlmostEqual(delta["velocity_per_month"], float(delta["absolute_delta"]), places=3)
+
+    def test_longitudinal_no_velocity_when_days_none(self) -> None:
+        """When days_between is None, velocity_per_month should not be present."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result_with({"glucose_serum": "100"})
+        after = self._make_result_with({"glucose_serum": "90"})
+        result = compare_results(before, after, days_between=None)
+        delta = result["deltas"][0]
+        self.assertNotIn("velocity_per_month", delta)
+
+    def test_longitudinal_single_common_biomarker(self) -> None:
+        """With only one common biomarker, comparison still works correctly."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result_with({
+            "glucose_serum": "100",
+            "hba1c": "5.5",
+        })
+        after = self._make_result_with({
+            "glucose_serum": "85",
+            "ldl_cholesterol": "90",
+        })
+        result = compare_results(before, after, days_between=60)
+        self.assertEqual(result["biomarkers_compared"], 1)
+        self.assertEqual(result["biomarkers_only_in_before"], 1)  # hba1c
+        self.assertEqual(result["biomarkers_only_in_after"], 1)   # ldl_cholesterol
+        self.assertEqual(len(result["deltas"]), 1)
+        self.assertEqual(result["deltas"][0]["biomarker_id"], "glucose_serum")
+
+    # ===================================================================
+    # Self-contained input format parser tests (no external fixtures)
+    # ===================================================================
+
+    # --- FHIR input tests (inline, no fixture files) ---
+
+    def test_fhir_bundle_parsing_inline(self) -> None:
+        """Parse a FHIR Bundle with two Observations from inline data."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [
+                {"resource": {"resourceType": "Observation", "id": "obs1",
+                    "code": {"text": "Glucose"},
+                    "valueQuantity": {"value": 95, "unit": "mg/dL"}}},
+                {"resource": {"resourceType": "Observation", "id": "obs2",
+                    "code": {"coding": [{"display": "HbA1c", "code": "4548-4",
+                                         "system": "http://loinc.org"}]},
+                    "valueQuantity": {"value": 5.4, "unit": "%"}}},
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+            self.assertEqual(rows[0]["raw_value"], "95")
+            self.assertEqual(rows[0]["source_unit"], "mg/dL")
+            self.assertEqual(rows[0]["source_row_id"], "obs1")
+            self.assertEqual(rows[1]["source_test_name"], "HbA1c")
+            self.assertEqual(rows[1]["raw_value"], "5.4")
+            self.assertEqual(rows[1]["source_unit"], "%")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_single_observation_resource(self) -> None:
+        """A bare Observation (not in a Bundle) should be parsed."""
+        obs = {
+            "resourceType": "Observation",
+            "id": "solo1",
+            "code": {"text": "Creatinine"},
+            "valueQuantity": {"value": 1.1, "unit": "mg/dL"},
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(obs, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Creatinine")
+            self.assertEqual(rows[0]["raw_value"], "1.1")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_reference_range_both_sides(self) -> None:
+        """FHIR referenceRange with low and high should produce 'low-high unit'."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation", "id": "rr1",
+                "code": {"text": "Glucose"},
+                "valueQuantity": {"value": 95, "unit": "mg/dL"},
+                "referenceRange": [{"low": {"value": 70, "unit": "mg/dL"},
+                                    "high": {"value": 110, "unit": "mg/dL"}}],
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(rows[0]["source_reference_range"], "70-110 mg/dL")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_reference_range_low_only(self) -> None:
+        """FHIR referenceRange with only low should produce '>=value unit'."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation", "id": "rr2",
+                "code": {"text": "WBC"},
+                "valueQuantity": {"value": 7.5, "unit": "10*3/uL"},
+                "referenceRange": [{"low": {"value": 4.5, "unit": "10*3/uL"}}],
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertIn(">=4.5", rows[0]["source_reference_range"])
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_reference_range_high_only(self) -> None:
+        """FHIR referenceRange with only high should produce '<=value unit'."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation", "id": "rr3",
+                "code": {"text": "LDL Cholesterol"},
+                "valueQuantity": {"value": 120, "unit": "mg/dL"},
+                "referenceRange": [{"high": {"value": 130, "unit": "mg/dL"}}],
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertIn("<=130", rows[0]["source_reference_range"])
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_reference_range_text_fallback(self) -> None:
+        """FHIR referenceRange with only text should use the text."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation", "id": "rr4",
+                "code": {"text": "eGFR"},
+                "valueQuantity": {"value": 90, "unit": "mL/min/1.73m2"},
+                "referenceRange": [{"text": ">60 mL/min/1.73m2"}],
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(rows[0]["source_reference_range"], ">60 mL/min/1.73m2")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_value_codeable_concept(self) -> None:
+        """FHIR Observation with valueCodeableConcept should extract display text."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation", "id": "cc1",
+                "code": {"text": "Blood Type"},
+                "valueCodeableConcept": {"text": "A Positive"},
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["raw_value"], "A Positive")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_value_boolean(self) -> None:
+        """FHIR Observation with valueBoolean should convert to Positive/Negative."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [
+                {"resource": {"resourceType": "Observation", "id": "b1",
+                    "code": {"text": "Urine Ketones"},
+                    "valueBoolean": True}},
+                {"resource": {"resourceType": "Observation", "id": "b2",
+                    "code": {"text": "Urine Protein"},
+                    "valueBoolean": False}},
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(rows[0]["raw_value"], "Positive")
+            self.assertEqual(rows[1]["raw_value"], "Negative")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_specimen_display(self) -> None:
+        """FHIR Observation with specimen.display should populate specimen_type."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation", "id": "sp1",
+                "code": {"text": "Glucose"},
+                "valueQuantity": {"value": 100, "unit": "mg/dL"},
+                "specimen": {"display": "Serum"},
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(rows[0]["specimen_type"], "Serum")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_skips_observation_without_value(self) -> None:
+        """FHIR Observation with no value fields should be skipped."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [
+                {"resource": {"resourceType": "Observation", "id": "nv1",
+                    "code": {"text": "Pending Test"}}},
+                {"resource": {"resourceType": "Observation", "id": "nv2",
+                    "code": {"text": "Glucose"},
+                    "valueQuantity": {"value": 95, "unit": "mg/dL"}}},
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_skips_observation_without_test_name(self) -> None:
+        """FHIR Observation with empty code should be skipped."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [
+                {"resource": {"resourceType": "Observation", "id": "nn1",
+                    "code": {},
+                    "valueQuantity": {"value": 5, "unit": "mg/dL"}}},
+                {"resource": {"resourceType": "Observation", "id": "nn2",
+                    "code": {"text": "Glucose"},
+                    "valueQuantity": {"value": 95, "unit": "mg/dL"}}},
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(len(rows), 1)
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_auto_id_when_no_id_field(self) -> None:
+        """FHIR Observation with no id or identifier should get auto-generated id."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation",
+                "code": {"text": "Glucose"},
+                "valueQuantity": {"value": 90, "unit": "mg/dL"},
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(rows[0]["source_row_id"], "fhir_1")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_unrecognized_resource_type_raises(self) -> None:
+        """Unrecognized FHIR resourceType should raise ValueError."""
+        data = {"resourceType": "Patient", "id": "p1"}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f)
+            tmp = Path(f.name)
+        try:
+            with self.assertRaises(ValueError):
+                read_fhir_input(tmp)
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_identifier_fallback_for_row_id(self) -> None:
+        """FHIR Observation with identifier but no id should use identifier value."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation",
+                "identifier": [{"value": "ACC-12345"}],
+                "code": {"text": "Glucose"},
+                "valueQuantity": {"value": 95, "unit": "mg/dL"},
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(rows[0]["source_row_id"], "ACC-12345")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_value_integer(self) -> None:
+        """FHIR Observation with valueInteger should be extracted."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation", "id": "vi1",
+                "code": {"text": "Platelets"},
+                "valueInteger": 250,
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["raw_value"], "250")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    # --- HL7 v2 input tests (inline, no fixture files) ---
+
+    def test_hl7_basic_obx_extraction(self) -> None:
+        """Parse a minimal HL7 message with NM-type OBX segments."""
+        hl7_msg = (
+            "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|MSG001|P|2.5\r"
+            "PID|1||12345^^^HOSP||DOE^JOHN\r"
+            "OBR|1||A001|24326-1^CBC\r"
+            "OBX|1|NM|718-7^Hemoglobin||14.5|g/dL|13.0-17.0|N|||F\r"
+            "OBX|2|NM|4544-3^Hematocrit||42.0|%|36.0-46.0|N|||F\r"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            tmp = Path(f.name)
+        try:
+            rows = read_hl7_input(tmp)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(rows[0]["source_test_name"], "Hemoglobin")
+            self.assertEqual(rows[0]["raw_value"], "14.5")
+            self.assertEqual(rows[0]["source_unit"], "g/dL")
+            self.assertEqual(rows[0]["source_reference_range"], "13.0-17.0")
+            self.assertEqual(rows[0]["source_panel_name"], "CBC")
+            self.assertEqual(rows[1]["source_test_name"], "Hematocrit")
+            self.assertEqual(rows[1]["raw_value"], "42.0")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_hl7_sn_structured_numeric(self) -> None:
+        """HL7 OBX with SN (structured numeric) type should parse comparators."""
+        hl7_msg = (
+            "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|MSG002|P|2.5\r"
+            "PID|1||12345\r"
+            "OBR|1||A002|5778-6^Urinalysis\r"
+            "OBX|1|SN|5811-5^Glucose Urine||<^10|mg/dL||N|||F\r"
+            "OBX|2|SN|2514-8^Ketones||>^500|mg/dL||N|||F\r"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            tmp = Path(f.name)
+        try:
+            rows = read_hl7_input(tmp)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(rows[0]["raw_value"], "<10")
+            self.assertEqual(rows[1]["raw_value"], ">500")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_hl7_multiple_obr_specimen_reset(self) -> None:
+        """Multiple OBR panels: specimen should reset between panels."""
+        hl7_msg = (
+            "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|MSG003|P|2.5\r"
+            "PID|1||12345\r"
+            "OBR|1||C001|24326-1^CBC|||20240101080000||||||||Whole Blood^WB\r"
+            "OBX|1|NM|6690-2^WBC||7.5|10*3/uL|4.5-11.0|N|||F\r"
+            "OBR|2||C002|24323-8^CMP|||20240101080000\r"
+            "OBX|1|NM|2345-7^Glucose||95|mg/dL|70-110|N|||F\r"
+            "OBR|3||C003|24357-6^UA|||20240101080000||||||||Urine^UR\r"
+            "OBX|1|NM|5811-5^Specific Gravity||1.020||1.005-1.030|N|||F\r"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            tmp = Path(f.name)
+        try:
+            rows = read_hl7_input(tmp)
+            self.assertEqual(len(rows), 3)
+            self.assertIn("Whole Blood", rows[0]["specimen_type"])
+            self.assertEqual(rows[1]["specimen_type"], "")
+            self.assertIn("Urine", rows[2]["specimen_type"])
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_hl7_cancelled_deleted_withdrawn_skipped(self) -> None:
+        """OBX with result status X, D, W should be skipped; F should pass."""
+        hl7_msg = (
+            "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|MSG004|P|2.5\r"
+            "PID|1||12345\r"
+            "OBR|1||A004|24326-1^CBC\r"
+            "OBX|1|NM|718-7^Hemoglobin||14.5|g/dL|13.0-17.0|N|||F\r"
+            "OBX|2|NM|4544-3^Hematocrit||42.0|%|36.0-46.0|N|||X\r"
+            "OBX|3|NM|789-8^RBC||5.0|10*6/uL|4.5-5.5|N|||D\r"
+            "OBX|4|NM|787-2^MCV||85.0|fL|80.0-100.0|N|||W\r"
+            "OBX|5|NM|785-6^MCH||28.0|pg|27.0-33.0|N|||F\r"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            tmp = Path(f.name)
+        try:
+            rows = read_hl7_input(tmp)
+            self.assertEqual(len(rows), 2)
+            names = [r["source_test_name"] for r in rows]
+            self.assertIn("Hemoglobin", names)
+            self.assertIn("MCH", names)
+            self.assertNotIn("Hematocrit", names)
+            self.assertNotIn("RBC", names)
+            self.assertNotIn("MCV", names)
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_hl7_missing_msh_raises(self) -> None:
+        """HL7 file without MSH segment should raise ValueError."""
+        bad_msg = "PID|1||12345\rOBX|1|NM|718-7^Hemoglobin||14.5|g/dL\r"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(bad_msg)
+            tmp = Path(f.name)
+        try:
+            with self.assertRaises(ValueError):
+                read_hl7_input(tmp)
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_hl7_no_obx_raises(self) -> None:
+        """HL7 file with MSH but no OBX segments should raise ValueError."""
+        msg = "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|MSG|P|2.5\rPID|1||12345\r"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(msg)
+            tmp = Path(f.name)
+        try:
+            with self.assertRaises(ValueError):
+                read_hl7_input(tmp)
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_hl7_spm_specimen_type(self) -> None:
+        """HL7 SPM segment should set specimen type for subsequent OBX."""
+        hl7_msg = (
+            "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|MSG005|P|2.5\r"
+            "PID|1||12345\r"
+            "OBR|1||A005|24326-1^CBC\r"
+            "SPM|1|||BLD^Blood^HL70487\r"
+            "OBX|1|NM|718-7^Hemoglobin||14.5|g/dL|13.0-17.0|N|||F\r"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            tmp = Path(f.name)
+        try:
+            rows = read_hl7_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["specimen_type"], "Blood")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_hl7_obx_row_ids_sequential(self) -> None:
+        """HL7 row IDs should be sequential hl7_1, hl7_2, etc."""
+        hl7_msg = (
+            "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|MSG006|P|2.5\r"
+            "PID|1||12345\r"
+            "OBR|1||A006|24326-1^CBC\r"
+            "OBX|1|NM|718-7^Hemoglobin||14.5|g/dL||N|||F\r"
+            "OBX|2|NM|4544-3^Hematocrit||42.0|%||N|||F\r"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            tmp = Path(f.name)
+        try:
+            rows = read_hl7_input(tmp)
+            self.assertEqual(rows[0]["source_row_id"], "hl7_1")
+            self.assertEqual(rows[1]["source_row_id"], "hl7_2")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_hl7_panel_name_from_obr4(self) -> None:
+        """HL7 OBR-4 component 2 should populate source_panel_name."""
+        hl7_msg = (
+            "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|MSG007|P|2.5\r"
+            "PID|1||12345\r"
+            "OBR|1||A007|24323-8^Comprehensive Metabolic Panel\r"
+            "OBX|1|NM|2345-7^Glucose||95|mg/dL|70-110|N|||F\r"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            tmp = Path(f.name)
+        try:
+            rows = read_hl7_input(tmp)
+            self.assertEqual(rows[0]["source_panel_name"], "Comprehensive Metabolic Panel")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    # --- C-CDA input tests (inline, no fixture files) ---
+
+    def test_ccda_basic_observation_extraction(self) -> None:
+        """Parse a minimal C-CDA fragment with PQ-type observation."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code code="2345-7" codeSystem="2.16.840.1.113883.6.1" displayName="Glucose"/>
+            <value xsi:type="PQ" value="95" unit="mg/dL"/>
+            <referenceRange>
+              <observationRange>
+                <value><low value="70" unit="mg/dL"/><high value="110" unit="mg/dL"/></value>
+              </observationRange>
+            </referenceRange>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+            self.assertEqual(rows[0]["raw_value"], "95")
+            self.assertEqual(rows[0]["source_unit"], "mg/dL")
+            self.assertEqual(rows[0]["source_reference_range"], "70-110 mg/dL")
+            self.assertEqual(rows[0]["source_row_id"], "ccda_1")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_ccda_coded_value_qualitative(self) -> None:
+        """C-CDA observation with CD/CE type value should extract displayName."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code code="5778-6" displayName="Color of Urine"/>
+            <value xsi:type="CD" displayName="Yellow" code="Y"/>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["raw_value"], "Yellow")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_ccda_one_sided_reference_range_low_only(self) -> None:
+        """C-CDA reference range with only low value should produce '>=value'."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="eGFR"/>
+            <value xsi:type="PQ" value="90" unit="mL/min/1.73m2"/>
+            <referenceRange>
+              <observationRange>
+                <value><low value="60" unit="mL/min/1.73m2"/></value>
+              </observationRange>
+            </referenceRange>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertIn(">=60", rows[0]["source_reference_range"])
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_ccda_one_sided_reference_range_high_only(self) -> None:
+        """C-CDA reference range with only high value should produce '<=value'."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="LDL Cholesterol"/>
+            <value xsi:type="PQ" value="120" unit="mg/dL"/>
+            <referenceRange>
+              <observationRange>
+                <value><high value="130" unit="mg/dL"/></value>
+              </observationRange>
+            </referenceRange>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertIn("<=130", rows[0]["source_reference_range"])
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_ccda_null_flavor_observation_skipped(self) -> None:
+        """C-CDA observation with nullFlavor and no value should be skipped."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="Pending Test"/>
+            <value xsi:type="PQ" nullFlavor="UNK"/>
+          </observation>
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="Glucose"/>
+            <value xsi:type="PQ" value="95" unit="mg/dL"/>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_ccda_ivl_pq_interval_value(self) -> None:
+        """C-CDA IVL_PQ type value should extract bound value."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="Glucose Urine"/>
+            <value xsi:type="IVL_PQ">
+              <high value="10" unit="mg/dL" inclusive="false"/>
+            </value>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["raw_value"], "<10")
+            self.assertEqual(rows[0]["source_unit"], "mg/dL")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_ccda_translation_fallback(self) -> None:
+        """C-CDA code translation element should provide displayName fallback."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code code="LP12345">
+              <translation codeSystem="2.16.840.1.113883.6.1" code="2345-7" displayName="Glucose"/>
+            </code>
+            <value xsi:type="PQ" value="100" unit="mg/dL"/>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_ccda_string_value_type(self) -> None:
+        """C-CDA ST type value should extract text content."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="Comment"/>
+            <value xsi:type="ST">Normal flora</value>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["raw_value"], "Normal flora")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_ccda_multiple_observations(self) -> None:
+        """C-CDA with multiple observations should extract all."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="Glucose"/>
+            <value xsi:type="PQ" value="95" unit="mg/dL"/>
+          </observation>
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="BUN"/>
+            <value xsi:type="PQ" value="15" unit="mg/dL"/>
+          </observation>
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="Creatinine"/>
+            <value xsi:type="PQ" value="1.0" unit="mg/dL"/>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertEqual(len(rows), 3)
+            names = [r["source_test_name"] for r in rows]
+            self.assertIn("Glucose", names)
+            self.assertIn("BUN", names)
+            self.assertIn("Creatinine", names)
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_ccda_no_observations_raises(self) -> None:
+        """C-CDA with no valid observations should raise ValueError."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="Pending"/>
+            <value xsi:type="PQ" nullFlavor="UNK"/>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            with self.assertRaises(ValueError):
+                read_ccda_input(tmp)
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_ccda_int_and_real_value_types(self) -> None:
+        """C-CDA INT and REAL type values should extract the value attribute."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="WBC"/>
+            <value xsi:type="INT" value="7"/>
+          </observation>
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="Hemoglobin"/>
+            <value xsi:type="REAL" value="14.5"/>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_ccda_input(tmp)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(rows[0]["raw_value"], "7")
+            self.assertEqual(rows[1]["raw_value"], "14.5")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    # --- CSV edge case tests (inline, no fixture files) ---
+
+    def test_csv_semicolon_delimiter(self) -> None:
+        """CSV with semicolon delimiter should be auto-detected and parsed."""
+        csv_content = (
+            "source_row_id;source_test_name;raw_value;source_unit;specimen_type;source_reference_range\n"
+            "1;Glucose;95;mg/dL;serum;70-110\n"
+            "2;HbA1c;5.4;%;blood;\n"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8") as f:
+            f.write(csv_content)
+            tmp = Path(f.name)
+        try:
+            rows = read_input_csv(tmp)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+            self.assertEqual(rows[0]["raw_value"], "95")
+            self.assertEqual(rows[1]["source_test_name"], "HbA1c")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_csv_tab_delimiter(self) -> None:
+        """CSV with tab delimiter should be auto-detected and parsed."""
+        csv_content = (
+            "source_row_id\tsource_test_name\traw_value\tsource_unit\tspecimen_type\tsource_reference_range\n"
+            "1\tGlucose\t95\tmg/dL\tserum\t70-110\n"
+            "2\tCreatinine\t1.1\tmg/dL\tserum\t0.7-1.3\n"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8") as f:
+            f.write(csv_content)
+            tmp = Path(f.name)
+        try:
+            rows = read_input_csv(tmp)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(rows[0]["raw_value"], "95")
+            self.assertEqual(rows[1]["source_test_name"], "Creatinine")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_csv_extra_columns_preserved(self) -> None:
+        """CSV with extra columns beyond required should preserve them in row dict."""
+        csv_content = (
+            "source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range,patient_id,order_date\n"
+            "1,Glucose,95,mg/dL,serum,70-110,PT001,2024-01-15\n"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8") as f:
+            f.write(csv_content)
+            tmp = Path(f.name)
+        try:
+            rows = read_input_csv(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["patient_id"], "PT001")
+            self.assertEqual(rows[0]["order_date"], "2024-01-15")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_csv_bom_marker(self) -> None:
+        """CSV with UTF-8 BOM marker should be parsed correctly."""
+        bom_bytes = b"\xef\xbb\xbf"
+        csv_bytes = (
+            b"source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+            b"1,Glucose,95,mg/dL,serum,70-110\n"
+        )
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".csv", delete=False) as f:
+            f.write(bom_bytes + csv_bytes)
+            tmp = Path(f.name)
+        try:
+            rows = read_input_csv(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+            self.assertIn("source_row_id", rows[0])
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_csv_missing_required_columns_raises(self) -> None:
+        """CSV missing required columns should raise ValueError."""
+        csv_content = "source_row_id,source_test_name,raw_value\n1,Glucose,95\n"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8") as f:
+            f.write(csv_content)
+            tmp = Path(f.name)
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                read_input_csv(tmp)
+            self.assertIn("missing required columns", str(ctx.exception).lower())
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_csv_empty_data_rows_raises(self) -> None:
+        """CSV with header but no data rows should raise ValueError."""
+        csv_content = "source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8") as f:
+            f.write(csv_content)
+            tmp = Path(f.name)
+        try:
+            with self.assertRaises(ValueError):
+                read_input_csv(tmp)
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_csv_empty_values_default_to_empty_string(self) -> None:
+        """CSV with empty/null cells should default to empty string, not None."""
+        csv_content = (
+            "source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+            "1,Glucose,95,,,\n"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8") as f:
+            f.write(csv_content)
+            tmp = Path(f.name)
+        try:
+            rows = read_input_csv(tmp)
+            self.assertEqual(rows[0]["source_unit"], "")
+            self.assertEqual(rows[0]["specimen_type"], "")
+            self.assertEqual(rows[0]["source_reference_range"], "")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    # --- read_input auto-detection tests ---
+
+    def test_read_input_dispatches_csv(self) -> None:
+        """read_input should dispatch .csv files to CSV parser."""
+        csv_content = (
+            "source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+            "1,Glucose,95,mg/dL,serum,70-110\n"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8") as f:
+            f.write(csv_content)
+            tmp = Path(f.name)
+        try:
+            rows = read_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_read_input_dispatches_json(self) -> None:
+        """read_input should dispatch .json files to FHIR parser."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation", "id": "d1",
+                "code": {"text": "Glucose"},
+                "valueQuantity": {"value": 95, "unit": "mg/dL"},
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_read_input_dispatches_hl7(self) -> None:
+        """read_input should dispatch .hl7 files to HL7 parser."""
+        hl7_msg = (
+            "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|MSG|P|2.5\r"
+            "PID|1||12345\r"
+            "OBR|1||A001|24326-1^CBC\r"
+            "OBX|1|NM|718-7^Hemoglobin||14.5|g/dL|13.0-17.0|N|||F\r"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            tmp = Path(f.name)
+        try:
+            rows = read_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Hemoglobin")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_read_input_dispatches_xml(self) -> None:
+        """read_input should dispatch .xml files to C-CDA parser."""
+        ccda_xml = """
+        <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <observation classCode="OBS" moodCode="EVN">
+            <code displayName="Glucose"/>
+            <value xsi:type="PQ" value="95" unit="mg/dL"/>
+          </observation>
+        </root>
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8") as f:
+            f.write(ccda_xml)
+            tmp = Path(f.name)
+        try:
+            rows = read_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_read_input_dispatches_oru(self) -> None:
+        """read_input should dispatch .oru files to HL7 parser."""
+        hl7_msg = (
+            "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|MSG|P|2.5\r"
+            "PID|1||12345\r"
+            "OBR|1||A001|24326-1^CBC\r"
+            "OBX|1|NM|718-7^Hemoglobin||14.5|g/dL|13.0-17.0|N|||F\r"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".oru", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            tmp = Path(f.name)
+        try:
+            rows = read_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Hemoglobin")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_read_input_unknown_extension_falls_back_to_csv(self) -> None:
+        """read_input with unknown extension should fall back to CSV parser."""
+        csv_content = (
+            "source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+            "1,Glucose,95,mg/dL,serum,70-110\n"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False, encoding="utf-8") as f:
+            f.write(csv_content)
+            tmp = Path(f.name)
+        try:
+            rows = read_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+
 if __name__ == "__main__":
     unittest.main()
