@@ -161,6 +161,7 @@ UNIT_SYNONYMS = {
     "mm/h": "mm/hr",
     "mosm/kg": "mOsm/kg",
     "mosm/kg h2o": "mOsm/kg",
+    "mosm/l": "mOsm/L",
     "mg/g": "mg/g",
     "mg/mmol": "mg/mmol",
     "{presence}": "",
@@ -440,7 +441,9 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "immature_granulocytes_pct": {"%": Decimal("1")},
     "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000")},
     "nrbc_pct": {"%": Decimal("1")},
-    "osmolality_urine": {"mOsm/kg": Decimal("1")},
+    # Some machine exports label urine osmolality as mOsm/L even though the
+    # intended analyte is urine osmolality; accept it as a pragmatic synonym.
+    "osmolality_urine": {"mOsm/kg": Decimal("1"), "mOsm/L": Decimal("1")},
     "sodium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     "potassium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     "chloride_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},

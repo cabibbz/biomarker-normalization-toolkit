@@ -1531,7 +1531,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2695-5",
         normalized_unit="mOsm/kg",
         allowed_specimens=_URINE,
-        aliases=("Osmolality, Urine", "Urine Osmolality",
+        aliases=("Osmolality, Urine", "Urine Osmolality", "Urinary Osmolality",
                  "Osmolality of Urine"),
     ),
     "sodium_urine": BiomarkerDefinition(

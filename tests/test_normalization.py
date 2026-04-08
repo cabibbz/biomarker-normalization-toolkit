@@ -419,6 +419,17 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(result.records[0].normalized_value, "21")
         self.assertEqual(result.records[0].normalized_unit, "%")
 
+    def test_urinary_osmolality_alias_maps_with_machine_export_unit(self) -> None:
+        rows = [
+            {"source_row_id": "uo1", "source_test_name": "Urinary Osmolality", "raw_value": "768",
+             "source_unit": "mOsm/L", "specimen_type": "", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "osmolality_urine")
+        self.assertEqual(result.records[0].normalized_value, "768")
+        self.assertEqual(result.records[0].normalized_unit, "mOsm/kg")
+
     # --- Latest wave coverage and blank-unit reference ranges ---
 
     def test_latest_wave_biomarkers_map_and_keep_ranges(self) -> None:
