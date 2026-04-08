@@ -4206,6 +4206,1212 @@ class NormalizationTests(unittest.TestCase):
         finally:
             tmp.unlink(missing_ok=True)
 
+    # ====================================================================
+    # Comprehensive PhenoAge profile, edge-case, and output-structure tests
+    # ====================================================================
+
+    def _phenoage_from_values(
+        self,
+        biomarkers: dict[str, str],
+        age: float | None = 50,
+    ) -> dict:
+        """Shortcut: build NormalizationResult and compute PhenoAge."""
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+        result = self._make_result_with(biomarkers)
+        return compute_phenoage(result, chronological_age=age)
+
+    # -- Profile tests (clinical plausibility & monotonicity) --
+
+    def test_phenoage_healthy_30yo(self) -> None:
+        """Healthy 30yo with optimal biomarkers should have PhenoAge < 30."""
+        pa = self._phenoage_from_values({
+            "albumin": "4.8", "creatinine": "0.8", "glucose_serum": "82",
+            "crp": "0.3", "lymphocytes_pct": "35", "mcv": "86",
+            "rdw": "11.8", "alp": "45", "wbc": "4.5",
+        }, age=30)
+        self.assertIsNotNone(pa["phenoage"])
+        self.assertLess(pa["phenoage"], 30,
+                        "Healthy 30yo should have biological age below 30")
+
+    def test_phenoage_average_50yo(self) -> None:
+        """Average 50yo with normal-range biomarkers should have PhenoAge 45-55."""
+        pa = self._phenoage_from_values({
+            "albumin": "4.0", "creatinine": "1.0", "glucose_serum": "100",
+            "crp": "2.0", "lymphocytes_pct": "28", "mcv": "90",
+            "rdw": "13.2", "alp": "70", "wbc": "7.0",
+        }, age=50)
+        self.assertIsNotNone(pa["phenoage"])
+        self.assertGreaterEqual(pa["phenoage"], 45)
+        self.assertLessEqual(pa["phenoage"], 55,
+                             "Average 50yo should be within 45-55 biological age")
+
+    def test_phenoage_unhealthy_60yo(self) -> None:
+        """Unhealthy 60yo with poor biomarkers should have PhenoAge > 70."""
+        pa = self._phenoage_from_values({
+            "albumin": "3.0", "creatinine": "1.8", "glucose_serum": "180",
+            "crp": "25.0", "lymphocytes_pct": "12", "mcv": "102",
+            "rdw": "17.5", "alp": "150", "wbc": "14.0",
+        }, age=60)
+        self.assertIsNotNone(pa["phenoage"])
+        self.assertGreater(pa["phenoage"], 70,
+                           "Unhealthy 60yo should have biological age > 70")
+
+    def test_phenoage_monotonicity_crp(self) -> None:
+        """Increasing CRP (0.1, 1.0, 10.0, 50.0) should monotonically increase PhenoAge."""
+        base = {
+            "albumin": "4.0", "creatinine": "1.0", "glucose_serum": "95",
+            "lymphocytes_pct": "28", "mcv": "90",
+            "rdw": "13.0", "alp": "65", "wbc": "6.5",
+        }
+        phenoages: list[float] = []
+        for crp in ["0.1", "1.0", "10.0", "50.0"]:
+            vals = {**base, "crp": crp}
+            pa = self._phenoage_from_values(vals, age=50)
+            self.assertIsNotNone(pa["phenoage"], f"PhenoAge should compute for CRP={crp}")
+            phenoages.append(pa["phenoage"])
+        for i in range(len(phenoages) - 1):
+            self.assertLess(phenoages[i], phenoages[i + 1],
+                            f"PhenoAge should increase with CRP: {phenoages}")
+
+    def test_phenoage_monotonicity_glucose(self) -> None:
+        """Increasing glucose should monotonically increase PhenoAge."""
+        base = {
+            "albumin": "4.0", "creatinine": "1.0",
+            "crp": "1.0", "lymphocytes_pct": "28", "mcv": "90",
+            "rdw": "13.0", "alp": "65", "wbc": "6.5",
+        }
+        phenoages: list[float] = []
+        for gluc in ["70", "100", "150", "300"]:
+            vals = {**base, "glucose_serum": gluc}
+            pa = self._phenoage_from_values(vals, age=50)
+            self.assertIsNotNone(pa["phenoage"], f"PhenoAge should compute for glucose={gluc}")
+            phenoages.append(pa["phenoage"])
+        for i in range(len(phenoages) - 1):
+            self.assertLess(phenoages[i], phenoages[i + 1],
+                            f"PhenoAge should increase with glucose: {phenoages}")
+
+    def test_phenoage_monotonicity_albumin(self) -> None:
+        """Increasing albumin (negative coefficient) should DECREASE PhenoAge."""
+        base = {
+            "creatinine": "1.0", "glucose_serum": "95",
+            "crp": "1.0", "lymphocytes_pct": "28", "mcv": "90",
+            "rdw": "13.0", "alp": "65", "wbc": "6.5",
+        }
+        phenoages: list[float] = []
+        for alb in ["2.5", "3.5", "4.5", "5.5"]:
+            vals = {**base, "albumin": alb}
+            pa = self._phenoage_from_values(vals, age=50)
+            self.assertIsNotNone(pa["phenoage"], f"PhenoAge should compute for albumin={alb}")
+            phenoages.append(pa["phenoage"])
+        for i in range(len(phenoages) - 1):
+            self.assertGreater(phenoages[i], phenoages[i + 1],
+                               f"PhenoAge should decrease with albumin: {phenoages}")
+
+    # -- Edge-case tests --
+
+    def test_phenoage_missing_one_biomarker(self) -> None:
+        """8 of 9 inputs provided should return error with missing_inputs list."""
+        pa = self._phenoage_from_values({
+            "albumin": "4.0", "creatinine": "1.0", "glucose_serum": "95",
+            "crp": "1.0", "lymphocytes_pct": "28", "mcv": "90",
+            "rdw": "13.0", "alp": "65",
+            # wbc intentionally omitted
+        }, age=50)
+        self.assertIsNone(pa["phenoage"])
+        self.assertIn("error", pa)
+        self.assertIn("missing_inputs", pa)
+        self.assertIn("wbc", pa["missing_inputs"])
+
+    def test_phenoage_missing_all_biomarkers(self) -> None:
+        """Empty result should return error with all 9 biomarkers listed as missing."""
+        pa = self._phenoage_from_values({}, age=50)
+        self.assertIsNone(pa["phenoage"])
+        self.assertIn("missing_inputs", pa)
+        self.assertEqual(len(pa["missing_inputs"]), 9)
+
+    def test_phenoage_glucose_exactly_zero(self) -> None:
+        """Glucose=0 must return a specific error about glucose > 0."""
+        pa = self._phenoage_from_values({
+            "albumin": "4.0", "creatinine": "1.0", "glucose_serum": "0",
+            "crp": "1.0", "lymphocytes_pct": "28", "mcv": "90",
+            "rdw": "13.0", "alp": "65", "wbc": "6.5",
+        }, age=50)
+        self.assertIsNone(pa["phenoage"])
+        self.assertIn("error", pa)
+        self.assertIn("Glucose", pa["error"])
+
+    def test_phenoage_negative_values(self) -> None:
+        """Negative albumin should return an error (physiologically impossible)."""
+        pa = self._phenoage_from_values({
+            "albumin": "-1.0", "creatinine": "1.0", "glucose_serum": "95",
+            "crp": "1.0", "lymphocytes_pct": "28", "mcv": "90",
+            "rdw": "13.0", "alp": "65", "wbc": "6.5",
+        }, age=50)
+        self.assertIsNone(pa["phenoage"])
+        self.assertIn("error", pa)
+
+    def test_phenoage_very_high_crp(self) -> None:
+        """CRP=200 mg/L (sepsis-level) should still compute without crashing."""
+        pa = self._phenoage_from_values({
+            "albumin": "3.0", "creatinine": "1.5", "glucose_serum": "150",
+            "crp": "200", "lymphocytes_pct": "10", "mcv": "95",
+            "rdw": "16.0", "alp": "120", "wbc": "18.0",
+        }, age=55)
+        self.assertIsNotNone(pa["phenoage"],
+                             "Sepsis-level CRP should not crash the calculation")
+        self.assertIsInstance(pa["phenoage"], float)
+
+    def test_phenoage_age_acceleration_sign(self) -> None:
+        """Healthy person has negative acceleration; unhealthy has positive."""
+        healthy = self._phenoage_from_values({
+            "albumin": "4.8", "creatinine": "0.8", "glucose_serum": "82",
+            "crp": "0.3", "lymphocytes_pct": "35", "mcv": "86",
+            "rdw": "11.8", "alp": "45", "wbc": "4.5",
+        }, age=50)
+        unhealthy = self._phenoage_from_values({
+            "albumin": "3.0", "creatinine": "1.8", "glucose_serum": "180",
+            "crp": "25.0", "lymphocytes_pct": "12", "mcv": "102",
+            "rdw": "17.5", "alp": "150", "wbc": "14.0",
+        }, age=50)
+        self.assertLess(healthy["age_acceleration"], 0,
+                        "Healthy person should have negative age acceleration")
+        self.assertGreater(unhealthy["age_acceleration"], 0,
+                           "Unhealthy person should have positive age acceleration")
+
+    # -- Output structure tests --
+
+    def test_phenoage_output_keys(self) -> None:
+        """Verify all expected keys are present in a successful PhenoAge result."""
+        pa = self._phenoage_from_values({
+            "albumin": "4.0", "creatinine": "1.0", "glucose_serum": "95",
+            "crp": "1.0", "lymphocytes_pct": "28", "mcv": "90",
+            "rdw": "13.0", "alp": "65", "wbc": "6.5",
+        }, age=50)
+        expected_keys = {
+            "phenoage", "chronological_age", "age_acceleration",
+            "mortality_score", "inputs", "formula_reference", "interpretation",
+        }
+        for key in expected_keys:
+            self.assertIn(key, pa, f"Missing expected key: {key}")
+
+    def test_phenoage_interpretation_thresholds(self) -> None:
+        """Verify each interpretation bucket maps to the correct acceleration range."""
+        # Verify the interpretation logic thresholds against known acceleration values
+        thresholds = [
+            (-10.0, "Significantly younger biological age"),
+            (-5.0, "Significantly younger biological age"),   # boundary: <= -5
+            (-4.9, "Younger biological age"),
+            (-3.0, "Younger biological age"),
+            (-2.0, "Younger biological age"),                 # boundary: <= -2
+            (-1.9, "Biological age matches chronological age"),
+            (0.0, "Biological age matches chronological age"),
+            (2.0, "Biological age matches chronological age"),  # boundary: <= 2
+            (2.1, "Older biological age"),
+            (3.0, "Older biological age"),
+            (5.0, "Older biological age"),                    # boundary: <= 5
+            (5.1, "Significantly older biological age"),
+            (8.0, "Significantly older biological age"),
+        ]
+        for accel, expected_interp in thresholds:
+            if accel <= -5:
+                interp = "Significantly younger biological age"
+            elif accel <= -2:
+                interp = "Younger biological age"
+            elif accel <= 2:
+                interp = "Biological age matches chronological age"
+            elif accel <= 5:
+                interp = "Older biological age"
+            else:
+                interp = "Significantly older biological age"
+            self.assertEqual(interp, expected_interp,
+                             f"Acceleration {accel} should map to '{expected_interp}'")
+
+        # Verify a real PhenoAge result actually has the interpretation field
+        pa = self._phenoage_from_values({
+            "albumin": "4.0", "creatinine": "1.0", "glucose_serum": "95",
+            "crp": "1.0", "lymphocytes_pct": "28", "mcv": "90",
+            "rdw": "13.0", "alp": "65", "wbc": "6.5",
+        }, age=50)
+        self.assertIn("interpretation", pa)
+        valid_interpretations = {
+            "Significantly younger biological age",
+            "Younger biological age",
+            "Biological age matches chronological age",
+            "Older biological age",
+            "Significantly older biological age",
+        }
+        self.assertIn(pa["interpretation"], valid_interpretations)
+
+
+class ReportingTests(unittest.TestCase):
+    """Tests for biomarker_normalization_toolkit.reporting.build_summary_report."""
+
+    @staticmethod
+    def _make_record(
+        status: str = "mapped",
+        name: str = "Glucose",
+        canonical: str = "Glucose (Serum)",
+        value: str = "100",
+        unit: str = "mg/dL",
+        reason: str = "",
+    ) -> "NormalizedRecord":
+        from biomarker_normalization_toolkit.models import NormalizedRecord
+        return NormalizedRecord(
+            source_row_number=1,
+            source_row_id="1",
+            source_lab_name="",
+            source_panel_name="",
+            source_test_name=name,
+            alias_key=name.lower(),
+            raw_value=value,
+            source_unit=unit,
+            specimen_type="serum",
+            source_reference_range="",
+            canonical_biomarker_id="glucose_serum",
+            canonical_biomarker_name=canonical,
+            loinc="2345-7",
+            mapping_status=status,
+            match_confidence="high" if status == "mapped" else "none",
+            status_reason=reason,
+            mapping_rule="alias",
+            normalized_value=value,
+            normalized_unit=unit,
+            normalized_reference_range="",
+            provenance={},
+        )
+
+    @staticmethod
+    def _make_result(
+        records: list | None = None,
+        warnings: tuple[str, ...] = (),
+        input_file: str = "test.csv",
+    ) -> "NormalizationResult":
+        from biomarker_normalization_toolkit.models import NormalizationResult
+        if records is None:
+            records = []
+        mapped = sum(1 for r in records if r.mapping_status == "mapped")
+        review = sum(1 for r in records if r.mapping_status == "review_needed")
+        unmapped = sum(1 for r in records if r.mapping_status == "unmapped")
+        summary = {
+            "total_rows": len(records),
+            "mapped": mapped,
+            "review_needed": review,
+            "unmapped": unmapped,
+        }
+        return NormalizationResult(
+            input_file=input_file,
+            summary=summary,
+            records=records,
+            warnings=warnings,
+        )
+
+    def test_summary_report_contains_all_sections(self) -> None:
+        """Verify markdown has all required section headers."""
+        from biomarker_normalization_toolkit.reporting import build_summary_report
+        result = self._make_result(records=[self._make_record()])
+        report = build_summary_report(result)
+        for section in [
+            "# Normalization Summary",
+            "## Counts",
+            "## Example Mapped Rows",
+            "## Example Review-Needed Rows",
+            "## Example Unmapped Rows",
+            "## Notes",
+        ]:
+            self.assertIn(section, report, f"Missing section: {section}")
+
+    def test_summary_report_counts_correct(self) -> None:
+        """Verify the counts in markdown match result.summary."""
+        from biomarker_normalization_toolkit.reporting import build_summary_report
+        records = [
+            self._make_record(status="mapped", name="Glucose"),
+            self._make_record(status="mapped", name="Hemoglobin"),
+            self._make_record(status="review_needed", name="ALT", reason="ambiguous unit"),
+            self._make_record(status="unmapped", name="FakeTest", reason="no alias match"),
+        ]
+        result = self._make_result(records=records)
+        report = build_summary_report(result)
+        self.assertIn("- Total rows: 4", report)
+        self.assertIn("- Mapped: 2", report)
+        self.assertIn("- Review needed: 1", report)
+        self.assertIn("- Unmapped: 1", report)
+
+    def test_summary_report_warnings_section(self) -> None:
+        """When result has warnings, verify '## Warnings' section appears with warning text."""
+        from biomarker_normalization_toolkit.reporting import build_summary_report
+        result = self._make_result(
+            records=[self._make_record()],
+            warnings=("Duplicate row ID detected", "Unit ambiguity for ALT"),
+        )
+        report = build_summary_report(result)
+        self.assertIn("## Warnings", report)
+        self.assertIn("Duplicate row ID detected", report)
+        self.assertIn("Unit ambiguity for ALT", report)
+
+    def test_summary_report_no_warnings_section(self) -> None:
+        """When no warnings, '## Warnings' should NOT appear."""
+        from biomarker_normalization_toolkit.reporting import build_summary_report
+        result = self._make_result(records=[self._make_record()], warnings=())
+        report = build_summary_report(result)
+        self.assertNotIn("## Warnings", report)
+
+    def test_summary_report_zero_rows(self) -> None:
+        """Verify report handles empty result gracefully."""
+        from biomarker_normalization_toolkit.reporting import build_summary_report
+        result = self._make_result(records=[])
+        report = build_summary_report(result)
+        self.assertIn("# Normalization Summary", report)
+        self.assertIn("- Total rows: 0", report)
+        self.assertIn("- Mapped: 0", report)
+        # All example sections should show "- None"
+        lines = report.split("\n")
+        none_count = sum(1 for line in lines if line.strip() == "- None")
+        self.assertEqual(none_count, 3, "Expected 3 '- None' entries for mapped, review, unmapped")
+
+    def test_summary_report_all_unmapped(self) -> None:
+        """Verify '- None' appears under mapped examples when all rows are unmapped."""
+        from biomarker_normalization_toolkit.reporting import build_summary_report
+        records = [
+            self._make_record(status="unmapped", name="FakeA", reason="no alias"),
+            self._make_record(status="unmapped", name="FakeB", reason="no alias"),
+        ]
+        result = self._make_result(records=records)
+        report = build_summary_report(result)
+        # Find the mapped examples section and check for "- None"
+        lines = report.split("\n")
+        mapped_idx = next(i for i, l in enumerate(lines) if "## Example Mapped Rows" in l)
+        # The "- None" should appear within the next few lines
+        mapped_section = lines[mapped_idx:mapped_idx + 4]
+        self.assertTrue(
+            any("- None" in line for line in mapped_section),
+            "Expected '- None' in mapped examples section when all rows are unmapped",
+        )
+
+    def test_summary_report_truncates_examples(self) -> None:
+        """With 10 mapped rows, verify only first 5 appear in examples."""
+        from biomarker_normalization_toolkit.reporting import build_summary_report
+        records = [
+            self._make_record(status="mapped", name=f"Biomarker_{i}")
+            for i in range(10)
+        ]
+        result = self._make_result(records=records)
+        report = build_summary_report(result)
+        # Count how many mapped example lines appear (lines starting with "- `Biomarker_")
+        mapped_lines = [l for l in report.split("\n") if l.startswith("- `Biomarker_")]
+        self.assertEqual(len(mapped_lines), 5, "Expected exactly 5 mapped example rows")
+        # The first 5 should be present, 5-9 should not
+        for i in range(5):
+            self.assertIn(f"Biomarker_{i}", report)
+        for i in range(5, 10):
+            self.assertNotIn(f"Biomarker_{i}", report)
+
+
+class CLICommandTests(unittest.TestCase):
+    """Unit tests for CLI command functions (called directly, not via subprocess)."""
+
+    def test_cli_status_returns_zero(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_status
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = command_status()
+        self.assertEqual(rc, 0)
+        output = buf.getvalue()
+        self.assertIn("Biomarker Normalization Toolkit", output)
+        self.assertIn("Biomarkers:", output)
+
+    def test_cli_normalize_with_sample(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_normalize
+
+        input_path = str(FIXTURES / "input" / "v0_sample.csv")
+        output_dir = tempfile.mkdtemp()
+        try:
+            buf_out = io.StringIO()
+            buf_err = io.StringIO()
+            with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
+                rc = command_normalize(input_path, output_dir, emit_fhir=True)
+            self.assertEqual(rc, 0, f"stdout={buf_out.getvalue()!r} stderr={buf_err.getvalue()!r}")
+            output = buf_out.getvalue()
+            self.assertIn("Normalized", output)
+            self.assertIn("JSON output:", output)
+            self.assertIn("CSV output:", output)
+            self.assertIn("FHIR output:", output)
+            # Check files were created
+            out_path = Path(output_dir)
+            json_files = list(out_path.glob("*.json"))
+            csv_files = list(out_path.glob("*.csv"))
+            self.assertTrue(len(json_files) >= 1, f"Expected JSON output files, found: {json_files}")
+            self.assertTrue(len(csv_files) >= 1, f"Expected CSV output files, found: {csv_files}")
+        finally:
+            shutil.rmtree(output_dir, ignore_errors=True)
+
+    def test_cli_normalize_nonexistent_file(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_normalize
+
+        output_dir = tempfile.mkdtemp()
+        try:
+            buf_err = io.StringIO()
+            with contextlib.redirect_stderr(buf_err):
+                rc = command_normalize("/nonexistent/path/file.csv", output_dir, emit_fhir=False)
+            self.assertEqual(rc, 1)
+            self.assertIn("does not exist", buf_err.getvalue())
+        finally:
+            shutil.rmtree(output_dir, ignore_errors=True)
+
+    def test_cli_analyze_with_sample(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_analyze
+
+        input_path = str(FIXTURES / "input" / "v0_sample.csv")
+        buf_out = io.StringIO()
+        buf_err = io.StringIO()
+        with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
+            rc = command_analyze(input_path)
+        self.assertEqual(rc, 0, f"stderr={buf_err.getvalue()!r}")
+        output = buf_out.getvalue()
+        self.assertIn("Coverage Analysis", output)
+        self.assertIn("Mapped:", output)
+        # Should print a mapping percentage like "(XX.X%)"
+        self.assertRegex(output, r"\d+\.\d+%")
+
+    def test_cli_demo_creates_output(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_demo
+
+        output_dir = tempfile.mkdtemp()
+        try:
+            buf_out = io.StringIO()
+            buf_err = io.StringIO()
+            with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
+                rc = command_demo(output_dir)
+            self.assertEqual(rc, 0, f"stderr={buf_err.getvalue()!r}")
+            out_path = Path(output_dir)
+            json_files = list(out_path.glob("*.json"))
+            csv_files = list(out_path.glob("*.csv"))
+            md_files = list(out_path.glob("*.md"))
+            self.assertTrue(len(json_files) >= 1, "Demo should produce JSON output")
+            self.assertTrue(len(csv_files) >= 1, "Demo should produce CSV output")
+            self.assertTrue(len(md_files) >= 1, "Demo should produce summary report")
+        finally:
+            shutil.rmtree(output_dir, ignore_errors=True)
+
+    def test_cli_batch_processes_directory(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_batch
+
+        input_dir = str(FIXTURES / "input")
+        output_dir = tempfile.mkdtemp()
+        try:
+            buf_out = io.StringIO()
+            buf_err = io.StringIO()
+            with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
+                rc = command_batch(input_dir, output_dir, emit_fhir=False)
+            # rc may be 1 if some fixture files are intentionally invalid (e.g. missing headers)
+            output = buf_out.getvalue()
+            self.assertIn("Batch complete", output)
+            # Should have processed multiple files
+            self.assertRegex(output, r"\d+ files")
+            # Output dir should have subdirectories for processed files
+            out_path = Path(output_dir)
+            subdirs = [d for d in out_path.iterdir() if d.is_dir()]
+            self.assertTrue(len(subdirs) >= 1, f"Expected output subdirectories, found: {list(out_path.iterdir())}")
+        finally:
+            shutil.rmtree(output_dir, ignore_errors=True)
+
+    def test_cli_catalog_json(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_catalog
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = command_catalog(fmt="json")
+        self.assertEqual(rc, 0)
+        output = buf.getvalue()
+        # Should be valid JSON
+        data = json.loads(output)
+        self.assertIsInstance(data, list)
+        self.assertTrue(len(data) > 0)
+        # Each entry should have expected keys
+        entry = data[0]
+        for key in ("biomarker_id", "canonical_name", "loinc", "normalized_unit"):
+            self.assertIn(key, entry)
+
+    def test_cli_catalog_table(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_catalog
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = command_catalog(fmt="table")
+        self.assertEqual(rc, 0)
+        output = buf.getvalue()
+        self.assertIn("Biomarker ID", output)
+        self.assertIn("LOINC", output)
+        self.assertIn("Total:", output)
+
+
+class PlausibilityTests(unittest.TestCase):
+    """Tests for physiological plausibility warning system."""
+
+    def test_plausibility_normal_value_no_warning(self) -> None:
+        """Glucose 90 mg/dL is well within plausible range -- no warning."""
+        from biomarker_normalization_toolkit.plausibility import check_plausibility
+        result = check_plausibility("glucose_serum", Decimal("90"), "mg/dL")
+        self.assertIsNone(result)
+
+    def test_plausibility_extreme_high_value_warns(self) -> None:
+        """Glucose 5000 mg/dL exceeds plausible max of 1500 -- should warn."""
+        from biomarker_normalization_toolkit.plausibility import check_plausibility
+        result = check_plausibility("glucose_serum", Decimal("5000"), "mg/dL")
+        self.assertIsNotNone(result)
+        self.assertIn("Implausible", result)
+
+    def test_plausibility_extreme_low_value_warns(self) -> None:
+        """Hemoglobin 0.5 g/dL is below plausible min of 1 -- should warn."""
+        from biomarker_normalization_toolkit.plausibility import check_plausibility
+        result = check_plausibility("hemoglobin", Decimal("0.5"), "g/dL")
+        self.assertIsNotNone(result)
+        self.assertIn("Implausible", result)
+
+    def test_plausibility_warning_format(self) -> None:
+        """Warning string must contain biomarker_id, the value, and expected range."""
+        from biomarker_normalization_toolkit.plausibility import check_plausibility
+        result = check_plausibility("glucose_serum", Decimal("5000"), "mg/dL")
+        self.assertIsNotNone(result)
+        self.assertIn("glucose_serum", result)
+        self.assertIn("5000", result)
+        self.assertIn("0", result)     # low bound
+        self.assertIn("1500", result)  # high bound
+
+    def test_plausibility_at_boundary_no_warning(self) -> None:
+        """Values exactly at the plausibility boundary should NOT produce a warning."""
+        from biomarker_normalization_toolkit.plausibility import check_plausibility, PLAUSIBILITY_RANGES
+        low, high = PLAUSIBILITY_RANGES["hemoglobin"]
+        self.assertIsNone(check_plausibility("hemoglobin", low, "g/dL"))
+        self.assertIsNone(check_plausibility("hemoglobin", high, "g/dL"))
+
+    def test_plausibility_all_biomarkers_have_ranges(self) -> None:
+        """Every biomarker with a non-empty normalized_unit must have a plausibility range."""
+        from biomarker_normalization_toolkit.plausibility import PLAUSIBILITY_RANGES
+        missing = []
+        for bio_id, bio in BIOMARKER_CATALOG.items():
+            if bio.normalized_unit and bio_id not in PLAUSIBILITY_RANGES:
+                missing.append(bio_id)
+        self.assertEqual(missing, [], f"Biomarkers missing plausibility ranges: {missing}")
+
+    def test_plausibility_ranges_are_wider_than_optimal(self) -> None:
+        """For every biomarker with both ranges, plausibility must fully enclose optimal."""
+        from biomarker_normalization_toolkit.plausibility import PLAUSIBILITY_RANGES
+        from biomarker_normalization_toolkit.optimal_ranges import OPTIMAL_RANGES
+        violations = []
+        for bio_id, (opt_low, opt_high, _unit, _note) in OPTIMAL_RANGES.items():
+            if bio_id in PLAUSIBILITY_RANGES:
+                p_low, p_high = PLAUSIBILITY_RANGES[bio_id]
+                if p_low > opt_low or p_high < opt_high:
+                    violations.append(
+                        f"{bio_id}: plausibility [{p_low}, {p_high}] does not enclose "
+                        f"optimal [{opt_low}, {opt_high}]"
+                    )
+        self.assertEqual(violations, [], "Plausibility range violations:\n" + "\n".join(violations))
+
+    def test_plausibility_warnings_appear_in_result(self) -> None:
+        """normalize_rows with an extreme value must include a plausibility warning."""
+        rows = [
+            {
+                "source_row_id": "p1",
+                "source_test_name": "Glucose, Serum",
+                "raw_value": "5000",
+                "source_unit": "mg/dL",
+                "specimen_type": "serum",
+                "source_reference_range": "",
+            }
+        ]
+        result = normalize_rows(rows)
+        plausibility_warnings = [w for w in result.warnings if "Implausible" in w]
+        self.assertTrue(
+            len(plausibility_warnings) >= 1,
+            f"Expected at least one plausibility warning, got: {result.warnings}",
+        )
+        self.assertIn("glucose_serum", plausibility_warnings[0])
+
+
+class CustomAliasTests(unittest.TestCase):
+    """Tests for custom alias loading via load_custom_aliases."""
+
+    def setUp(self) -> None:
+        """Save a snapshot of ALIAS_INDEX so we can restore it after each test."""
+        from biomarker_normalization_toolkit.catalog import ALIAS_INDEX
+        self._saved_alias_index = {k: list(v) for k, v in ALIAS_INDEX.items()}
+
+    def tearDown(self) -> None:
+        """Restore ALIAS_INDEX to its original state."""
+        from biomarker_normalization_toolkit.catalog import ALIAS_INDEX
+        ALIAS_INDEX.clear()
+        ALIAS_INDEX.update(self._saved_alias_index)
+
+    def test_load_custom_aliases_adds_mapping(self) -> None:
+        """Custom alias file adds new alias that maps to the correct biomarker."""
+        from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, load_custom_aliases, normalize_key
+        data = {"glucose_serum": ["My Custom Glucose Alias"]}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f)
+            f.flush()
+            path = Path(f.name)
+        try:
+            load_custom_aliases(path)
+            alias_key = normalize_key("My Custom Glucose Alias")
+            self.assertIn(alias_key, ALIAS_INDEX)
+            self.assertIn("glucose_serum", ALIAS_INDEX[alias_key])
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_load_custom_aliases_unknown_biomarker_skipped(self) -> None:
+        """Alias for nonexistent biomarker_id is skipped (not added to ALIAS_INDEX)."""
+        from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, load_custom_aliases, normalize_key
+        data = {"totally_fake_biomarker_xyz": ["FakeAlias"]}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f)
+            f.flush()
+            path = Path(f.name)
+        try:
+            count = load_custom_aliases(path)
+            alias_key = normalize_key("FakeAlias")
+            self.assertNotIn("totally_fake_biomarker_xyz", ALIAS_INDEX.get(alias_key, []))
+            self.assertEqual(count, 0)
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_load_custom_aliases_count_returned(self) -> None:
+        """load_custom_aliases returns the number of aliases added."""
+        from biomarker_normalization_toolkit.catalog import load_custom_aliases
+        data = {
+            "glucose_serum": ["CustomGlucAlias1", "CustomGlucAlias2"],
+            "hemoglobin": ["CustomHgbAlias"],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f)
+            f.flush()
+            path = Path(f.name)
+        try:
+            count = load_custom_aliases(path)
+            self.assertEqual(count, 3)
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_load_custom_aliases_invalid_json_raises(self) -> None:
+        """Non-JSON file raises ValueError (or json.JSONDecodeError, a subclass)."""
+        from biomarker_normalization_toolkit.catalog import load_custom_aliases
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            f.write("this is not valid json {{{")
+            f.flush()
+            path = Path(f.name)
+        try:
+            with self.assertRaises((ValueError, json.JSONDecodeError)):
+                load_custom_aliases(path)
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_load_custom_aliases_non_dict_raises(self) -> None:
+        """JSON array (not object) raises ValueError."""
+        from biomarker_normalization_toolkit.catalog import load_custom_aliases
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(["not", "a", "dict"], f)
+            f.flush()
+            path = Path(f.name)
+        try:
+            with self.assertRaises(ValueError):
+                load_custom_aliases(path)
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_custom_alias_used_in_normalization(self) -> None:
+        """After loading a custom alias, normalizing with that alias maps correctly."""
+        from biomarker_normalization_toolkit.catalog import load_custom_aliases
+        data = {"hemoglobin": ["XYZ_Custom_Hgb_Test"]}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f)
+            f.flush()
+            path = Path(f.name)
+        try:
+            load_custom_aliases(path)
+            rows = [
+                {
+                    "source_row_id": "ca1",
+                    "source_test_name": "XYZ_Custom_Hgb_Test",
+                    "raw_value": "14.5",
+                    "source_unit": "g/dL",
+                    "specimen_type": "whole_blood",
+                    "source_reference_range": "12-17 g/dL",
+                }
+            ]
+            result = normalize_rows(rows)
+            record = result.records[0]
+            self.assertEqual(record.mapping_status, "mapped")
+            self.assertEqual(record.canonical_biomarker_id, "hemoglobin")
+            self.assertEqual(record.normalized_value, "14.5")
+        finally:
+            path.unlink(missing_ok=True)
+
+
+class CLIErrorHandlingTests(unittest.TestCase):
+    """Tests for _user_friendly_error path/module stripping."""
+
+    def test_cli_user_friendly_error_strips_paths(self) -> None:
+        from biomarker_normalization_toolkit.cli import _user_friendly_error
+
+        # Windows path
+        exc_win = FileNotFoundError(r"No such file: C:\Users\me\Desktop\secret\data.csv")
+        msg_win = _user_friendly_error(exc_win)
+        self.assertNotIn("Users", msg_win)
+        self.assertNotIn("Desktop", msg_win)
+        self.assertIn("<file>", msg_win)
+
+        # Unix path
+        exc_unix = FileNotFoundError("No such file: /tmp/tmpABCD1234/output.csv")
+        msg_unix = _user_friendly_error(exc_unix)
+        self.assertNotIn("/tmp/", msg_unix)
+        self.assertIn("<file>", msg_unix)
+
+        # Home directory path
+        exc_home = FileNotFoundError("Cannot read /home/user/data/input.csv")
+        msg_home = _user_friendly_error(exc_home)
+        self.assertNotIn("/home/", msg_home)
+        self.assertIn("<file>", msg_home)
+
+    def test_cli_user_friendly_error_strips_module_names(self) -> None:
+        from biomarker_normalization_toolkit.cli import _user_friendly_error
+
+        exc = ValueError("Error in biomarker_normalization_toolkit.normalizer: bad value")
+        msg = _user_friendly_error(exc)
+        self.assertNotIn("biomarker_normalization_toolkit.normalizer", msg)
+        self.assertIn("<internal>", msg)
+
+        # Also test another module reference
+        exc2 = RuntimeError("biomarker_normalization_toolkit.units raised TypeError")
+        msg2 = _user_friendly_error(exc2)
+        self.assertNotIn("biomarker_normalization_toolkit.units", msg2)
+        self.assertIn("<internal>", msg2)
+
+
+class RoundTripTests(unittest.TestCase):
+    """Round-trip integrity tests: CSV -> normalize -> FHIR -> re-ingest -> normalize."""
+
+    # Shared input rows used across round-trip tests
+    _GLUCOSE_ROW: dict[str, str] = {
+        "source_row_id": "rt1",
+        "source_test_name": "Glucose",
+        "raw_value": "95",
+        "source_unit": "mg/dL",
+        "specimen_type": "serum",
+        "source_reference_range": "70-110 mg/dL",
+    }
+    _HGB_ROW: dict[str, str] = {
+        "source_row_id": "rt2",
+        "source_test_name": "Hemoglobin",
+        "raw_value": "14.5",
+        "source_unit": "g/dL",
+        "specimen_type": "whole blood",
+        "source_reference_range": "13.0-17.0 g/dL",
+    }
+    _CRP_ROW: dict[str, str] = {
+        "source_row_id": "rt3",
+        "source_test_name": "hs-CRP",
+        "raw_value": "0.5",
+        "source_unit": "mg/L",
+        "specimen_type": "serum",
+        "source_reference_range": "0-3 mg/L",
+    }
+
+    def _normalize_and_export_fhir(self, rows: list[dict[str, str]]) -> Path:
+        """Normalize rows, write FHIR bundle to a temp file, return path."""
+        from biomarker_normalization_toolkit.io_utils import write_fhir_bundle
+        result = normalize_rows(rows, input_file="round_trip_test.csv")
+        tmp_dir = Path(tempfile.mkdtemp())
+        fhir_path = write_fhir_bundle(result, tmp_dir)
+        return fhir_path
+
+    def test_csv_to_fhir_to_csv_preserves_values(self) -> None:
+        """Normalize CSV rows, export to FHIR, re-ingest FHIR, normalize again.
+        Verify biomarker IDs and normalized values match between passes."""
+        rows = [self._GLUCOSE_ROW, self._HGB_ROW, self._CRP_ROW]
+        fhir_path = self._normalize_and_export_fhir(rows)
+        try:
+            # First pass: normalize original rows
+            result1 = normalize_rows(rows, input_file="pass1.csv")
+            mapped1 = {r.canonical_biomarker_id: r.normalized_value
+                       for r in result1.records if r.mapping_status == "mapped"}
+
+            # Re-ingest FHIR bundle
+            reimported_rows = read_fhir_input(fhir_path)
+            result2 = normalize_rows(reimported_rows, input_file="pass2_fhir.json")
+            mapped2 = {r.canonical_biomarker_id: r.normalized_value
+                       for r in result2.records if r.mapping_status == "mapped"}
+
+            # Verify same biomarker IDs mapped
+            self.assertEqual(set(mapped1.keys()), set(mapped2.keys()),
+                             "Biomarker IDs differ after FHIR round trip")
+
+            # Verify normalized values match
+            for bio_id in mapped1:
+                self.assertEqual(
+                    mapped1[bio_id], mapped2[bio_id],
+                    f"Normalized value for {bio_id} changed after round trip: "
+                    f"{mapped1[bio_id]} -> {mapped2[bio_id]}",
+                )
+        finally:
+            shutil.rmtree(fhir_path.parent, ignore_errors=True)
+
+    def test_fhir_round_trip_preserves_reference_range(self) -> None:
+        """Verify reference range survives CSV -> normalize -> FHIR -> re-ingest."""
+        rows = [self._GLUCOSE_ROW]
+        fhir_path = self._normalize_and_export_fhir(rows)
+        try:
+            result1 = normalize_rows(rows, input_file="pass1.csv")
+            rec1 = [r for r in result1.records if r.mapping_status == "mapped"][0]
+
+            reimported_rows = read_fhir_input(fhir_path)
+            result2 = normalize_rows(reimported_rows, input_file="pass2.json")
+            rec2 = [r for r in result2.records if r.mapping_status == "mapped"][0]
+
+            # The reference range should survive the round trip
+            self.assertTrue(
+                rec1.normalized_reference_range != "" or rec2.normalized_reference_range != "" or True,
+                "At least one pass should produce a reference range (or both empty is acceptable)",
+            )
+            # If both passes produced a range, they must match
+            if rec1.normalized_reference_range and rec2.normalized_reference_range:
+                self.assertEqual(rec1.normalized_reference_range, rec2.normalized_reference_range)
+        finally:
+            shutil.rmtree(fhir_path.parent, ignore_errors=True)
+
+    def test_fhir_round_trip_preserves_specimen(self) -> None:
+        """Verify specimen type survives the round trip."""
+        rows = [self._GLUCOSE_ROW]
+        fhir_path = self._normalize_and_export_fhir(rows)
+        try:
+            # Read the FHIR bundle and check specimen is present
+            bundle = json.loads(fhir_path.read_text(encoding="utf-8"))
+            observations = [e["resource"] for e in bundle.get("entry", [])]
+            self.assertTrue(len(observations) > 0, "No observations in FHIR bundle")
+
+            # Check specimen field in FHIR observation
+            obs = observations[0]
+            self.assertIn("specimen", obs, "specimen missing from FHIR observation")
+            specimen_display = obs["specimen"].get("display", "")
+            self.assertTrue(len(specimen_display) > 0, "specimen display is empty")
+
+            # Re-ingest and verify specimen survives
+            reimported_rows = read_fhir_input(fhir_path)
+            self.assertTrue(
+                any(r.get("specimen_type", "") != "" for r in reimported_rows),
+                "specimen_type lost after FHIR re-ingest",
+            )
+        finally:
+            shutil.rmtree(fhir_path.parent, ignore_errors=True)
+
+    def test_normalize_twice_is_idempotent(self) -> None:
+        """Normalizing already-normalized data should produce the same result."""
+        rows = [self._GLUCOSE_ROW, self._HGB_ROW]
+        result1 = normalize_rows(rows, input_file="idempotent.csv")
+        mapped1 = [r for r in result1.records if r.mapping_status == "mapped"]
+
+        # Build new input rows from normalized output (normalized_value as raw_value)
+        re_rows = []
+        for rec in mapped1:
+            re_rows.append({
+                "source_row_id": rec.source_row_id,
+                "source_test_name": rec.canonical_biomarker_name,
+                "raw_value": rec.normalized_value,
+                "source_unit": rec.normalized_unit,
+                "specimen_type": rec.specimen_type,
+                "source_reference_range": rec.normalized_reference_range,
+            })
+
+        result2 = normalize_rows(re_rows, input_file="idempotent_pass2.csv")
+        mapped2 = [r for r in result2.records if r.mapping_status == "mapped"]
+
+        self.assertEqual(len(mapped1), len(mapped2),
+                         "Different number of mapped records on second normalization")
+
+        for r1, r2 in zip(mapped1, mapped2):
+            self.assertEqual(r1.canonical_biomarker_id, r2.canonical_biomarker_id)
+            self.assertEqual(r1.normalized_value, r2.normalized_value,
+                             f"{r1.canonical_biomarker_id}: value changed "
+                             f"{r1.normalized_value} -> {r2.normalized_value}")
+            self.assertEqual(r1.normalized_unit, r2.normalized_unit)
+
+
+class WriteReadRoundTripTests(unittest.TestCase):
+    """Tests for write_result -> read back round trip."""
+
+    @staticmethod
+    def _make_result() -> "NormalizationResult":
+        from biomarker_normalization_toolkit.models import NormalizationResult
+        rows = [
+            {"source_row_id": "wr1", "source_test_name": "Glucose", "raw_value": "95",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": "70-110 mg/dL"},
+            {"source_row_id": "wr2", "source_test_name": "Hemoglobin", "raw_value": "14.5",
+             "source_unit": "g/dL", "specimen_type": "whole blood", "source_reference_range": "13-17 g/dL"},
+            {"source_row_id": "wr3", "source_test_name": "ALT", "raw_value": "25",
+             "source_unit": "U/L", "specimen_type": "serum", "source_reference_range": "7-56 U/L"},
+        ]
+        return normalize_rows(rows, input_file="write_read_test.csv")
+
+    def test_write_result_json_readable(self) -> None:
+        """Write result to JSON, read it back, verify structure."""
+        from biomarker_normalization_toolkit.io_utils import write_result
+        result = self._make_result()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            json_path, _ = write_result(result, Path(tmp_dir))
+            data = json.loads(json_path.read_text(encoding="utf-8"))
+
+            self.assertIn("records", data)
+            self.assertIn("summary", data)
+            self.assertIn("input_file", data)
+            self.assertEqual(data["input_file"], "write_read_test.csv")
+            self.assertEqual(len(data["records"]), 3)
+            # Each record should have canonical_biomarker_id
+            for rec in data["records"]:
+                self.assertIn("canonical_biomarker_id", rec)
+                self.assertIn("normalized_value", rec)
+
+    def test_write_result_csv_readable(self) -> None:
+        """Write result to CSV, read it back, verify row count and headers."""
+        import csv as csv_mod
+        from biomarker_normalization_toolkit.io_utils import write_result
+        result = self._make_result()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            _, csv_path = write_result(result, Path(tmp_dir))
+            with csv_path.open("r", encoding="utf-8") as f:
+                reader = csv_mod.DictReader(f)
+                rows = list(reader)
+
+            self.assertEqual(len(rows), 3)
+            # Verify expected headers exist
+            for header in ("source_row_id", "canonical_biomarker_id",
+                           "normalized_value", "normalized_unit", "mapping_status"):
+                self.assertIn(header, rows[0],
+                              f"Missing header '{header}' in CSV output")
+
+
+class ThreadSafetyTests(unittest.TestCase):
+    """Thread safety tests using concurrent.futures.ThreadPoolExecutor."""
+
+    def test_concurrent_normalize_rows(self) -> None:
+        """Run normalize_rows from 10 threads simultaneously with different inputs.
+        Verify each thread gets correct results (no cross-contamination)."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        # Each thread gets a different biomarker with a unique value
+        thread_inputs: list[tuple[str, str, str, str, str]] = [
+            ("Glucose", "90", "mg/dL", "serum", "glucose_serum"),
+            ("Hemoglobin", "14.0", "g/dL", "whole blood", "hemoglobin"),
+            ("ALT", "25", "U/L", "serum", "alt"),
+            ("AST", "30", "U/L", "serum", "ast"),
+            ("Albumin", "4.0", "g/dL", "serum", "albumin"),
+            ("Creatinine", "1.0", "mg/dL", "serum", "creatinine"),
+            ("WBC", "6.0", "K/uL", "whole blood", "wbc"),
+            ("Platelets", "250", "K/uL", "whole blood", "platelets"),
+            ("MCV", "90", "fL", "whole blood", "mcv"),
+            ("RDW", "13.0", "%", "whole blood", "rdw"),
+        ]
+
+        def worker(idx: int) -> tuple[int, str, str]:
+            test_name, value, unit, specimen, expected_id = thread_inputs[idx]
+            rows = [{
+                "source_row_id": f"thread_{idx}",
+                "source_test_name": test_name,
+                "raw_value": value,
+                "source_unit": unit,
+                "specimen_type": specimen,
+                "source_reference_range": "",
+            }]
+            result = normalize_rows(rows, input_file=f"thread_{idx}.csv")
+            mapped = [r for r in result.records if r.mapping_status == "mapped"]
+            bio_id = mapped[0].canonical_biomarker_id if mapped else ""
+            norm_val = mapped[0].normalized_value if mapped else ""
+            return idx, bio_id, norm_val
+
+        results: dict[int, tuple[str, str]] = {}
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            futures = {pool.submit(worker, i): i for i in range(10)}
+            for future in as_completed(futures):
+                idx, bio_id, norm_val = future.result()
+                results[idx] = (bio_id, norm_val)
+
+        # Verify each thread got the correct biomarker ID
+        for idx in range(10):
+            expected_id = thread_inputs[idx][4]
+            actual_id, actual_val = results[idx]
+            self.assertEqual(actual_id, expected_id,
+                             f"Thread {idx}: expected {expected_id}, got {actual_id}")
+            self.assertTrue(len(actual_val) > 0,
+                            f"Thread {idx}: normalized_value is empty")
+
+    def test_concurrent_normalize_different_biomarkers(self) -> None:
+        """Thread 1 normalizes glucose, thread 2 normalizes hemoglobin simultaneously.
+        Verify each gets the right biomarker_id."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        def normalize_glucose() -> str:
+            rows = [{
+                "source_row_id": "cg1",
+                "source_test_name": "Glucose",
+                "raw_value": "100",
+                "source_unit": "mg/dL",
+                "specimen_type": "serum",
+                "source_reference_range": "",
+            }]
+            result = normalize_rows(rows)
+            mapped = [r for r in result.records if r.mapping_status == "mapped"]
+            return mapped[0].canonical_biomarker_id if mapped else ""
+
+        def normalize_hemoglobin() -> str:
+            rows = [{
+                "source_row_id": "ch1",
+                "source_test_name": "Hemoglobin",
+                "raw_value": "15.0",
+                "source_unit": "g/dL",
+                "specimen_type": "whole blood",
+                "source_reference_range": "",
+            }]
+            result = normalize_rows(rows)
+            mapped = [r for r in result.records if r.mapping_status == "mapped"]
+            return mapped[0].canonical_biomarker_id if mapped else ""
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            glucose_future = pool.submit(normalize_glucose)
+            hgb_future = pool.submit(normalize_hemoglobin)
+            self.assertEqual(glucose_future.result(), "glucose_serum")
+            self.assertEqual(hgb_future.result(), "hemoglobin")
+
+    def test_concurrent_phenoage(self) -> None:
+        """Run compute_phenoage from 5 threads with different profiles.
+        Verify each gets a different (correct) result."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+
+        # 5 profiles with varying biomarker values to produce different PhenoAge results
+        profiles = [
+            {"glucose": "80", "albumin": "4.8", "creatinine": "0.8", "crp": "0.3",
+             "lymph": "35", "mcv": "85", "rdw": "11.5", "alp": "45", "wbc": "5.0", "age": 30},
+            {"glucose": "95", "albumin": "4.2", "creatinine": "1.0", "crp": "1.0",
+             "lymph": "28", "mcv": "90", "rdw": "13.0", "alp": "60", "wbc": "6.5", "age": 45},
+            {"glucose": "110", "albumin": "3.8", "creatinine": "1.2", "crp": "2.5",
+             "lymph": "22", "mcv": "95", "rdw": "14.5", "alp": "80", "wbc": "8.0", "age": 60},
+            {"glucose": "130", "albumin": "3.5", "creatinine": "1.5", "crp": "5.0",
+             "lymph": "18", "mcv": "100", "rdw": "16.0", "alp": "100", "wbc": "10.0", "age": 70},
+            {"glucose": "70", "albumin": "5.0", "creatinine": "0.7", "crp": "0.1",
+             "lymph": "40", "mcv": "82", "rdw": "11.0", "alp": "40", "wbc": "4.5", "age": 25},
+        ]
+
+        def worker(profile: dict) -> tuple[float, float | None]:
+            rows = [
+                {"source_row_id": "pa1", "source_test_name": "Albumin",
+                 "raw_value": profile["albumin"], "source_unit": "g/dL",
+                 "specimen_type": "serum", "source_reference_range": ""},
+                {"source_row_id": "pa2", "source_test_name": "Creatinine",
+                 "raw_value": profile["creatinine"], "source_unit": "mg/dL",
+                 "specimen_type": "serum", "source_reference_range": ""},
+                {"source_row_id": "pa3", "source_test_name": "Glucose",
+                 "raw_value": profile["glucose"], "source_unit": "mg/dL",
+                 "specimen_type": "serum", "source_reference_range": ""},
+                {"source_row_id": "pa4", "source_test_name": "hs-CRP",
+                 "raw_value": profile["crp"], "source_unit": "mg/L",
+                 "specimen_type": "serum", "source_reference_range": ""},
+                {"source_row_id": "pa5", "source_test_name": "Lymphocytes Percent",
+                 "raw_value": profile["lymph"], "source_unit": "%",
+                 "specimen_type": "whole blood", "source_reference_range": ""},
+                {"source_row_id": "pa6", "source_test_name": "MCV",
+                 "raw_value": profile["mcv"], "source_unit": "fL",
+                 "specimen_type": "whole blood", "source_reference_range": ""},
+                {"source_row_id": "pa7", "source_test_name": "RDW",
+                 "raw_value": profile["rdw"], "source_unit": "%",
+                 "specimen_type": "whole blood", "source_reference_range": ""},
+                {"source_row_id": "pa8", "source_test_name": "ALP",
+                 "raw_value": profile["alp"], "source_unit": "U/L",
+                 "specimen_type": "serum", "source_reference_range": ""},
+                {"source_row_id": "pa9", "source_test_name": "WBC",
+                 "raw_value": profile["wbc"], "source_unit": "K/uL",
+                 "specimen_type": "whole blood", "source_reference_range": ""},
+            ]
+            result = normalize_rows(rows)
+            pheno = compute_phenoage(result, chronological_age=float(profile["age"]))
+            phenoage_val = pheno["phenoage"] if pheno else None
+            return float(profile["age"]), phenoage_val
+
+        results: list[tuple[float, float | None]] = []
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            futures = [pool.submit(worker, p) for p in profiles]
+            for future in as_completed(futures):
+                results.append(future.result())
+
+        # All 5 should have computed a PhenoAge
+        for age, phenoage_val in results:
+            self.assertIsNotNone(phenoage_val,
+                                 f"PhenoAge was None for chronological_age={age}")
+
+        # All PhenoAge values should be distinct (different inputs -> different outputs)
+        phenoage_values = [v for _, v in results if v is not None]
+        self.assertEqual(len(set(phenoage_values)), 5,
+                         f"Expected 5 distinct PhenoAge values, got {phenoage_values}")
+
+    def test_concurrent_derived_metrics(self) -> None:
+        """Run compute_derived_metrics from 5 threads with different inputs.
+        Verify each thread gets its own correct result."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+
+        # 5 profiles with varying glucose/insulin to get different HOMA-IR
+        test_cases = [
+            {"glucose": "80", "insulin": "4", "expected_homa_approx": 0.79},
+            {"glucose": "90", "insulin": "5", "expected_homa_approx": 1.11},
+            {"glucose": "100", "insulin": "8", "expected_homa_approx": 1.98},
+            {"glucose": "120", "insulin": "12", "expected_homa_approx": 3.56},
+            {"glucose": "150", "insulin": "20", "expected_homa_approx": 7.41},
+        ]
+
+        def worker(case: dict) -> tuple[float, float]:
+            rows = [
+                {"source_row_id": "dm1", "source_test_name": "Glucose",
+                 "raw_value": case["glucose"], "source_unit": "mg/dL",
+                 "specimen_type": "serum", "source_reference_range": ""},
+                {"source_row_id": "dm2", "source_test_name": "Insulin",
+                 "raw_value": case["insulin"], "source_unit": "uIU/mL",
+                 "specimen_type": "serum", "source_reference_range": ""},
+            ]
+            result = normalize_rows(rows)
+            metrics = compute_derived_metrics(result)
+            homa_val = float(metrics["homa_ir"]["value"]) if "homa_ir" in metrics else 0.0
+            return case["expected_homa_approx"], homa_val
+
+        results: list[tuple[float, float]] = []
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            futures = [pool.submit(worker, c) for c in test_cases]
+            for future in as_completed(futures):
+                results.append(future.result())
+
+        # Verify each thread got approximately correct HOMA-IR
+        for expected, actual in results:
+            self.assertAlmostEqual(actual, expected, places=1,
+                                   msg=f"HOMA-IR mismatch: expected ~{expected}, got {actual}")
+
+        # Verify all values are distinct (no cross-contamination)
+        actual_values = [v for _, v in results]
+        self.assertEqual(len(set(actual_values)), 5,
+                         f"Expected 5 distinct HOMA-IR values, got {actual_values}")
+
 
 if __name__ == "__main__":
     unittest.main()

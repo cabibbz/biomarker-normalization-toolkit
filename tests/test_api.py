@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+import hashlib
+import hmac as hmac_mod
 import json
+import os
 from pathlib import Path
+import time
 import unittest
 
 from fastapi.testclient import TestClient
 
 from biomarker_normalization_toolkit.api import app
+from biomarker_normalization_toolkit.licensing import (
+    FREE_MAX_ROWS,
+    PRO_MAX_ROWS,
+    validate_api_key,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -650,6 +659,136 @@ class APITests(unittest.TestCase):
         ]
         for field in expected_fields:
             self.assertIn(field, record, f"Missing field: {field}")
+
+
+class LicensingTests(unittest.TestCase):
+    """Tests for biomarker_normalization_toolkit.licensing.validate_api_key."""
+
+    def _clean_env(self, keys: list[str]) -> dict[str, str | None]:
+        """Save and remove env vars, return originals for restoration."""
+        saved: dict[str, str | None] = {}
+        for k in keys:
+            saved[k] = os.environ.pop(k, None)
+        return saved
+
+    def _restore_env(self, saved: dict[str, str | None]) -> None:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def test_free_tier_default(self) -> None:
+        """No API key returns free tier features."""
+        saved = self._clean_env(["BNT_LICENSE_SECRET", "BNT_PRO_KEY", "BNT_ENTERPRISE_KEY"])
+        try:
+            info = validate_api_key(None)
+            self.assertEqual(info["tier"], "free")
+            self.assertTrue(info["valid"])
+            self.assertEqual(info["max_rows"], FREE_MAX_ROWS)
+            self.assertFalse(info["features"]["phenoage"])
+            self.assertFalse(info["features"]["optimal_ranges"])
+        finally:
+            self._restore_env(saved)
+
+    def test_static_pro_key(self) -> None:
+        """BNT_PRO_KEY env var grants pro features."""
+        saved = self._clean_env(["BNT_LICENSE_SECRET", "BNT_PRO_KEY", "BNT_ENTERPRISE_KEY"])
+        try:
+            os.environ["BNT_PRO_KEY"] = "my-pro-secret"
+            info = validate_api_key("my-pro-secret")
+            self.assertEqual(info["tier"], "pro")
+            self.assertTrue(info["valid"])
+            self.assertEqual(info["max_rows"], PRO_MAX_ROWS)
+            self.assertTrue(info["features"]["phenoage"])
+            self.assertTrue(info["features"]["optimal_ranges"])
+            self.assertIsNone(info["biomarker_ids"])
+        finally:
+            self._restore_env(saved)
+
+    def test_static_enterprise_key(self) -> None:
+        """BNT_ENTERPRISE_KEY grants enterprise features."""
+        saved = self._clean_env(["BNT_LICENSE_SECRET", "BNT_PRO_KEY", "BNT_ENTERPRISE_KEY"])
+        try:
+            os.environ["BNT_ENTERPRISE_KEY"] = "my-enterprise-secret"
+            info = validate_api_key("my-enterprise-secret")
+            self.assertEqual(info["tier"], "enterprise")
+            self.assertTrue(info["valid"])
+            self.assertEqual(info["max_rows"], PRO_MAX_ROWS)
+            self.assertTrue(info["features"]["phenoage"])
+            self.assertIsNone(info["biomarker_ids"])
+        finally:
+            self._restore_env(saved)
+
+    def test_expired_hmac_key_falls_to_free(self) -> None:
+        """Expired HMAC key does not grant pro."""
+        saved = self._clean_env(["BNT_LICENSE_SECRET", "BNT_PRO_KEY", "BNT_ENTERPRISE_KEY"])
+        try:
+            secret = "test-hmac-secret"
+            os.environ["BNT_LICENSE_SECRET"] = secret
+            # Create a key that expired 1 hour ago
+            expiry = str(int(time.time()) - 3600)
+            sig = hmac_mod.new(
+                secret.encode(), f"pro:{expiry}".encode(), hashlib.sha256
+            ).hexdigest()[:32]
+            api_key = f"pro:{expiry}:{sig}"
+            info = validate_api_key(api_key)
+            self.assertEqual(info["tier"], "free")
+            self.assertFalse(info["features"]["phenoage"])
+        finally:
+            self._restore_env(saved)
+
+    def test_hmac_enterprise_key(self) -> None:
+        """Valid HMAC with enterprise tier grants enterprise."""
+        saved = self._clean_env(["BNT_LICENSE_SECRET", "BNT_PRO_KEY", "BNT_ENTERPRISE_KEY"])
+        try:
+            secret = "test-hmac-secret"
+            os.environ["BNT_LICENSE_SECRET"] = secret
+            expiry = str(int(time.time()) + 3600)
+            sig = hmac_mod.new(
+                secret.encode(), f"enterprise:{expiry}".encode(), hashlib.sha256
+            ).hexdigest()[:32]
+            api_key = f"enterprise:{expiry}:{sig}"
+            info = validate_api_key(api_key)
+            self.assertEqual(info["tier"], "enterprise")
+            self.assertTrue(info["valid"])
+            self.assertTrue(info["features"]["phenoage"])
+            self.assertTrue(info["features"]["optimal_ranges"])
+            self.assertIsNone(info["biomarker_ids"])
+        finally:
+            self._restore_env(saved)
+
+    def test_malformed_key_format(self) -> None:
+        """Key with wrong number of colons falls to free tier."""
+        saved = self._clean_env(["BNT_LICENSE_SECRET", "BNT_PRO_KEY", "BNT_ENTERPRISE_KEY"])
+        try:
+            os.environ["BNT_LICENSE_SECRET"] = "some-secret"
+            info = validate_api_key("only-one-part")
+            self.assertEqual(info["tier"], "free")
+            self.assertFalse(info.get("valid", True))
+        finally:
+            self._restore_env(saved)
+
+    def test_empty_api_key_is_free(self) -> None:
+        """Empty string key is free tier."""
+        saved = self._clean_env(["BNT_LICENSE_SECRET", "BNT_PRO_KEY", "BNT_ENTERPRISE_KEY"])
+        try:
+            info = validate_api_key("")
+            self.assertEqual(info["tier"], "free")
+            self.assertTrue(info["valid"])
+            self.assertFalse(info["features"]["phenoage"])
+        finally:
+            self._restore_env(saved)
+
+    def test_whitespace_api_key_is_free(self) -> None:
+        """Whitespace-only key is free tier (invalid key, falls through)."""
+        saved = self._clean_env(["BNT_LICENSE_SECRET", "BNT_PRO_KEY", "BNT_ENTERPRISE_KEY"])
+        try:
+            info = validate_api_key("   ")
+            self.assertEqual(info["tier"], "free")
+            self.assertFalse(info["features"]["phenoage"])
+        finally:
+            self._restore_env(saved)
 
 
 if __name__ == "__main__":
