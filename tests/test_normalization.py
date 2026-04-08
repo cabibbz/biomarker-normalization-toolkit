@@ -10,11 +10,13 @@ import shutil
 
 from decimal import Decimal
 
-from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG
-from biomarker_normalization_toolkit.fhir import build_bundle
+import re
+
+from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, BIOMARKER_CATALOG, normalize_key
+from biomarker_normalization_toolkit.fhir import build_bundle, UCUM_CODES
 from biomarker_normalization_toolkit.io_utils import read_ccda_input, read_excel_input, read_fhir_input, read_hl7_input, read_input, read_input_csv
 from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_rows, normalize_source_record
-from biomarker_normalization_toolkit.units import convert_to_normalized, is_inequality_value, parse_reference_range
+from biomarker_normalization_toolkit.units import CONVERSION_TO_NORMALIZED, convert_to_normalized, is_inequality_value, parse_reference_range
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -5411,6 +5413,908 @@ class ThreadSafetyTests(unittest.TestCase):
         actual_values = [v for _, v in results]
         self.assertEqual(len(set(actual_values)), 5,
                          f"Expected 5 distinct HOMA-IR values, got {actual_values}")
+
+
+class CatalogIntegrityTests(unittest.TestCase):
+    """Verify internal consistency of all biomarker definitions in the catalog."""
+
+    _VALID_SPECIMENS = frozenset({"serum", "plasma", "whole_blood", "urine"})
+    _LOINC_RE = re.compile(r"^\d+-\d$")
+    _SNAKE_CASE_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+
+    def test_every_biomarker_has_at_least_3_aliases(self) -> None:
+        """Every biomarker must have at least 3 aliases for robust matching."""
+        violations: list[str] = []
+        for bio_id, defn in BIOMARKER_CATALOG.items():
+            if len(defn.aliases) < 3:
+                violations.append(f"{bio_id}: only {len(defn.aliases)} alias(es)")
+        self.assertEqual(violations, [], f"Biomarkers with fewer than 3 aliases:\n" + "\n".join(violations))
+
+    def test_no_duplicate_aliases_within_biomarker(self) -> None:
+        """No biomarker should list the same alias twice."""
+        violations: list[str] = []
+        for bio_id, defn in BIOMARKER_CATALOG.items():
+            normalized = [normalize_key(a) for a in defn.aliases]
+            seen: set[str] = set()
+            for i, nk in enumerate(normalized):
+                if nk in seen:
+                    violations.append(f"{bio_id}: duplicate alias '{defn.aliases[i]}' (key={nk!r})")
+                seen.add(nk)
+        self.assertEqual(violations, [], f"Duplicate aliases found:\n" + "\n".join(violations))
+
+    def test_no_alias_key_collision_without_specimen_disambiguation(self) -> None:
+        """When an alias maps to 2+ biomarkers, their allowed_specimens must not overlap."""
+        violations: list[str] = []
+        for alias_key, bio_ids in ALIAS_INDEX.items():
+            if len(bio_ids) < 2:
+                continue
+            # Check all pairs for specimen overlap
+            for i in range(len(bio_ids)):
+                for j in range(i + 1, len(bio_ids)):
+                    specs_i = BIOMARKER_CATALOG[bio_ids[i]].allowed_specimens
+                    specs_j = BIOMARKER_CATALOG[bio_ids[j]].allowed_specimens
+                    overlap = specs_i & specs_j
+                    if overlap:
+                        violations.append(
+                            f"Alias key {alias_key!r} -> [{bio_ids[i]}, {bio_ids[j]}] "
+                            f"share specimen(s): {sorted(overlap)}"
+                        )
+        self.assertEqual(
+            violations, [],
+            f"Alias collisions without specimen disambiguation:\n" + "\n".join(violations),
+        )
+
+    def test_every_loinc_is_unique(self) -> None:
+        """No two biomarkers should share the same LOINC code."""
+        loinc_to_ids: dict[str, list[str]] = {}
+        for bio_id, defn in BIOMARKER_CATALOG.items():
+            if defn.loinc:
+                loinc_to_ids.setdefault(defn.loinc, []).append(bio_id)
+        duplicates = {loinc: ids for loinc, ids in loinc_to_ids.items() if len(ids) > 1}
+        self.assertEqual(duplicates, {}, f"Duplicate LOINC codes: {duplicates}")
+
+    def test_every_loinc_matches_format(self) -> None:
+        """Every LOINC code must match the standard format: digits-digit."""
+        violations: list[str] = []
+        for bio_id, defn in BIOMARKER_CATALOG.items():
+            if defn.loinc and not self._LOINC_RE.match(defn.loinc):
+                violations.append(f"{bio_id}: {defn.loinc!r}")
+        self.assertEqual(violations, [], f"Invalid LOINC formats:\n" + "\n".join(violations))
+
+    def test_every_normalized_unit_has_ucum_code(self) -> None:
+        """Every non-empty normalized_unit must have an entry in UCUM_CODES."""
+        violations: list[str] = []
+        for bio_id, defn in BIOMARKER_CATALOG.items():
+            if defn.normalized_unit and defn.normalized_unit not in UCUM_CODES:
+                violations.append(f"{bio_id}: unit={defn.normalized_unit!r}")
+        self.assertEqual(violations, [], f"Missing UCUM codes:\n" + "\n".join(violations))
+
+    def test_every_conversion_identity_matches_normalized_unit(self) -> None:
+        """For every biomarker, CONVERSION_TO_NORMALIZED must have an identity entry
+        (factor=1) keyed by its normalized_unit."""
+        violations: list[str] = []
+        for bio_id, defn in BIOMARKER_CATALOG.items():
+            if not defn.normalized_unit:
+                continue  # dimensionless / derived biomarkers
+            conv = CONVERSION_TO_NORMALIZED.get(bio_id)
+            if conv is None:
+                violations.append(f"{bio_id}: no entry in CONVERSION_TO_NORMALIZED")
+                continue
+            factor = conv.get(defn.normalized_unit)
+            if factor is None:
+                violations.append(
+                    f"{bio_id}: CONVERSION_TO_NORMALIZED has no key {defn.normalized_unit!r} "
+                    f"(keys: {sorted(conv.keys())})"
+                )
+            elif factor != Decimal("1"):
+                violations.append(
+                    f"{bio_id}: identity factor for {defn.normalized_unit!r} is {factor}, expected 1"
+                )
+        self.assertEqual(violations, [], f"Identity conversion mismatches:\n" + "\n".join(violations))
+
+    def test_alias_index_is_complete(self) -> None:
+        """Every alias in every BiomarkerDefinition.aliases must appear in ALIAS_INDEX."""
+        violations: list[str] = []
+        for bio_id, defn in BIOMARKER_CATALOG.items():
+            for alias in defn.aliases:
+                alias_key = normalize_key(alias)
+                index_entry = ALIAS_INDEX.get(alias_key, [])
+                if bio_id not in index_entry:
+                    violations.append(f"{bio_id}: alias {alias!r} (key={alias_key!r}) not in ALIAS_INDEX")
+        self.assertEqual(violations, [], f"Missing ALIAS_INDEX entries:\n" + "\n".join(violations))
+
+    def test_alias_index_has_no_orphan_biomarker_ids(self) -> None:
+        """Every biomarker_id referenced in ALIAS_INDEX values must exist in BIOMARKER_CATALOG."""
+        orphans: list[str] = []
+        for alias_key, bio_ids in ALIAS_INDEX.items():
+            for bio_id in bio_ids:
+                if bio_id not in BIOMARKER_CATALOG:
+                    orphans.append(f"alias_key={alias_key!r} -> {bio_id!r}")
+        self.assertEqual(orphans, [], f"Orphan biomarker IDs in ALIAS_INDEX:\n" + "\n".join(orphans))
+
+    def test_biomarker_ids_are_snake_case(self) -> None:
+        """Every biomarker_id must be lowercase snake_case."""
+        violations: list[str] = []
+        for bio_id in BIOMARKER_CATALOG:
+            if not self._SNAKE_CASE_RE.match(bio_id):
+                violations.append(bio_id)
+        self.assertEqual(violations, [], f"Non-snake_case biomarker IDs:\n" + "\n".join(violations))
+
+    def test_canonical_names_are_nonempty(self) -> None:
+        """Every biomarker must have a non-empty canonical_name."""
+        violations: list[str] = []
+        for bio_id, defn in BIOMARKER_CATALOG.items():
+            if not defn.canonical_name or not defn.canonical_name.strip():
+                violations.append(bio_id)
+        self.assertEqual(violations, [], f"Empty canonical_name:\n" + "\n".join(violations))
+
+    def test_specimens_are_valid(self) -> None:
+        """Every biomarker's allowed_specimens must contain only valid specimen types."""
+        violations: list[str] = []
+        for bio_id, defn in BIOMARKER_CATALOG.items():
+            invalid = defn.allowed_specimens - self._VALID_SPECIMENS
+            if invalid:
+                violations.append(f"{bio_id}: invalid specimens {sorted(invalid)}")
+        self.assertEqual(violations, [], f"Invalid specimen types:\n" + "\n".join(violations))
+
+
+class NumericPrecisionTests(unittest.TestCase):
+    """Boundary conditions, decimal precision, and format edge cases."""
+
+    # ── parse_decimal edge cases ──────────────────────────────────────
+
+    def test_parse_decimal_plain_integer(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertEqual(parse_decimal("100"), Decimal("100"))
+
+    def test_parse_decimal_with_decimal_point(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertEqual(parse_decimal("5.55"), Decimal("5.55"))
+
+    def test_parse_decimal_leading_zero(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertEqual(parse_decimal("0.5"), Decimal("0.5"))
+
+    def test_parse_decimal_negative(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertEqual(parse_decimal("-3.5"), Decimal("-3.5"))
+
+    def test_parse_decimal_positive_sign(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertEqual(parse_decimal("+100"), Decimal("100"))
+
+    def test_parse_decimal_thousands_comma(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertEqual(parse_decimal("1,500"), Decimal("1500"))
+
+    def test_parse_decimal_multiple_thousands(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertEqual(parse_decimal("1,500,000"), Decimal("1500000"))
+
+    def test_parse_decimal_european_ambiguous_rejected(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal("5,5"))
+
+    def test_parse_decimal_scientific_rejected(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal("1.5e6"))
+
+    def test_parse_decimal_x10_notation(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertEqual(parse_decimal("15.5 x 10^3"), Decimal("15500"))
+
+    def test_parse_decimal_x10_exponent_cap(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal("1 x 10^16"))
+
+    def test_parse_decimal_empty(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal(""))
+
+    def test_parse_decimal_none(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal(None))
+
+    def test_parse_decimal_text(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal("See comment"))
+
+    def test_parse_decimal_inequality(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal(">500"))
+
+    def test_parse_decimal_length_guard(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal("9" * 51))
+
+    def test_parse_decimal_with_spaces(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertEqual(parse_decimal(" 100 "), Decimal("100"))
+
+    # ── format_decimal edge cases ─────────────────────────────────────
+
+    def test_format_decimal_normal(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(Decimal("100.5")), "100.5")
+
+    def test_format_decimal_integer(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(Decimal("100")), "100")
+
+    def test_format_decimal_trailing_zeros(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(Decimal("5.500000")), "5.5")
+
+    def test_format_decimal_very_small(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(Decimal("0.000001")), "0.000001")
+
+    def test_format_decimal_below_precision(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(Decimal("0.0000001")), "0")
+
+    def test_format_decimal_negative_zero(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(Decimal("-0")), "0")
+
+    def test_format_decimal_infinity(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(Decimal("Infinity")), "")
+
+    def test_format_decimal_nan(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(Decimal("NaN")), "")
+
+    def test_format_decimal_none(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(None), "")
+
+    # ── parse_reference_range edge cases ──────────────────────────────
+
+    def test_range_standard(self) -> None:
+        result = parse_reference_range("70-99 mg/dL", "mg/dL")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.low, Decimal("70"))
+        self.assertEqual(result.high, Decimal("99"))
+
+    def test_range_with_spaces(self) -> None:
+        result = parse_reference_range("70 - 99 mg/dL", "mg/dL")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.low, Decimal("70"))
+        self.assertEqual(result.high, Decimal("99"))
+
+    def test_range_with_to(self) -> None:
+        result = parse_reference_range("3.9 to 5.5 mmol/L", "mmol/L")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.low, Decimal("3.9"))
+        self.assertEqual(result.high, Decimal("5.5"))
+
+    def test_range_one_sided_less_than(self) -> None:
+        result = parse_reference_range("<200 mg/dL", "mg/dL")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.low, Decimal("0"))
+        self.assertEqual(result.high, Decimal("200"))
+
+    def test_range_one_sided_greater_than(self) -> None:
+        result = parse_reference_range(">=60 mL/min", "mL/min")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.low, Decimal("60"))
+        self.assertEqual(result.high, Decimal("99999"))
+
+    def test_range_thousands_comma(self) -> None:
+        result = parse_reference_range("150,000-400,000", "K/uL")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.low, Decimal("150000"))
+        self.assertEqual(result.high, Decimal("400000"))
+
+    def test_range_negative_values(self) -> None:
+        result = parse_reference_range("-2-2", "mEq/L")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.low, Decimal("-2"))
+        self.assertEqual(result.high, Decimal("2"))
+
+    def test_range_inverted_rejected(self) -> None:
+        result = parse_reference_range("100-50", "mg/dL")
+        self.assertIsNone(result)
+
+    def test_range_text_garbage(self) -> None:
+        result = parse_reference_range("Negative", "mg/dL")
+        self.assertIsNone(result)
+
+
+class ErrorPathTests(unittest.TestCase):
+    """Exercises every error/rejection path in the normalizer pipeline.
+
+    Each test verifies the exact mapping_status, status_reason, and
+    match_confidence for a specific failure or reduced-confidence scenario.
+    """
+
+    # ------------------------------------------------------------------
+    # Unmapped paths
+    # ------------------------------------------------------------------
+
+    def test_unknown_alias(self) -> None:
+        """Completely unknown test name produces unmapped with unknown_alias."""
+        result = normalize_rows([{
+            "source_test_name": "CompletelyFakeTestXYZ",
+            "raw_value": "42",
+            "source_unit": "mg/dL",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "unmapped")
+        self.assertEqual(rec.status_reason, "unknown_alias")
+        self.assertEqual(rec.match_confidence, "none")
+
+    def test_empty_test_name(self) -> None:
+        """Empty string as test name produces unmapped with unknown_alias."""
+        result = normalize_rows([{
+            "source_test_name": "",
+            "raw_value": "42",
+            "source_unit": "mg/dL",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "unmapped")
+        self.assertEqual(rec.status_reason, "unknown_alias")
+        self.assertEqual(rec.match_confidence, "none")
+
+    def test_empty_raw_value_with_known_test(self) -> None:
+        """Known test with empty raw_value produces review_needed / invalid_raw_value."""
+        result = normalize_rows([{
+            "source_test_name": "Glucose",
+            "raw_value": "",
+            "source_unit": "mg/dL",
+            "specimen_type": "serum",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "review_needed")
+        self.assertEqual(rec.status_reason, "invalid_raw_value")
+        self.assertEqual(rec.match_confidence, "none")
+
+    # ------------------------------------------------------------------
+    # Review-needed paths
+    # ------------------------------------------------------------------
+
+    def test_inequality_value(self) -> None:
+        """Inequality prefix ('>500') produces review_needed / inequality_value."""
+        result = normalize_rows([{
+            "source_test_name": "Glucose",
+            "raw_value": ">500",
+            "source_unit": "mg/dL",
+            "specimen_type": "serum",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "review_needed")
+        self.assertEqual(rec.status_reason, "inequality_value")
+        self.assertEqual(rec.match_confidence, "none")
+        # Should still resolve the biomarker identity
+        self.assertEqual(rec.canonical_biomarker_id, "glucose_serum")
+
+    def test_invalid_raw_value(self) -> None:
+        """Non-numeric value ('abc') produces review_needed / invalid_raw_value."""
+        result = normalize_rows([{
+            "source_test_name": "Glucose",
+            "raw_value": "abc",
+            "source_unit": "mg/dL",
+            "specimen_type": "serum",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "review_needed")
+        self.assertEqual(rec.status_reason, "invalid_raw_value")
+        self.assertEqual(rec.match_confidence, "none")
+        self.assertEqual(rec.canonical_biomarker_id, "glucose_serum")
+
+    def test_unsupported_unit(self) -> None:
+        """Known biomarker with absurd unit produces review_needed / unsupported_unit_for_biomarker."""
+        result = normalize_rows([{
+            "source_test_name": "Glucose",
+            "raw_value": "100",
+            "source_unit": "parsecs",
+            "specimen_type": "serum",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "review_needed")
+        self.assertEqual(rec.status_reason, "unsupported_unit_for_biomarker")
+        self.assertEqual(rec.match_confidence, "none")
+        self.assertEqual(rec.canonical_biomarker_id, "glucose_serum")
+
+    def test_ambiguous_alias_no_specimen(self) -> None:
+        """'Glucose' without specimen is ambiguous (serum vs urine) and requires review."""
+        result = normalize_rows([{
+            "source_test_name": "Glucose",
+            "raw_value": "100",
+            "source_unit": "mg/dL",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "review_needed")
+        self.assertEqual(rec.status_reason, "ambiguous_alias_requires_specimen")
+        self.assertEqual(rec.match_confidence, "none")
+
+    def test_conversion_failure(self) -> None:
+        """Known biomarker with incompatible unit (no sibling) produces unsupported_unit_for_biomarker."""
+        result = normalize_rows([{
+            "source_test_name": "Hemoglobin",
+            "raw_value": "14",
+            "source_unit": "IU/L",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "review_needed")
+        self.assertEqual(rec.status_reason, "unsupported_unit_for_biomarker")
+        self.assertEqual(rec.match_confidence, "none")
+
+    # ------------------------------------------------------------------
+    # Mapped paths with reduced confidence
+    # ------------------------------------------------------------------
+
+    def test_fuzzy_match_medium_confidence(self) -> None:
+        """Slightly misspelled name triggers fuzzy match with medium confidence."""
+        try:
+            import rapidfuzz  # noqa: F401
+        except ImportError:
+            self.skipTest("rapidfuzz not installed")
+
+        result = normalize_rows(
+            [{"source_test_name": "Hemoglobinn", "raw_value": "14", "source_unit": "g/dL"}],
+            fuzzy_threshold=0.70,
+        )
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "mapped")
+        self.assertEqual(rec.status_reason, "fuzzy_match")
+        self.assertEqual(rec.match_confidence, "medium")
+        self.assertIn("fuzzy:", rec.mapping_rule)
+        # Verify the fuzzy score is recorded and >= 0.85
+        score_str = rec.mapping_rule.split("fuzzy:")[1].split("|")[0]
+        self.assertGreaterEqual(float(score_str), 0.85)
+
+    def test_sibling_redirect_medium_confidence(self) -> None:
+        """'Neutrophils' with '%' unit redirects to neutrophils_pct sibling."""
+        result = normalize_rows([{
+            "source_test_name": "Neutrophils",
+            "raw_value": "55",
+            "source_unit": "%",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "mapped")
+        self.assertEqual(rec.status_reason, "sibling_unit_redirect")
+        self.assertEqual(rec.match_confidence, "medium")
+        self.assertEqual(rec.canonical_biomarker_id, "neutrophils_pct")
+        self.assertIn("redirected:neutrophils_pct", rec.mapping_rule)
+
+    def test_panel_prefix_stripped_medium_confidence(self) -> None:
+        """'CMP:GLUCOSE' strips panel prefix and maps with medium confidence."""
+        result = normalize_rows([{
+            "source_test_name": "CMP:GLUCOSE",
+            "raw_value": "95",
+            "source_unit": "mg/dL",
+            "specimen_type": "serum",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "mapped")
+        self.assertEqual(rec.status_reason, "panel_prefix_stripped")
+        self.assertEqual(rec.match_confidence, "medium")
+        self.assertEqual(rec.canonical_biomarker_id, "glucose_serum")
+        self.assertIn("panel_strip:", rec.mapping_rule)
+
+    def test_loinc_fallback(self) -> None:
+        """LOINC code '2345-7' as test name resolves via LOINC fallback path."""
+        result = normalize_rows([{
+            "source_test_name": "2345-7",
+            "raw_value": "100",
+            "source_unit": "mg/dL",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "mapped")
+        self.assertEqual(rec.canonical_biomarker_id, "glucose_serum")
+        self.assertEqual(rec.match_confidence, "high")
+
+    # ------------------------------------------------------------------
+    # Summary consistency
+    # ------------------------------------------------------------------
+
+    def test_summary_counts_match_records(self) -> None:
+        """Summary mapped/review_needed/unmapped counts exactly match record statuses."""
+        rows = [
+            # mapped (high confidence)
+            {"source_test_name": "Hemoglobin", "raw_value": "14", "source_unit": "g/dL"},
+            # mapped (high confidence)
+            {"source_test_name": "Creatinine", "raw_value": "1.0", "source_unit": "mg/dL"},
+            # review_needed (ambiguous)
+            {"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL"},
+            # review_needed (invalid value)
+            {"source_test_name": "Hemoglobin", "raw_value": "abc", "source_unit": "g/dL"},
+            # unmapped
+            {"source_test_name": "CompletelyFakeTestXYZ", "raw_value": "1", "source_unit": "mg/dL"},
+            # review_needed (unsupported unit)
+            {"source_test_name": "Hemoglobin", "raw_value": "14", "source_unit": "parsecs"},
+            # mapped (medium confidence, sibling redirect)
+            {"source_test_name": "Neutrophils", "raw_value": "55", "source_unit": "%"},
+        ]
+        result = normalize_rows(rows)
+
+        actual_mapped = sum(1 for r in result.records if r.mapping_status == "mapped")
+        actual_review = sum(1 for r in result.records if r.mapping_status == "review_needed")
+        actual_unmapped = sum(1 for r in result.records if r.mapping_status == "unmapped")
+
+        self.assertEqual(result.summary["total_rows"], len(rows))
+        self.assertEqual(result.summary["mapped"], actual_mapped)
+        self.assertEqual(result.summary["review_needed"], actual_review)
+        self.assertEqual(result.summary["unmapped"], actual_unmapped)
+        self.assertEqual(
+            result.summary["mapped"] + result.summary["review_needed"] + result.summary["unmapped"],
+            result.summary["total_rows"],
+        )
+
+    def test_confidence_breakdown_matches_records(self) -> None:
+        """Summary confidence_breakdown counts exactly match actual record confidences."""
+        rows = [
+            # high confidence
+            {"source_test_name": "Hemoglobin", "raw_value": "14", "source_unit": "g/dL"},
+            # medium confidence (sibling redirect)
+            {"source_test_name": "Neutrophils", "raw_value": "55", "source_unit": "%"},
+            # none (unmapped)
+            {"source_test_name": "CompletelyFakeTestXYZ", "raw_value": "1", "source_unit": "mg/dL"},
+            # none (review_needed, invalid value)
+            {"source_test_name": "Hemoglobin", "raw_value": "abc", "source_unit": "g/dL"},
+            # medium confidence (panel prefix)
+            {"source_test_name": "CMP:GLUCOSE", "raw_value": "95", "source_unit": "mg/dL", "specimen_type": "serum"},
+        ]
+        result = normalize_rows(rows)
+        breakdown = result.summary["confidence_breakdown"]
+
+        actual_high = sum(1 for r in result.records if r.match_confidence == "high")
+        actual_medium = sum(1 for r in result.records if r.match_confidence == "medium")
+        actual_low = sum(1 for r in result.records if r.match_confidence == "low")
+        actual_none = sum(1 for r in result.records if r.match_confidence == "none")
+
+        self.assertEqual(breakdown["high"], actual_high)
+        self.assertEqual(breakdown["medium"], actual_medium)
+        self.assertEqual(breakdown["low"], actual_low)
+        self.assertEqual(breakdown["none"], actual_none)
+        self.assertEqual(
+            breakdown["high"] + breakdown["medium"] + breakdown["low"] + breakdown["none"],
+            result.summary["total_rows"],
+        )
+
+
+class FHIRComplianceTests(unittest.TestCase):
+    """Comprehensive FHIR R4 compliance tests for the observation/bundle builder."""
+
+    def _make_mapped_record(
+        self,
+        *,
+        source_row_id: str = "row-1",
+        source_test_name: str = "Glucose, Serum",
+        raw_value: str = "95.0",
+        normalized_value: str = "95.0",
+        normalized_unit: str = "mg/dL",
+        normalized_reference_range: str = "70-100 mg/dL",
+        canonical_biomarker_id: str = "glucose_serum",
+        canonical_biomarker_name: str = "Glucose",
+        loinc: str = "2345-7",
+        mapping_rule: str = "exact_name",
+        specimen_type: str = "serum",
+    ) -> "NormalizedRecord":
+        from biomarker_normalization_toolkit.models import NormalizedRecord
+
+        return NormalizedRecord(
+            source_row_number=1,
+            source_row_id=source_row_id,
+            source_lab_name="TestLab",
+            source_panel_name="Basic Metabolic",
+            source_test_name=source_test_name,
+            alias_key="glucose serum",
+            raw_value=raw_value,
+            source_unit="mg/dL",
+            specimen_type=specimen_type,
+            source_reference_range="70-100 mg/dL",
+            canonical_biomarker_id=canonical_biomarker_id,
+            canonical_biomarker_name=canonical_biomarker_name,
+            loinc=loinc,
+            mapping_status="mapped",
+            match_confidence="high",
+            status_reason="",
+            mapping_rule=mapping_rule,
+            normalized_value=normalized_value,
+            normalized_unit=normalized_unit,
+            normalized_reference_range=normalized_reference_range,
+            provenance={"source_row_id": source_row_id},
+        )
+
+    def _make_unmapped_record(self) -> "NormalizedRecord":
+        from biomarker_normalization_toolkit.models import NormalizedRecord
+
+        return NormalizedRecord(
+            source_row_number=2,
+            source_row_id="row-unmapped",
+            source_lab_name="TestLab",
+            source_panel_name="Basic Metabolic",
+            source_test_name="Unknown Test XYZ",
+            alias_key="unknown test xyz",
+            raw_value="42",
+            source_unit="mg/dL",
+            specimen_type="serum",
+            source_reference_range="",
+            canonical_biomarker_id="",
+            canonical_biomarker_name="",
+            loinc="",
+            mapping_status="unmapped",
+            match_confidence="none",
+            status_reason="no_candidate",
+            mapping_rule="",
+            normalized_value="",
+            normalized_unit="",
+            normalized_reference_range="",
+            provenance={},
+        )
+
+    def _build_obs(self, **kwargs) -> dict:
+        from biomarker_normalization_toolkit.fhir import build_observation
+
+        record_kwargs = {
+            k: v for k, v in kwargs.items()
+            if k not in ("effective_datetime", "subject_reference")
+        }
+        record = self._make_mapped_record(**record_kwargs)
+        obs = build_observation(
+            record,
+            input_file="test.csv",
+            effective_datetime=kwargs.get("effective_datetime"),
+            subject_reference=kwargs.get("subject_reference"),
+        )
+        self.assertIsNotNone(obs)
+        return obs  # type: ignore[return-value]
+
+    # ------------------------------------------------------------------
+    # 1. Required fields
+    # ------------------------------------------------------------------
+    def test_observation_has_required_fields(self) -> None:
+        obs = self._build_obs()
+        for field in ("resourceType", "status", "code"):
+            self.assertIn(field, obs, f"Required FHIR field '{field}' missing from Observation")
+
+    # ------------------------------------------------------------------
+    # 2. Status is final
+    # ------------------------------------------------------------------
+    def test_observation_status_is_final(self) -> None:
+        obs = self._build_obs()
+        self.assertEqual(obs["status"], "final")
+
+    # ------------------------------------------------------------------
+    # 3. Category is laboratory
+    # ------------------------------------------------------------------
+    def test_observation_category_is_laboratory(self) -> None:
+        obs = self._build_obs()
+        self.assertIn("category", obs)
+        codings = obs["category"][0]["coding"]
+        lab_codes = [c for c in codings if c["code"] == "laboratory"]
+        self.assertTrue(len(lab_codes) > 0, "No 'laboratory' code in category coding")
+        self.assertEqual(
+            lab_codes[0]["system"],
+            "http://terminology.hl7.org/CodeSystem/observation-category",
+        )
+
+    # ------------------------------------------------------------------
+    # 4. Code has LOINC
+    # ------------------------------------------------------------------
+    def test_observation_code_has_loinc(self) -> None:
+        obs = self._build_obs()
+        codings = obs["code"]["coding"]
+        loinc_entries = [c for c in codings if c["system"] == "http://loinc.org"]
+        self.assertTrue(len(loinc_entries) > 0, "No LOINC coding in observation code")
+        self.assertEqual(loinc_entries[0]["code"], "2345-7")
+
+    # ------------------------------------------------------------------
+    # 5. valueQuantity has UCUM
+    # ------------------------------------------------------------------
+    def test_observation_value_quantity_has_ucum(self) -> None:
+        obs = self._build_obs()
+        vq = obs["valueQuantity"]
+        self.assertEqual(vq["system"], "http://unitsofmeasure.org")
+        self.assertIn("code", vq)
+        self.assertTrue(len(vq["code"]) > 0, "UCUM code is empty")
+
+    # ------------------------------------------------------------------
+    # 6. Subject included when provided
+    # ------------------------------------------------------------------
+    def test_observation_subject_included_when_provided(self) -> None:
+        obs = self._build_obs(subject_reference="Patient/123")
+        self.assertIn("subject", obs)
+        self.assertEqual(obs["subject"]["reference"], "Patient/123")
+
+    # ------------------------------------------------------------------
+    # 7. Subject omitted when not provided
+    # ------------------------------------------------------------------
+    def test_observation_subject_omitted_when_not_provided(self) -> None:
+        obs = self._build_obs()
+        self.assertNotIn("subject", obs)
+
+    # ------------------------------------------------------------------
+    # 8. effectiveDateTime
+    # ------------------------------------------------------------------
+    def test_observation_effective_datetime(self) -> None:
+        obs_with = self._build_obs(effective_datetime="2024-01-15T10:30:00Z")
+        self.assertEqual(obs_with["effectiveDateTime"], "2024-01-15T10:30:00Z")
+
+        obs_without = self._build_obs()
+        self.assertNotIn("effectiveDateTime", obs_without)
+
+    # ------------------------------------------------------------------
+    # 9. Two-sided reference range
+    # ------------------------------------------------------------------
+    def test_observation_reference_range_two_sided(self) -> None:
+        obs = self._build_obs(normalized_reference_range="70-100 mg/dL")
+        self.assertIn("referenceRange", obs)
+        rr = obs["referenceRange"][0]
+        self.assertIn("low", rr)
+        self.assertIn("high", rr)
+        self.assertEqual(rr["low"]["value"], 70.0)
+        self.assertEqual(rr["high"]["value"], 100.0)
+        self.assertEqual(rr["low"]["unit"], "mg/dL")
+        self.assertEqual(rr["low"]["system"], "http://unitsofmeasure.org")
+        self.assertIn("code", rr["low"])
+        self.assertIn("code", rr["high"])
+
+    # ------------------------------------------------------------------
+    # 10. One-sided: high only (low is sentinel 0)
+    # ------------------------------------------------------------------
+    def test_observation_reference_range_one_sided_high_only(self) -> None:
+        obs = self._build_obs(normalized_reference_range="0-200 mg/dL")
+        self.assertIn("referenceRange", obs)
+        rr = obs["referenceRange"][0]
+        self.assertNotIn("low", rr, "Sentinel low=0 should be omitted from FHIR output")
+        self.assertIn("high", rr)
+        self.assertEqual(rr["high"]["value"], 200.0)
+
+    # ------------------------------------------------------------------
+    # 11. One-sided: low only (high is sentinel 99999)
+    # ------------------------------------------------------------------
+    def test_observation_reference_range_one_sided_low_only(self) -> None:
+        obs = self._build_obs(normalized_reference_range="60-99999 mg/dL")
+        self.assertIn("referenceRange", obs)
+        rr = obs["referenceRange"][0]
+        self.assertIn("low", rr)
+        self.assertEqual(rr["low"]["value"], 60.0)
+        self.assertNotIn("high", rr, "Sentinel high=99999 should be omitted from FHIR output")
+
+    # ------------------------------------------------------------------
+    # 12. No reference range
+    # ------------------------------------------------------------------
+    def test_observation_no_reference_range(self) -> None:
+        obs = self._build_obs(normalized_reference_range="")
+        self.assertNotIn("referenceRange", obs)
+
+    # ------------------------------------------------------------------
+    # 13. Bundle type is collection
+    # ------------------------------------------------------------------
+    def test_bundle_type_is_collection(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_bundle
+        from biomarker_normalization_toolkit.models import NormalizationResult
+
+        result = NormalizationResult(
+            input_file="test.csv",
+            summary={"total": 1, "mapped": 1, "unmapped": 0, "review_needed": 0},
+            records=[self._make_mapped_record()],
+        )
+        bundle = build_bundle(result)
+        self.assertEqual(bundle["resourceType"], "Bundle")
+        self.assertEqual(bundle["type"], "collection")
+
+    # ------------------------------------------------------------------
+    # 14. Bundle entries have fullUrl with urn:uuid:
+    # ------------------------------------------------------------------
+    def test_bundle_entries_have_full_url(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_bundle
+        from biomarker_normalization_toolkit.models import NormalizationResult
+
+        result = NormalizationResult(
+            input_file="test.csv",
+            summary={"total": 2, "mapped": 2, "unmapped": 0, "review_needed": 0},
+            records=[
+                self._make_mapped_record(source_row_id="r1", canonical_biomarker_id="glucose_serum"),
+                self._make_mapped_record(source_row_id="r2", canonical_biomarker_id="creatinine_serum", loinc="2160-0", canonical_biomarker_name="Creatinine"),
+            ],
+        )
+        bundle = build_bundle(result)
+        for entry in bundle["entry"]:
+            self.assertIn("fullUrl", entry)
+            self.assertTrue(
+                entry["fullUrl"].startswith("urn:uuid:"),
+                f"fullUrl '{entry['fullUrl']}' does not start with 'urn:uuid:'",
+            )
+
+    # ------------------------------------------------------------------
+    # 15. Bundle skips unmapped records
+    # ------------------------------------------------------------------
+    def test_bundle_skips_unmapped_records(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_bundle
+        from biomarker_normalization_toolkit.models import NormalizationResult
+
+        result = NormalizationResult(
+            input_file="test.csv",
+            summary={"total": 2, "mapped": 1, "unmapped": 1, "review_needed": 0},
+            records=[self._make_mapped_record(), self._make_unmapped_record()],
+        )
+        bundle = build_bundle(result)
+        self.assertEqual(len(bundle["entry"]), 1, "Unmapped records should not appear in bundle entries")
+
+    # ------------------------------------------------------------------
+    # 16. Deterministic UUID
+    # ------------------------------------------------------------------
+    def test_observation_uuid_deterministic(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_observation
+
+        record = self._make_mapped_record()
+        obs1 = build_observation(record, input_file="test.csv")
+        obs2 = build_observation(record, input_file="test.csv")
+        self.assertIsNotNone(obs1)
+        self.assertIsNotNone(obs2)
+        self.assertEqual(obs1["id"], obs2["id"])
+
+    # ------------------------------------------------------------------
+    # 17. Unique UUIDs across different biomarkers with same row_id
+    # ------------------------------------------------------------------
+    def test_observation_uuid_unique_across_biomarkers(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_observation
+
+        rec_a = self._make_mapped_record(canonical_biomarker_id="glucose_serum", loinc="2345-7")
+        rec_b = self._make_mapped_record(canonical_biomarker_id="creatinine_serum", loinc="2160-0")
+        obs_a = build_observation(rec_a, input_file="test.csv")
+        obs_b = build_observation(rec_b, input_file="test.csv")
+        self.assertIsNotNone(obs_a)
+        self.assertIsNotNone(obs_b)
+        self.assertNotEqual(obs_a["id"], obs_b["id"])
+
+    # ------------------------------------------------------------------
+    # 18. UCUM codes cover all normalized units in the catalog
+    # ------------------------------------------------------------------
+    def test_ucum_codes_cover_all_normalized_units(self) -> None:
+        missing = []
+        seen_units: set[str] = set()
+        for bio_id, bio_def in BIOMARKER_CATALOG.items():
+            unit = bio_def.normalized_unit
+            if unit and unit not in seen_units:
+                seen_units.add(unit)
+                if unit not in UCUM_CODES:
+                    missing.append(f"{bio_id} -> {unit}")
+        self.assertEqual(
+            missing,
+            [],
+            f"Normalized units without UCUM mappings: {missing}",
+        )
+
+    # ------------------------------------------------------------------
+    # 19. Note contains mapping info
+    # ------------------------------------------------------------------
+    def test_observation_note_contains_mapping_info(self) -> None:
+        obs = self._build_obs(
+            source_test_name="Glucose, Serum",
+            mapping_rule="exact_name",
+        )
+        self.assertIn("note", obs)
+        note_text = obs["note"][0]["text"]
+        self.assertIn("Glucose, Serum", note_text, "Note should mention source test name")
+        self.assertIn("exact_name", note_text, "Note should mention the mapping rule")
+
+    # ------------------------------------------------------------------
+    # 20. Bundle-level subject_reference propagates to all observations
+    # ------------------------------------------------------------------
+    def test_build_bundle_with_subject_reference(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_bundle
+        from biomarker_normalization_toolkit.models import NormalizationResult
+
+        result = NormalizationResult(
+            input_file="test.csv",
+            summary={"total": 2, "mapped": 2, "unmapped": 0, "review_needed": 0},
+            records=[
+                self._make_mapped_record(source_row_id="r1", canonical_biomarker_id="glucose_serum"),
+                self._make_mapped_record(source_row_id="r2", canonical_biomarker_id="creatinine_serum", loinc="2160-0", canonical_biomarker_name="Creatinine"),
+            ],
+        )
+        bundle = build_bundle(result, subject_reference="Patient/456")
+        self.assertTrue(len(bundle["entry"]) >= 2)
+        for entry in bundle["entry"]:
+            resource = entry["resource"]
+            self.assertIn("subject", resource, "Every observation should have a subject when subject_reference is provided")
+            self.assertEqual(resource["subject"]["reference"], "Patient/456")
 
 
 if __name__ == "__main__":
