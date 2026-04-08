@@ -49,26 +49,71 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
     else:
         raise ValueError(f"Unrecognized FHIR resourceType: {data.get('resourceType', 'none')}")
 
-    # Flatten: extract Observations from DiagnosticReport.contained as well
+    def _index_specimen(resource: dict, index: dict[str, str], full_url: str = "") -> None:
+        type_obj = resource.get("type", {})
+        coding = type_obj.get("coding", [])
+        specimen_display = (type_obj.get("text", "") or "").strip()
+        if not specimen_display:
+            for code in coding:
+                specimen_display = (code.get("display", "") or code.get("code", "") or "").strip()
+                if specimen_display:
+                    break
+        if not specimen_display:
+            return
+        specimen_id = str(resource.get("id", "")).strip()
+        references = [full_url]
+        if specimen_id:
+            references.extend((
+                f"Specimen/{specimen_id}",
+                specimen_id,
+                f"#{specimen_id}",
+            ))
+            if full_url:
+                references.append(f"{full_url}#{specimen_id}")
+        for reference in references:
+            if reference:
+                index[reference] = specimen_display
+
+    # Flatten: extract Observations from DiagnosticReport.contained as well.
+    # Also index Specimen resources so Observation.specimen.reference can be resolved.
     all_observations: list[dict] = []
+    specimen_display_by_reference: dict[str, str] = {}
     for entry in entries:
         resource = entry.get("resource", entry)
         rt = resource.get("resourceType")
-        if rt == "Observation":
+        full_url = str(entry.get("fullUrl", "")).strip()
+        if rt == "Specimen":
+            _index_specimen(resource, specimen_display_by_reference, full_url=full_url)
+        elif rt == "Observation":
             all_observations.append(resource)
-        elif rt == "DiagnosticReport":
-            for contained in resource.get("contained", []):
-                if contained.get("resourceType") == "Observation":
-                    all_observations.append(contained)
+        for contained in resource.get("contained", []):
+            contained_type = contained.get("resourceType")
+            if contained_type == "Observation":
+                all_observations.append(contained)
+            elif contained_type == "Specimen":
+                _index_specimen(contained, specimen_display_by_reference, full_url=full_url)
 
     rows: list[dict[str, str]] = []
     for index, resource in enumerate(all_observations, start=1):
 
         code_obj = resource.get("code", {})
-        coding = code_obj.get("coding", [{}])
-        test_name = code_obj.get("text", "")
-        if not test_name and coding:
-            test_name = coding[0].get("display", "")
+        coding = code_obj.get("coding", [])
+        test_name = (code_obj.get("text", "") or "").strip()
+        if not test_name:
+            for code in coding:
+                test_name = (code.get("display", "") or "").strip()
+                if test_name:
+                    break
+        if not test_name:
+            for code in coding:
+                if code.get("system") == "http://loinc.org" and code.get("code"):
+                    test_name = str(code["code"]).strip()
+                    break
+        if not test_name:
+            for code in coding:
+                test_name = (code.get("code", "") or "").strip()
+                if test_name:
+                    break
         if not test_name:
             continue
 
@@ -119,7 +164,11 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
         specimen = ""
         spec_obj = resource.get("specimen", {})
         if spec_obj:
-            specimen = spec_obj.get("display", "")
+            specimen = (spec_obj.get("display", "") or "").strip()
+            if not specimen:
+                reference = (spec_obj.get("reference", "") or "").strip()
+                if reference:
+                    specimen = specimen_display_by_reference.get(reference, "")
 
         row_id = resource.get("id", "")
         if not row_id:

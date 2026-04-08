@@ -10,7 +10,7 @@ import unittest
 
 from fastapi.testclient import TestClient
 
-from biomarker_normalization_toolkit.api import app
+from biomarker_normalization_toolkit.api import _metrics, _rate_limiter, app
 from biomarker_normalization_toolkit.licensing import (
     FREE_MAX_ROWS,
     PRO_MAX_ROWS,
@@ -24,7 +24,14 @@ FIXTURES = ROOT / "fixtures"
 client = TestClient(app)
 
 
+def _reset_api_test_state() -> None:
+    _rate_limiter.reset()
+    _metrics.reset()
+
+
 class APITests(unittest.TestCase):
+    def setUp(self) -> None:
+        _reset_api_test_state()
 
     def test_health(self) -> None:
         response = client.get("/health")
@@ -77,6 +84,28 @@ class APITests(unittest.TestCase):
         data = response.json()
         self.assertIn("fhir_bundle", data)
         self.assertEqual(data["fhir_bundle"]["resourceType"], "Bundle")
+
+    def test_optimal_ranges_endpoint_applies_sex_specific_ranges(self) -> None:
+        old_key = os.environ.get("BNT_PRO_KEY")
+        os.environ["BNT_PRO_KEY"] = "secret"
+        try:
+            payload = {
+                "sex": "female",
+                "rows": [
+                    {"source_test_name": "Testosterone Total", "raw_value": "100", "source_unit": "ng/dL",
+                     "specimen_type": "serum", "source_row_id": "1", "source_reference_range": ""},
+                ],
+            }
+            response = client.post("/optimal-ranges", json=payload, headers={"X-API-Key": "secret"})
+            self.assertEqual(response.status_code, 200)
+            evaluation = response.json()["evaluations"][0]
+            self.assertEqual(evaluation["biomarker_id"], "testosterone_total")
+            self.assertEqual(evaluation["status"], "above_optimal")
+        finally:
+            if old_key is None:
+                os.environ.pop("BNT_PRO_KEY", None)
+            else:
+                os.environ["BNT_PRO_KEY"] = old_key
 
     def test_normalize_empty_rows(self) -> None:
         response = client.post("/normalize", json={"rows": []})
@@ -216,6 +245,21 @@ class APITests(unittest.TestCase):
         self.assertIn("bnt_rows_processed_total", text)
         self.assertIn("bnt_avg_latency_ms", text)
 
+    def test_metrics_track_processed_rows(self) -> None:
+        before = client.get("/metrics", headers={"Accept": "application/json"}).json()["total_rows_processed"]
+        response = client.post("/normalize", json={
+            "rows": [
+                {"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL",
+                 "specimen_type": "serum", "source_row_id": "m1", "source_reference_range": ""},
+                {"source_test_name": "HbA1c", "raw_value": "5.2", "source_unit": "%",
+                 "specimen_type": "whole blood", "source_row_id": "m2", "source_reference_range": ""},
+            ],
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("X-BNT-Rows-Processed", response.headers)
+        after = client.get("/metrics", headers={"Accept": "application/json"}).json()["total_rows_processed"]
+        self.assertEqual(after - before, 2)
+
     # ─── GET /lookup ──────────────────────────────────────────
 
     def test_lookup_known_biomarker(self) -> None:
@@ -242,17 +286,35 @@ class APITests(unittest.TestCase):
         self.assertEqual(data["candidates"], [])
 
     def test_lookup_with_specimen(self) -> None:
-        """Lookup with specimen parameter still returns candidates."""
+        """Lookup with specimen parameter returns specimen-compatible candidates."""
         response = client.get("/lookup", params={"test_name": "Hemoglobin", "specimen": "whole blood"})
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertTrue(data["matched"])
         self.assertGreater(len(data["candidates"]), 0)
 
+    def test_lookup_filters_ambiguous_alias_by_specimen(self) -> None:
+        response = client.get("/lookup", params={"test_name": "GLU", "specimen": "urine"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["matched"])
+        self.assertEqual(len(data["candidates"]), 1)
+        self.assertEqual(data["candidates"][0]["biomarker_id"], "glucose_urine")
+
     def test_lookup_missing_test_name(self) -> None:
         """Lookup without required test_name returns 422."""
         response = client.get("/lookup")
         self.assertEqual(response.status_code, 422)
+
+    def test_phenoage_rejects_negative_age(self) -> None:
+        response = client.post("/phenoage", json={"rows": [], "chronological_age": -1})
+        self.assertEqual(response.status_code, 422)
+
+    def test_v1_get_endpoints_available(self) -> None:
+        self.assertEqual(client.get("/v1/health").status_code, 200)
+        self.assertEqual(client.get("/v1/metrics").status_code, 200)
+        self.assertEqual(client.get("/v1/catalog", params={"limit": 1}).status_code, 200)
+        self.assertEqual(client.get("/v1/lookup", params={"test_name": "Glucose"}).status_code, 200)
 
     # ─── POST /analyze (JSON body) ────────────────────────────
 
@@ -340,6 +402,30 @@ class APITests(unittest.TestCase):
                 self.assertIn("absolute_delta", delta)
                 self.assertIn("direction", delta)
                 self.assertIn("velocity_per_month", delta)
+        finally:
+            os.environ.pop("BNT_PRO_KEY", None)
+
+    def test_compare_rejects_negative_days_between(self) -> None:
+        os.environ["BNT_PRO_KEY"] = "test-pro-key-compare-negative"
+        try:
+            response = client.post(
+                "/compare",
+                json={
+                    "before": {"rows": [{
+                        "source_test_name": "Glucose", "raw_value": "100",
+                        "source_unit": "mg/dL", "specimen_type": "serum",
+                        "source_row_id": "b1", "source_reference_range": "",
+                    }]},
+                    "after": {"rows": [{
+                        "source_test_name": "Glucose", "raw_value": "90",
+                        "source_unit": "mg/dL", "specimen_type": "serum",
+                        "source_row_id": "a1", "source_reference_range": "",
+                    }]},
+                    "days_between": -1,
+                },
+                headers={"X-API-Key": "test-pro-key-compare-negative"},
+            )
+            self.assertEqual(response.status_code, 422)
         finally:
             os.environ.pop("BNT_PRO_KEY", None)
 
@@ -809,6 +895,9 @@ class APISnapshotTests(unittest.TestCase):
         "source_row_id": "snap-1",
         "source_reference_range": "70-99 mg/dL",
     }
+
+    def setUp(self) -> None:
+        _reset_api_test_state()
 
     # ─── 1. GET /health ──────────────────────────────────────
 

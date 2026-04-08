@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 import shutil
 
@@ -23,7 +24,27 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "fixtures"
 
 
+def _reset_api_test_state() -> None:
+    try:
+        from biomarker_normalization_toolkit.api import _metrics, _rate_limiter
+    except Exception:
+        return
+    with _rate_limiter._lock:
+        _rate_limiter._requests.clear()
+    with _metrics._lock:
+        _metrics.request_count = 0
+        _metrics.error_count = 0
+        _metrics.total_rows_processed = 0
+        _metrics.total_latency_ms = 0.0
+        _metrics.endpoint_counts.clear()
+        _metrics.status_counts.clear()
+        _metrics.start_time = time.time()
+
+
 class NormalizationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        _reset_api_test_state()
+
     def test_sample_fixture_matches_expected_json(self) -> None:
         input_path = FIXTURES / "input" / "v0_sample.csv"
         expected_path = FIXTURES / "expected" / "v0_sample_expected.json"
@@ -293,6 +314,14 @@ class NormalizationTests(unittest.TestCase):
         ]
         result = normalize_rows(rows)
         self.assertEqual(len(result.warnings), 0)
+
+    def test_to_json_dict_is_deterministic_by_default(self) -> None:
+        rows = [
+            {"source_row_id": "1", "source_test_name": "Glucose", "raw_value": "100",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": "70-99 mg/dL"},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(result.to_json_dict(), result.to_json_dict())
 
     # --- Catalog integrity ---
 
@@ -967,9 +996,11 @@ class NormalizationTests(unittest.TestCase):
     def test_api_rejects_non_dict_rows(self) -> None:
         try:
             from fastapi.testclient import TestClient
-            from biomarker_normalization_toolkit.api import app
+            from biomarker_normalization_toolkit.api import _metrics, _rate_limiter, app
         except Exception:
             self.skipTest("API deps not available")
+        _rate_limiter.reset()
+        _metrics.reset()
         client = TestClient(app)
         response = client.post("/normalize", json={"rows": ["not a dict", 123]})
         # Pydantic validates, returns 400 or 422 depending on model
@@ -1034,9 +1065,11 @@ class NormalizationTests(unittest.TestCase):
     def test_api_sanitizes_upload_filename(self) -> None:
         try:
             from fastapi.testclient import TestClient
-            from biomarker_normalization_toolkit.api import app
+            from biomarker_normalization_toolkit.api import _metrics, _rate_limiter, app
         except Exception:
             self.skipTest("API deps not available")
+        _rate_limiter.reset()
+        _metrics.reset()
         client = TestClient(app)
         csv_content = (
             b"source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
@@ -1787,7 +1820,7 @@ class NormalizationTests(unittest.TestCase):
     # --- PhenoAge edge cases ---
 
     def test_phenoage_without_chronological_age(self) -> None:
-        """PhenoAge with no age returns mortality_score but no phenoage."""
+        """PhenoAge with no age returns the linear predictor but no age estimate."""
         from biomarker_normalization_toolkit.phenoage import compute_phenoage
         result = self._make_result_with({
             "albumin": "4.0", "creatinine": "1.0", "glucose_serum": "100",
@@ -1797,7 +1830,8 @@ class NormalizationTests(unittest.TestCase):
         pa = compute_phenoage(result, chronological_age=None)
         self.assertIsNotNone(pa)
         self.assertIsNone(pa["phenoage"])
-        self.assertIsNotNone(pa["mortality_score"])
+        self.assertIsNone(pa["mortality_score"])
+        self.assertIsNotNone(pa["mortality_linear_predictor"])
 
     def test_phenoage_crp_zero_handled(self) -> None:
         """CRP=0 should not crash (floored to 0.001 mg/dL)."""
@@ -1810,6 +1844,18 @@ class NormalizationTests(unittest.TestCase):
         pa = compute_phenoage(result, chronological_age=40)
         self.assertIsNotNone(pa)
         self.assertIsNotNone(pa["phenoage"])
+
+    def test_phenoage_negative_age_rejected(self) -> None:
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+        result = self._make_result_with({
+            "albumin": "4.5", "creatinine": "0.9", "glucose_serum": "85",
+            "crp": "1.0", "lymphocytes_pct": "35", "mcv": "88",
+            "rdw": "12.5", "alp": "60", "wbc": "6",
+        })
+        pa = compute_phenoage(result, chronological_age=-1)
+        self.assertIsNotNone(pa)
+        self.assertIsNone(pa["phenoage"])
+        self.assertIn("finite non-negative", pa["error"])
 
     # --- Optimal ranges sex-specific ---
 
@@ -1907,6 +1953,40 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_value"], "95")
 
+    def test_fhir_diagnostic_report_contained_specimen_reference(self) -> None:
+        """Contained Specimen references should populate specimen_type."""
+        import json, tempfile
+        from biomarker_normalization_toolkit.io_utils import read_fhir_input
+        from pathlib import Path
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [
+                {"resource": {
+                    "resourceType": "DiagnosticReport",
+                    "contained": [
+                        {
+                            "resourceType": "Specimen",
+                            "id": "spec1",
+                            "type": {"text": "Urine"},
+                        },
+                        {
+                            "resourceType": "Observation",
+                            "id": "c2",
+                            "code": {"text": "Glucose"},
+                            "valueQuantity": {"value": 95, "unit": "mg/dL"},
+                            "specimen": {"reference": "#spec1"},
+                        },
+                    ],
+                }}
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(bundle, f)
+            f.flush()
+            rows = read_fhir_input(Path(f.name))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["specimen_type"], "Urine")
+
 
     # --- Scientific notation parsing ---
 
@@ -1995,6 +2075,19 @@ class NormalizationTests(unittest.TestCase):
              "source_unit": "g/dL", "specimen_type": "whole blood", "source_reference_range": ""},
         ]
         result = normalize_rows(rows)
+        bundle = build_bundle(result)
+        urls = [e["fullUrl"] for e in bundle["entry"]]
+        self.assertEqual(len(urls), len(set(urls)), f"Duplicate fullUrls found: {urls}")
+
+    def test_fhir_uuid_unique_for_duplicate_row_ids_same_biomarker(self) -> None:
+        from biomarker_normalization_toolkit.fhir import build_bundle
+        rows = [
+            {"source_row_id": "DUP2", "source_test_name": "Glucose", "raw_value": "100",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "DUP2", "source_test_name": "Glucose", "raw_value": "101",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows, input_file="labs.csv")
         bundle = build_bundle(result)
         urls = [e["fullUrl"] for e in bundle["entry"]]
         self.assertEqual(len(urls), len(set(urls)), f"Duplicate fullUrls found: {urls}")
@@ -2318,7 +2411,8 @@ class NormalizationTests(unittest.TestCase):
         pheno = compute_phenoage(result, chronological_age=45)
         self.assertIsNotNone(pheno)
         self.assertEqual(pheno["phenoage"], 39.3)
-        self.assertEqual(pheno["mortality_score"], -12.9162)
+        self.assertAlmostEqual(pheno["mortality_score"], 0.0179, places=4)
+        self.assertEqual(pheno["mortality_linear_predictor"], -12.9162)
         self.assertEqual(pheno["age_acceleration"], -5.7)
         self.assertEqual(pheno["interpretation"], "Significantly younger biological age")
         self.assertEqual(pheno["chronological_age"], 45)
@@ -2468,7 +2562,7 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(obs["resourceType"], "Observation")
         self.assertEqual(obs["status"], "final")
         # Pin deterministic UUID
-        self.assertEqual(obs["id"], "96556e66-69d2-5bd8-8226-5a0e98a0ac7c")
+        self.assertEqual(obs["id"], "4b4b3fe2-bd29-5911-89a9-2521a856654d")
         # Pin category
         self.assertEqual(len(obs["category"]), 1)
         cat_coding = obs["category"][0]["coding"][0]
@@ -3425,6 +3519,50 @@ class NormalizationTests(unittest.TestCase):
         try:
             rows = read_fhir_input(tmp)
             self.assertEqual(rows[0]["specimen_type"], "Serum")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_uses_loinc_code_when_display_missing(self) -> None:
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation", "id": "loinc1",
+                "code": {"coding": [{"system": "http://loinc.org", "code": "2345-7"}]},
+                "valueQuantity": {"value": 100, "unit": "mg/dL"},
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_test_name"], "2345-7")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_resolves_specimen_reference(self) -> None:
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [
+                {"resource": {
+                    "resourceType": "Specimen", "id": "spec1",
+                    "type": {"text": "Urine"},
+                }},
+                {"resource": {
+                    "resourceType": "Observation", "id": "spref1",
+                    "code": {"text": "Glucose"},
+                    "valueQuantity": {"value": 12, "unit": "mg/dL"},
+                    "specimen": {"reference": "Specimen/spec1"},
+                }},
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(rows[0]["specimen_type"], "Urine")
         finally:
             tmp.unlink(missing_ok=True)
 
@@ -4391,7 +4529,8 @@ class NormalizationTests(unittest.TestCase):
         }, age=50)
         expected_keys = {
             "phenoage", "chronological_age", "age_acceleration",
-            "mortality_score", "inputs", "formula_reference", "interpretation",
+            "mortality_score", "mortality_linear_predictor", "inputs",
+            "formula_reference", "interpretation",
         }
         for key in expected_keys:
             self.assertIn(key, pa, f"Missing expected key: {key}")
@@ -6699,6 +6838,9 @@ class LongitudinalEdgeCaseTests(unittest.TestCase):
         result = compare_results(before, after)
         self.assertEqual(result["biomarkers_compared"], 1)
         self.assertEqual(result["deltas"][0]["direction"], "unknown")
+        self.assertEqual(result["stable"], 0)
+        self.assertEqual(result["unknown"], 1)
+        self.assertEqual(result["improvement_rate"], 0)
 
     def test_longitudinal_improvement_rate_zero(self) -> None:
         """All stable biomarkers yields improvement_rate=0."""
@@ -6845,6 +6987,34 @@ class OptimalRangesExhaustiveTests(unittest.TestCase):
             self.assertIsInstance(low, Decimal)
             self.assertIsInstance(high, Decimal)
             self.assertLessEqual(low, high, f"{bio_id}: optimal_low > optimal_high")
+
+    def test_optimal_ranges_source_has_no_duplicate_keys(self) -> None:
+        """Guard against silent duplicate dict keys in OPTIMAL_RANGES."""
+        import ast
+        import biomarker_normalization_toolkit.optimal_ranges as optimal_ranges_module
+
+        source_path = Path(optimal_ranges_module.__file__)
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+
+        dict_node = None
+        for node in tree.body:
+            if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", None) == "OPTIMAL_RANGES":
+                dict_node = node.value
+                break
+
+        self.assertIsNotNone(dict_node, "Could not locate OPTIMAL_RANGES source definition")
+
+        first_seen: dict[str, int] = {}
+        duplicates: dict[str, list[int]] = {}
+        for key in dict_node.keys:
+            if not isinstance(key, ast.Constant) or not isinstance(key.value, str):
+                continue
+            if key.value in first_seen:
+                duplicates.setdefault(key.value, [first_seen[key.value]]).append(key.lineno)
+            else:
+                first_seen[key.value] = key.lineno
+
+        self.assertEqual(duplicates, {}, f"Duplicate OPTIMAL_RANGES keys: {duplicates}")
 
 
 class MutationCoverageTests(unittest.TestCase):

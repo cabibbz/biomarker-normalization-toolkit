@@ -49,6 +49,7 @@ def compare_results(
     improved = 0
     worsened = 0
     stable = 0
+    unknown = 0
 
     for bio_id in sorted(common):
         old = before_vals[bio_id]
@@ -87,7 +88,7 @@ def compare_results(
                     stable += 1
         else:
             direction = "unknown"
-            stable += 1
+            unknown += 1
 
         entry: dict[str, Any] = {
             "biomarker_id": bio_id,
@@ -112,6 +113,7 @@ def compare_results(
         "improved": improved,
         "worsened": worsened,
         "stable": stable,
+        "unknown": unknown,
         "improvement_rate": round(improved / total * 100, 1) if total else 0,
         "days_between": days_between,
         "deltas": deltas,

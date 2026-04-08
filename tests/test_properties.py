@@ -194,10 +194,10 @@ class PropertyTests(unittest.TestCase):
             parsed,
             f"parse_decimal({formatted!r}) returned None for format_decimal({d!r})"
         )
-        # Compare with tolerance for quantization rounding
-        self.assertAlmostEqual(
-            float(parsed), float(d), places=4,
-            msg=f"Roundtrip mismatch: {d!r} -> {formatted!r} -> {parsed!r}"
+        # Compare as Decimals to avoid float precision loss for very large values.
+        self.assertLessEqual(
+            abs(parsed - d), Decimal("0.000001"),
+            f"Roundtrip mismatch: {d!r} -> {formatted!r} -> {parsed!r}"
         )
 
     # --- 4. normalize_rows never drops records ---

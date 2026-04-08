@@ -119,18 +119,18 @@ class NormalizationResult:
         if isinstance(self.warnings, list):
             object.__setattr__(self, "warnings", tuple(self.warnings))
 
-    def to_json_dict(self) -> dict[str, Any]:
-        import datetime
+    def to_json_dict(self, *, include_generated_at: bool = False) -> dict[str, Any]:
         from biomarker_normalization_toolkit import __version__
         result: dict[str, Any] = {
             "schema_version": "0.2.0",
             "bnt_version": __version__,
-            "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "input_file": self.input_file,
             "summary": self.summary,
             "records": [record.to_json_dict() for record in self.records],
         }
+        if include_generated_at:
+            import datetime
+            result["generated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         if self.warnings:
             result["warnings"] = list(self.warnings)
         return result
-

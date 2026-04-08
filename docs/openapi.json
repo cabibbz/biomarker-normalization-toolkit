@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Biomarker Normalization Toolkit",
-    "description": "Normalize messy lab data into canonical machine-readable output. 183 biomarkers, PhenoAge biological age, optimal longevity ranges, derived metabolic metrics, longitudinal tracking.",
+    "description": "Normalize messy lab data into canonical machine-readable output. 202 biomarkers, PhenoAge biological age, optimal longevity ranges, derived metabolic metrics, longitudinal tracking.",
     "version": "0.2.1"
   },
   "paths": {
@@ -95,9 +95,16 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "Max results to return",
-              "default": 200,
               "title": "Limit"
             },
             "description": "Max results to return"
@@ -108,6 +115,7 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "description": "Skip first N results",
               "default": 0,
               "title": "Offset"
@@ -921,6 +929,349 @@
           }
         }
       }
+    },
+    "/v1/health": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Health V1",
+        "operationId": "health_v1_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health V1 V1 Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Metrics V1",
+        "operationId": "metrics_v1_v1_metrics_get",
+        "parameters": [
+          {
+            "name": "accept",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "application/json",
+              "title": "Accept"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Metrics V1 V1 Metrics Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalog": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Catalog V1",
+        "operationId": "catalog_v1_v1_catalog_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by name, LOINC, or alias",
+              "title": "Search"
+            },
+            "description": "Filter by name, LOINC, or alias"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results to return",
+              "title": "Limit"
+            },
+            "description": "Max results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Skip first N results",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Skip first N results"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Catalog V1 V1 Catalog Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/lookup": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Lookup V1",
+        "operationId": "lookup_v1_v1_lookup_get",
+        "parameters": [
+          {
+            "name": "test_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Test name to look up",
+              "title": "Test Name"
+            },
+            "description": "Test name to look up"
+          },
+          {
+            "name": "specimen",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Specimen type (optional)",
+              "default": "",
+              "title": "Specimen"
+            },
+            "description": "Specimen type (optional)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Lookup V1 V1 Lookup Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/normalize/upload": {
+      "post": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Normalize Upload V1",
+        "operationId": "normalize_upload_v1_v1_normalize_upload_post",
+        "parameters": [
+          {
+            "name": "emit_fhir",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Emit Fhir"
+            }
+          },
+          {
+            "name": "fuzzy_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 0.0,
+              "title": "Fuzzy Threshold"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_normalize_upload_v1_v1_normalize_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analyze/upload": {
+      "post": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Analyze Upload V1",
+        "operationId": "analyze_upload_v1_v1_analyze_upload_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_analyze_upload_v1_v1_analyze_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -939,6 +1290,20 @@
         ],
         "title": "Body_analyze_upload_analyze_upload_post"
       },
+      "Body_analyze_upload_v1_v1_analyze_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_analyze_upload_v1_v1_analyze_upload_post"
+      },
       "Body_normalize_upload_normalize_upload_post": {
         "properties": {
           "file": {
@@ -952,6 +1317,20 @@
           "file"
         ],
         "title": "Body_normalize_upload_normalize_upload_post"
+      },
+      "Body_normalize_upload_v1_v1_normalize_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_normalize_upload_v1_v1_normalize_upload_post"
       },
       "CompareRequest": {
         "properties": {
@@ -970,7 +1349,8 @@
           "days_between": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "number",
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -1019,7 +1399,8 @@
           "chronological_age": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "number",
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -1060,6 +1441,7 @@
           },
           "chronological_age": {
             "type": "number",
+            "minimum": 0.0,
             "title": "Chronological Age",
             "description": "Patient age in years"
           }

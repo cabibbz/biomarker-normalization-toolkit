@@ -2,6 +2,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.hypothesis/
+.claude/
 .venv/
 venv/
 dist/

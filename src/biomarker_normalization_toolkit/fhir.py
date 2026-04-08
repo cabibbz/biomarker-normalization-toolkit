@@ -99,7 +99,12 @@ def _build_value_quantity(record: NormalizedRecord) -> dict:
 def _observation_uuid(record: NormalizedRecord, input_file: str = "") -> str:
     key = record.source_row_id or f"row-{record.source_row_number}"
     bio = record.canonical_biomarker_id or "unknown"
-    seed = f"observation-{input_file}-{key}-{bio}" if input_file else f"observation-{key}-{bio}"
+    row_key = str(record.source_row_number)
+    seed = (
+        f"observation-{input_file}-{row_key}-{key}-{bio}"
+        if input_file
+        else f"observation-{row_key}-{key}-{bio}"
+    )
     return str(uuid.uuid5(_BNT_NAMESPACE, seed))
 
 

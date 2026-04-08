@@ -31,7 +31,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "apob": (Decimal("40"), Decimal("70"), "mg/dL", "Attia: best single CVD marker; < 80 good, < 60 ideal"),
     "lpa": (Decimal("0"), Decimal("30"), "nmol/L", "Genetic; < 30 nmol/L low risk; > 125 high risk"),
     "non_hdl_cholesterol": (Decimal("70"), Decimal("100"), "mg/dL", "TC - HDL; < 130 normal; < 100 optimal"),
-    "vldl_cholesterol": (Decimal("5"), Decimal("30"), "mg/dL", ""),
+    "vldl_cholesterol": (Decimal("5"), Decimal("30"), "mg/dL", "< 30 normal"),
 
     # Liver
     "alt": (Decimal("7"), Decimal("25"), "U/L", "< 35 normal; < 25 optimal for liver health"),
@@ -43,7 +43,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     # Kidney
     "creatinine": (Decimal("0.7"), Decimal("1.1"), "mg/dL", "Age/muscle dependent"),
     "egfr": (Decimal("90"), Decimal("120"), "mL/min/1.73m2", "> 60 normal; > 90 optimal"),
-    "cystatin_c": (Decimal("0.55"), Decimal("0.82"), "mg/L", "Superior to creatinine for eGFR"),
+    "cystatin_c": (Decimal("0.55"), Decimal("0.82"), "mg/L", "Superior kidney marker; more sensitive than creatinine for eGFR"),
     "uric_acid": (Decimal("3.5"), Decimal("5.5"), "mg/dL", "< 7 normal; 3.5-5.5 longevity optimal"),
 
     # Thyroid
@@ -54,8 +54,8 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     # Inflammation
     "hscrp": (Decimal("0"), Decimal("0.5"), "mg/L", "< 1.0 low risk; < 0.5 optimal longevity"),
     "crp": (Decimal("0"), Decimal("1.0"), "mg/L", "< 3 low risk; < 1 optimal"),
-    "esr": (Decimal("0"), Decimal("10"), "mm/hr", "Low ESR = low systemic inflammation"),
-    "homocysteine": (Decimal("5"), Decimal("8"), "umol/L", "< 15 normal; < 8 optimal; B12/folate dependent"),
+    "esr": (Decimal("0"), Decimal("10"), "mm/hr", "Lower = less systemic inflammation"),
+    "homocysteine": (Decimal("5"), Decimal("8"), "umol/L", "< 15 normal; < 8 longevity optimal; B12/folate dependent"),
 
     # Hematology
     "hemoglobin": (Decimal("13.5"), Decimal("15.5"), "g/dL", "Male 13.5-17.5; female 12-15.5; mid-range optimal"),
@@ -79,8 +79,8 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     # Hormones
     "testosterone_total": (Decimal("15"), Decimal("900"), "ng/dL", "Unisex range; use sex param for specific ranges"),
     "free_testosterone": (Decimal("10"), Decimal("25"), "pg/mL", "Male: age-dependent; mid-upper optimal"),
-    "dhea_s": (Decimal("200"), Decimal("500"), "ug/dL", "Declines with age; higher = younger biological age"),
-    "igf1": (Decimal("100"), Decimal("180"), "ng/mL", "U-shaped mortality curve; mid-range optimal"),
+    "dhea_s": (Decimal("200"), Decimal("500"), "ug/dL", "Age-dependent decline; higher = younger biological age"),
+    "igf1": (Decimal("100"), Decimal("180"), "ng/mL", "Age-dependent; U-shaped mortality curve; mid-range optimal"),
     "cortisol": (Decimal("6"), Decimal("18"), "ug/dL", "AM cortisol; too high = chronic stress"),
 
     # Electrolytes
@@ -179,24 +179,17 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "vitamin_a": (Decimal("30"), Decimal("65"), "ug/dL", "30-65 normal"),
     "vitamin_c": (Decimal("0.4"), Decimal("1.5"), "mg/dL", "0.4-1.5 normal"),
     "vitamin_e": (Decimal("5"), Decimal("20"), "mg/L", "5-20 normal"),
-    "copper": (Decimal("70"), Decimal("120"), "ug/dL", "70-155 normal; copper/zinc ratio matters"),
     "fructosamine": (Decimal("190"), Decimal("270"), "umol/L", "200-285 normal; < 250 optimal"),
     # Advanced
     "apoa1": (Decimal("120"), Decimal("175"), "mg/dL", "Male: 100-175; Female: 110-200"),
-    "igf1": (Decimal("100"), Decimal("180"), "ng/mL", "Age-dependent; U-shaped mortality"),
-    "cystatin_c": (Decimal("0.55"), Decimal("0.82"), "mg/L", "Superior kidney marker"),
     "shbg": (Decimal("20"), Decimal("60"), "nmol/L", "Male: 10-57; Female: 18-144"),
-    "free_t3": (Decimal("3.0"), Decimal("4.0"), "pg/mL", "2.3-4.2 normal; mid-upper optimal"),
     "haptoglobin": (Decimal("30"), Decimal("200"), "mg/dL", "30-200 normal"),
-    "esr": (Decimal("0"), Decimal("10"), "mm/hr", "Lower = less inflammation"),
     "procalcitonin": (Decimal("0"), Decimal("0.05"), "ng/mL", "< 0.05 normal; > 0.5 suggests bacterial infection"),
     # Cancer screening
     "psa": (Decimal("0"), Decimal("2.5"), "ng/mL", "< 4 normal; < 2.5 optimal for longevity screening"),
     # Urinalysis
     "urine_specific_gravity": (Decimal("1.010"), Decimal("1.025"), "", "1.005-1.030 normal"),
     "urine_ph": (Decimal("5.5"), Decimal("7.0"), "pH", "4.5-8.0 normal; 6-7 optimal"),
-    "homocysteine": (Decimal("5"), Decimal("8"), "umol/L", "< 15 normal; < 8 longevity optimal"),
-    "vldl_cholesterol": (Decimal("5"), Decimal("30"), "mg/dL", "< 30 normal"),
     # Heavy metals (lower is better)
     "mercury": (Decimal("0"), Decimal("5"), "ug/L", "< 10 normal; < 5 optimal"),
     "lead": (Decimal("0"), Decimal("3.5"), "ug/dL", "< 5 normal; CDC reference < 3.5"),
@@ -228,18 +221,12 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "urobilinogen": (Decimal("0.1"), Decimal("1.0"), "mg/dL", "0.1-1.0 normal"),
     "total_protein": (Decimal("6.3"), Decimal("7.9"), "g/dL", "6.0-8.3 normal"),
     "chol_hdl_ratio": (Decimal("1.5"), Decimal("3.5"), "ratio", "< 5 normal; < 3.5 optimal"),
-    "non_hdl_cholesterol": (Decimal("70"), Decimal("100"), "mg/dL", "< 130 normal; < 100 optimal"),
-    "ldl_particle_number": (Decimal("500"), Decimal("1000"), "nmol/L", "< 1300 normal; < 1000 Attia optimal"),
-    "small_dense_ldl": (Decimal("0"), Decimal("20"), "mg/dL", "< 30 normal; < 20 optimal"),
-    "oxidized_ldl": (Decimal("0"), Decimal("40"), "U/L", "< 60 normal; < 40 optimal"),
-    "lp_pla2": (Decimal("0"), Decimal("175"), "nmol/min/mL", "< 200 normal"),
     "coq10": (Decimal("0.5"), Decimal("1.5"), "ug/mL", "0.5-1.5 normal; supplementation target > 1.0"),
     "glycomark": (Decimal("10"), Decimal("30"), "ug/mL", "10-32 normal; lower = more glucose spikes"),
     "igfbp3": (Decimal("2000"), Decimal("5000"), "ng/mL", "Age-dependent; correlates with IGF-1"),
     "cortisol_free": (Decimal("0.07"), Decimal("0.93"), "ug/dL", "AM: 0.07-0.93"),
     "estrone": (Decimal("10"), Decimal("60"), "pg/mL", "Male: 10-60; Female: cycle-dependent"),
     "pregnenolone": (Decimal("10"), Decimal("200"), "ng/dL", "Age-dependent; declines with age"),
-    "dhea_s": (Decimal("200"), Decimal("500"), "ug/dL", "Age-dependent; higher = younger biological age"),
     "bioavailable_testosterone": (Decimal("100"), Decimal("350"), "ng/dL", "Male range"),
     # Remaining biomarkers
     "afp": (Decimal("0"), Decimal("8"), "ng/mL", "< 10 normal; > 400 suggests liver cancer"),

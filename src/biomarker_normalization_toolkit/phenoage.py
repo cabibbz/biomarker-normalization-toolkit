@@ -68,12 +68,12 @@ def compute_phenoage(
     Args:
         result: NormalizationResult containing mapped biomarker records.
         chronological_age: Patient's chronological age in years. If None,
-            only the mortality score (xb) is returned, not the age estimate.
+            only the mortality linear predictor (xb) is returned, not the age estimate.
 
     Returns:
         Dict with phenoage results, or None if required biomarkers are missing.
         Keys: phenoage, chronological_age, age_acceleration, mortality_score,
-              inputs, missing_inputs, formula_reference.
+              mortality_linear_predictor, inputs, missing_inputs, formula_reference.
     """
     # Extract required biomarker values
     albumin = _get_value(result, "albumin")
@@ -106,6 +106,12 @@ def compute_phenoage(
             "error": f"Missing required biomarkers: {', '.join(missing)}",
             "inputs_found": {k: v for k, v in inputs_found.items() if v is not None},
             "missing_inputs": missing,
+        }
+
+    if chronological_age is not None and (not math.isfinite(chronological_age) or chronological_age < 0):
+        return {
+            "phenoage": None,
+            "error": "Chronological age must be a finite non-negative number.",
         }
 
     # Validate inputs are physiologically plausible
@@ -173,7 +179,8 @@ def compute_phenoage(
         "phenoage": round(phenoage, 1) if phenoage is not None else None,
         "chronological_age": chronological_age,
         "age_acceleration": round(phenoage - chronological_age, 1) if phenoage is not None and chronological_age is not None else None,
-        "mortality_score": round(xb_no_age, 4),
+        "mortality_score": round(mortality_score, 6) if mortality_score is not None else None,
+        "mortality_linear_predictor": round(xb_no_age, 4),
         "inputs": {
             "albumin_g_dl": albumin,
             "creatinine_mg_dl": creatinine,
