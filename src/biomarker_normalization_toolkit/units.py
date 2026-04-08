@@ -13,11 +13,11 @@ _RE_SLASH_SPACES = re.compile(r"\s*/\s*")
 # is_inequality_value
 _RE_INEQUALITY = re.compile(r"^[<>]=?\s*-?\d+(\.\d+)?$")
 
-# parse_decimal: European comma-decimal, scientific "x 10^N", [eE] reject,
+# parse_decimal: European comma-decimal, scientific notation,
 # thousands-with-dot validation
 _RE_EURO_COMMA = re.compile(r"^-?\d+,\d{1,2}$")
 _RE_X10_NOTATION = re.compile(r"^(-?\d+(?:\.\d+)?)\s*[xX]\s*10[\^eE](\d+)$")
-_RE_SCI_NOTATION = re.compile(r"[eE]")
+_RE_SCI_NOTATION = re.compile(r"^(?P<mantissa>[+-]?\d+(?:\.\d+)?)[eE](?P<exp>[+-]?\d+)$")
 _RE_THOUSANDS_DOT = re.compile(r"^-?\d{1,3}(,\d{3})*\.\d+$")
 
 # parse_reference_range: thousands-separator strip, range patterns
@@ -28,6 +28,9 @@ _RE_RANGE = re.compile(
 _RE_ONE_SIDED = re.compile(
     r"^\s*(?P<op>[<>]=?)\s*(?P<val>[+-]?\d+(?:\.\d+)?)(?:\s+(?P<unit>.+?))?$"
 )
+
+_HBA1C_IFCC_TO_NGSP_SLOPE = Decimal("0.09148")
+_HBA1C_IFCC_TO_NGSP_INTERCEPT = Decimal("2.152")
 
 UNIT_SYNONYMS = {
     "mg/dl": "mg/dL",
@@ -41,6 +44,8 @@ UNIT_SYNONYMS = {
     "μmol/l": "umol/L",
     "µmol/l": "umol/L",
     "%": "%",
+    "percent": "%",
+    "pct": "%",
     "u/l": "U/L",
     "iu/l": "U/L",
     "[iu]/l": "U/L",
@@ -61,6 +66,7 @@ UNIT_SYNONYMS = {
     "10*3/ul": "K/uL",
     "10^9/l": "10^9/L",
     "10*9/l": "10^9/L",
+    "10 billion/l": "10^9/L",
     "l/l": "L/L",
     "pmol/l": "pmol/L",
     "nmol/l": "nmol/L",
@@ -70,9 +76,12 @@ UNIT_SYNONYMS = {
     "m/ul": "M/uL",
     "10^12/l": "10^12/L",
     "10*12/l": "10^12/L",
+    "10 trillion/l": "10^12/L",
     "fl": "fL",
     "pg": "pg",
     "sec": "sec",
+    "secs": "sec",
+    "sec.": "sec",
     "s": "sec",
     "seconds": "sec",
     "ratio": "ratio",
@@ -115,6 +124,8 @@ UNIT_SYNONYMS = {
     "thou/cumm": "K/uL",
     "k/cumm": "K/uL",
     "mill/cumm": "M/uL",
+    "million/mm3": "M/uL",
+    "million/mm^3": "M/uL",
     "/ul": "#/uL",
     "x10e9/l": "10^9/L",
     "x10e12/l": "10^12/L",
@@ -392,9 +403,11 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     # incompatible (cannot convert % to K/uL without total WBC count).
     # % inputs will get status="review_needed" with reason="unsupported_unit_for_biomarker".
     "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "bands_pct": {"%": Decimal("1")},
     "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
     "immature_granulocytes_pct": {"%": Decimal("1")},
     "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000")},
+    "nrbc_pct": {"%": Decimal("1")},
     "osmolality_urine": {"mOsm/kg": Decimal("1")},
     "sodium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
     "potassium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
@@ -505,12 +518,23 @@ def format_decimal(value: Decimal | None) -> str:
     return text or "0"
 
 
+def supports_source_unit(biomarker_id: str, source_unit: str) -> bool:
+    normalized_unit = normalize_unit(source_unit)
+    if biomarker_id == "hba1c" and normalized_unit == "mmol/mol":
+        return True
+    return normalized_unit in CONVERSION_TO_NORMALIZED.get(biomarker_id, {})
+
+
 def convert_to_normalized(value: Decimal, biomarker_id: str, source_unit: str) -> Decimal | None:
-    factor = CONVERSION_TO_NORMALIZED.get(biomarker_id, {}).get(normalize_unit(source_unit))
-    if factor is None:
-        return None
+    normalized_unit = normalize_unit(source_unit)
     with localcontext() as ctx:
         ctx.prec = 28  # Isolate from external decimal context changes
+        if biomarker_id == "hba1c" and normalized_unit == "mmol/mol":
+            # NGSP/DCCT %HbA1c = (0.09148 * IFCC mmol/mol) + 2.152
+            return (value * _HBA1C_IFCC_TO_NGSP_SLOPE) + _HBA1C_IFCC_TO_NGSP_INTERCEPT
+        factor = CONVERSION_TO_NORMALIZED.get(biomarker_id, {}).get(normalized_unit)
+        if factor is None:
+            return None
         return value * factor
 
 
@@ -545,7 +569,7 @@ def parse_decimal(value: str | None, *, locale: str = "us") -> Decimal | None:
     if _RE_EURO_COMMA.match(stripped):
         return None  # Ambiguous European decimal — reject rather than corrupt
     # Parse clinical lab "x 10^N" notation (e.g., "15.5 x 10^3", "250 x10^6",
-    # "1.5 X10E3").  Must be handled before the generic [eE] rejection below.
+    # "1.5 X10E3"). Must be handled before standard scientific notation.
     m_x10 = _RE_X10_NOTATION.match(stripped)
     if m_x10:
         mantissa = Decimal(m_x10.group(1))
@@ -555,9 +579,18 @@ def parse_decimal(value: str | None, *, locale: str = "us") -> Decimal | None:
         result = mantissa * Decimal(10) ** exponent
         return result if result.is_finite() else None
 
-    # Reject scientific notation (e.g., "1e3", "2.5E2") — likely OCR/data artifact
-    if _RE_SCI_NOTATION.search(stripped):
-        return None
+    # Accept bounded scientific notation because machine-generated lab exports
+    # often use it for very small or very large values.
+    m_sci = _RE_SCI_NOTATION.match(stripped)
+    if m_sci:
+        exponent = int(m_sci.group("exp"))
+        if abs(exponent) > 100:
+            return None
+        try:
+            result = Decimal(stripped)
+            return result if result.is_finite() else None
+        except Exception:
+            return None
     # Reject mixed comma+dot garbage (e.g., "1.5,2" -> would become "1.52")
     if "," in stripped and "." in stripped:
         # Only valid pattern: "1,234.56" (comma before dot as thousands separator)

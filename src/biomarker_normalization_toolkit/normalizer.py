@@ -6,7 +6,7 @@ from pathlib import Path
 from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, BIOMARKER_CATALOG, normalize_key, normalize_specimen
 from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord, RangeValue, SourceRecord
 from biomarker_normalization_toolkit.plausibility import check_plausibility
-from biomarker_normalization_toolkit.units import convert_to_normalized, format_decimal, format_range, is_inequality_value, normalize_unit, parse_decimal, parse_reference_range
+from biomarker_normalization_toolkit.units import convert_to_normalized, format_decimal, format_range, is_inequality_value, normalize_unit, parse_decimal, parse_reference_range, supports_source_unit
 
 # Explicit sibling map: when unit conversion fails for a biomarker, try these
 # related biomarkers. Only curated pairs — no prefix-based guessing.
@@ -27,6 +27,10 @@ _SIBLING_MAP: dict[str, list[str]] = {
     "reticulocyte_absolute": ["reticulocytes"],
     "immature_granulocytes": ["immature_granulocytes_pct"],
     "immature_granulocytes_pct": ["immature_granulocytes"],
+    "bands": ["bands_pct"],
+    "bands_pct": ["bands"],
+    "nrbc": ["nrbc_pct"],
+    "nrbc_pct": ["nrbc"],
     "glucose_serum": ["glucose_urine"],
     "glucose_urine": ["glucose_serum"],
     "creatinine": ["creatinine_urine"],
@@ -129,6 +133,13 @@ def _filter_candidates_by_specimen(candidate_ids: list[str], specimen_type: str)
     return filtered
 
 
+def _filter_candidates_by_unit(candidate_ids: list[str], source_unit: str) -> list[str]:
+    if not source_unit:
+        return candidate_ids
+    filtered = [candidate_id for candidate_id in candidate_ids if supports_source_unit(candidate_id, source_unit)]
+    return filtered if len(filtered) == 1 else candidate_ids
+
+
 def _convert_range(range_value: RangeValue | None, biomarker_id: str) -> RangeValue | None:
     if range_value is None:
         return None
@@ -177,17 +188,23 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
 
     specimen_filtered = _filter_candidates_by_specimen(candidate_ids, source.specimen_type)
 
-    if len(candidate_ids) > 1 and not source.specimen_type:
+    if len(specimen_filtered) > 1:
+        unit_filtered = _filter_candidates_by_unit(specimen_filtered, source.source_unit)
+    else:
+        unit_filtered = specimen_filtered
+
+    if len(candidate_ids) > 1 and len(unit_filtered) > 1 and not source.specimen_type:
         reason = "fuzzy_match_ambiguous_requires_specimen" if fuzzy_result else "ambiguous_alias_requires_specimen"
         return _build_record(source, status="review_needed", reason=reason)
 
-    if len(specimen_filtered) > 1:
+    if len(unit_filtered) > 1:
         return _build_record(source, status="review_needed", reason="ambiguous_alias_after_specimen_filter")
 
-    if len(specimen_filtered) == 0:
+    if len(unit_filtered) == 0:
         return _build_record(source, status="review_needed", reason="no_candidate_for_specimen")
 
-    candidate = BIOMARKER_CATALOG[specimen_filtered[0]]
+    unit_disambiguated = len(specimen_filtered) > 1 and len(unit_filtered) == 1
+    candidate = BIOMARKER_CATALOG[unit_filtered[0]]
 
     if source.raw_value is None:
         reason = "inequality_value" if is_inequality_value(source.raw_value_text) else "invalid_raw_value"
@@ -243,6 +260,13 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
         status = "mapped"
         reason = "panel_prefix_stripped"
         mapping_rule = f"panel_strip:{source.alias_key}|biomarker:{candidate.biomarker_id}"
+    elif unit_disambiguated:
+        confidence = "high"
+        status = "mapped"
+        reason = "mapped_by_alias_and_unit"
+        mapping_rule = f"alias:{source.alias_key}|biomarker:{candidate.biomarker_id}|unit:{source.source_unit}"
+        if source.specimen_type:
+            mapping_rule += f"|specimen:{source.specimen_type}"
     elif sibling_redirected:
         # Biomarker identity changed via unit-based sibling redirect
         confidence = "medium"
@@ -323,4 +347,3 @@ def normalize_rows(rows: list[dict[str, str]], input_file: str = "", fuzzy_thres
         records=normalized_records,
         warnings=tuple(warnings),
     )
-

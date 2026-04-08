@@ -277,6 +277,10 @@ class NormalizationTests(unittest.TestCase):
         result = convert_to_normalized(Decimal("5.5"), "glucose_serum", "mmol/L")
         self.assertEqual(result, Decimal("99.0"))
 
+    def test_hba1c_ifcc_mmol_mol_to_percent(self) -> None:
+        result = convert_to_normalized(Decimal("53"), "hba1c", "mmol/mol")
+        self.assertEqual(result, Decimal("7.00044"))
+
     def test_creatinine_umol_to_mg(self) -> None:
         result = convert_to_normalized(Decimal("88.4"), "creatinine", "umol/L")
         self.assertIsNotNone(result)
@@ -330,6 +334,10 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(BIOMARKER_CATALOG["iron"].loinc, "2498-4")
         self.assertEqual(BIOMARKER_CATALOG["potassium"].loinc, "2823-3")
         self.assertEqual(BIOMARKER_CATALOG["uric_acid"].loinc, "3084-1")
+        self.assertEqual(BIOMARKER_CATALOG["bands"].loinc, "26507-4")
+        self.assertEqual(BIOMARKER_CATALOG["bands_pct"].loinc, "26508-2")
+        self.assertEqual(BIOMARKER_CATALOG["nrbc"].loinc, "30392-5")
+        self.assertEqual(BIOMARKER_CATALOG["nrbc_pct"].loinc, "19048-8")
 
     def test_catalog_loinc_check_digits_valid(self) -> None:
         def loinc_check_digit(num_str: str) -> int:
@@ -1013,11 +1021,81 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(normalize_unit("gm/dL"), "g/dL")
         self.assertEqual(normalize_unit("gm/L"), "g/L")
         self.assertEqual(normalize_unit("gm%"), "g/dL")
+        self.assertEqual(normalize_unit("percent"), "%")
+        self.assertEqual(normalize_unit("pct"), "%")
+        self.assertEqual(normalize_unit("secs"), "sec")
+        self.assertEqual(normalize_unit("million/mm3"), "M/uL")
+        self.assertEqual(normalize_unit("10 trillion/L"), "10^12/L")
         self.assertEqual(normalize_unit("cells/cumm"), "#/uL")
         self.assertEqual(normalize_unit("thou/cumm"), "K/uL")
         self.assertEqual(normalize_unit("K/cumm"), "K/uL")
         self.assertEqual(normalize_unit("mill/cumm"), "M/uL")
         self.assertEqual(normalize_unit("ug/L"), "ug/L")
+
+    def test_hba1c_ifcc_input_normalizes_value_and_range(self) -> None:
+        rows = [{
+            "source_row_id": "a1c-ifcc",
+            "source_test_name": "HbA1c",
+            "raw_value": "53",
+            "source_unit": "mmol/mol",
+            "specimen_type": "whole blood",
+            "source_reference_range": "42-48 mmol/mol",
+        }]
+        result = normalize_rows(rows)
+        record = result.records[0]
+        self.assertEqual(record.mapping_status, "mapped")
+        self.assertEqual(record.normalized_unit, "%")
+        self.assertEqual(record.normalized_value, "7.00044")
+        self.assertEqual(record.normalized_reference_range, "5.99416-6.54304 %")
+
+    def test_rbc_million_mm3_normalizes(self) -> None:
+        rows = [{
+            "source_row_id": "rbc_mm3",
+            "source_test_name": "RBC Count",
+            "raw_value": "3.93",
+            "source_unit": "million/mm3",
+            "specimen_type": "whole blood",
+            "source_reference_range": "4.5-5.5 million/mm3",
+        }]
+        result = normalize_rows(rows)
+        record = result.records[0]
+        self.assertEqual(record.mapping_status, "mapped")
+        self.assertEqual(record.canonical_biomarker_id, "rbc")
+        self.assertEqual(record.normalized_value, "3.93")
+        self.assertEqual(record.normalized_unit, "M/uL")
+        self.assertEqual(record.normalized_reference_range, "4.5-5.5 M/uL")
+
+    def test_rbc_million_per_mm3_maps_via_unit_synonym(self) -> None:
+        rows = [{
+            "source_row_id": "rbc-legacy",
+            "source_test_name": "RBC",
+            "raw_value": "4.5",
+            "source_unit": "million/mm3",
+            "specimen_type": "whole blood",
+            "source_reference_range": "4.0-5.2 million/mm3",
+        }]
+        result = normalize_rows(rows)
+        record = result.records[0]
+        self.assertEqual(record.mapping_status, "mapped")
+        self.assertEqual(record.normalized_unit, "M/uL")
+        self.assertEqual(record.normalized_value, "4.5")
+        self.assertEqual(record.normalized_reference_range, "4-5.2 M/uL")
+
+    def test_rbc_trillion_per_liter_maps_via_unit_synonym(self) -> None:
+        rows = [{
+            "source_row_id": "rbc-si-legacy",
+            "source_test_name": "RBC",
+            "raw_value": "4.5",
+            "source_unit": "10 trillion/L",
+            "specimen_type": "whole blood",
+            "source_reference_range": "4.0-5.2 10 trillion/L",
+        }]
+        result = normalize_rows(rows)
+        record = result.records[0]
+        self.assertEqual(record.mapping_status, "mapped")
+        self.assertEqual(record.normalized_unit, "M/uL")
+        self.assertEqual(record.normalized_value, "4.5")
+        self.assertEqual(record.normalized_reference_range, "4-5.2 M/uL")
 
     # --- Deep scrutiny pass 2: New aliases map correctly ---
 
@@ -1119,6 +1197,38 @@ class NormalizationTests(unittest.TestCase):
             self.assertEqual(record.mapping_status, "mapped",
                              f"{record.source_row_id} should be mapped")
             self.assertEqual(record.canonical_biomarker_id, expected[record.source_row_id])
+
+    def test_bands_alias_is_disambiguated_by_unit(self) -> None:
+        rows = [
+            {"source_row_id": "bands_pct", "source_test_name": "Bands", "raw_value": "4",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": "0-5 %"},
+            {"source_row_id": "bands_abs", "source_test_name": "Bands", "raw_value": "0.4",
+             "source_unit": "K/uL", "specimen_type": "whole blood", "source_reference_range": "0-0.5 K/uL"},
+        ]
+        result = normalize_rows(rows)
+        by_id = {record.source_row_id: record for record in result.records}
+        self.assertEqual(by_id["bands_pct"].canonical_biomarker_id, "bands_pct")
+        self.assertEqual(by_id["bands_pct"].normalized_unit, "%")
+        self.assertEqual(by_id["bands_pct"].status_reason, "mapped_by_alias_and_unit")
+        self.assertEqual(by_id["bands_abs"].canonical_biomarker_id, "bands")
+        self.assertEqual(by_id["bands_abs"].normalized_unit, "K/uL")
+        self.assertEqual(by_id["bands_abs"].status_reason, "mapped_by_alias_and_unit")
+
+    def test_nrbc_alias_is_disambiguated_by_unit(self) -> None:
+        rows = [
+            {"source_row_id": "nrbc_pct", "source_test_name": "NRBC", "raw_value": "2",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": "0-0 %"},
+            {"source_row_id": "nrbc_abs", "source_test_name": "NRBC", "raw_value": "150",
+             "source_unit": "#/uL", "specimen_type": "whole blood", "source_reference_range": "0-0 #/uL"},
+        ]
+        result = normalize_rows(rows)
+        by_id = {record.source_row_id: record for record in result.records}
+        self.assertEqual(by_id["nrbc_pct"].canonical_biomarker_id, "nrbc_pct")
+        self.assertEqual(by_id["nrbc_pct"].normalized_unit, "%")
+        self.assertEqual(by_id["nrbc_pct"].status_reason, "mapped_by_alias_and_unit")
+        self.assertEqual(by_id["nrbc_abs"].canonical_biomarker_id, "nrbc")
+        self.assertEqual(by_id["nrbc_abs"].normalized_unit, "#/uL")
+        self.assertEqual(by_id["nrbc_abs"].status_reason, "mapped_by_alias_and_unit")
 
     def test_pco2_kpa_converts_to_mmhg(self) -> None:
         result = convert_to_normalized(Decimal("5.3"), "pco2", "kPa")
@@ -1997,8 +2107,8 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(parse_decimal("250 x 10^3"), Decimal("250000"))
         self.assertEqual(parse_decimal("3.2x10^9"), Decimal("3200000000"))
         self.assertEqual(parse_decimal("1.5 X10E3"), Decimal("1500"))
-        # Standard scientific notation (e.g., "1.5e6") should STILL be rejected
-        self.assertIsNone(parse_decimal("1.5e6"))
+        self.assertEqual(parse_decimal("1.5e6"), Decimal("1500000"))
+        self.assertEqual(parse_decimal("5.397605346934028e-79"), Decimal("5.397605346934028E-79"))
 
     # --- FHIR one-sided reference range ---
 
@@ -5734,9 +5844,10 @@ class NumericPrecisionTests(unittest.TestCase):
         from biomarker_normalization_toolkit.units import parse_decimal
         self.assertIsNone(parse_decimal("5,5"))
 
-    def test_parse_decimal_scientific_rejected(self) -> None:
+    def test_parse_decimal_scientific_notation(self) -> None:
         from biomarker_normalization_toolkit.units import parse_decimal
-        self.assertIsNone(parse_decimal("1.5e6"))
+        self.assertEqual(parse_decimal("1.5e6"), Decimal("1500000"))
+        self.assertEqual(parse_decimal("1.23e+4"), Decimal("12300"))
 
     def test_parse_decimal_x10_notation(self) -> None:
         from biomarker_normalization_toolkit.units import parse_decimal
@@ -5746,9 +5857,28 @@ class NumericPrecisionTests(unittest.TestCase):
         from biomarker_normalization_toolkit.units import parse_decimal
         self.assertIsNone(parse_decimal("1 x 10^16"))
 
+    def test_parse_decimal_scientific_exponent_cap(self) -> None:
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal("1e101"))
+
     def test_parse_decimal_empty(self) -> None:
         from biomarker_normalization_toolkit.units import parse_decimal
         self.assertIsNone(parse_decimal(""))
+
+    def test_scientific_notation_row_normalizes(self) -> None:
+        rows = [{
+            "source_row_id": "sci1",
+            "source_test_name": "Basophils",
+            "raw_value": "5.397605346934028e-79",
+            "source_unit": "K/uL",
+            "specimen_type": "whole blood",
+            "source_reference_range": "",
+        }]
+        result = normalize_rows(rows)
+        record = result.records[0]
+        self.assertEqual(record.mapping_status, "mapped")
+        self.assertEqual(record.canonical_biomarker_id, "basophils")
+        self.assertEqual(record.normalized_value, "0")
 
     def test_parse_decimal_none(self) -> None:
         from biomarker_normalization_toolkit.units import parse_decimal
