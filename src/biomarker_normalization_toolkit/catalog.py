@@ -63,6 +63,10 @@ def normalize_specimen(specimen: str | None) -> str | None:
         "24h urine": "urine",
         "24 hour urine": "urine",
         "timed urine": "urine",
+        "csf": "cerebrospinal fluid",
+        "cerebral spinal fluid": "cerebrospinal fluid",
+        "cerebrospinal fluid": "cerebrospinal fluid",
+        "spinal fluid": "cerebrospinal fluid",
     }
     return mapping.get(specimen_key, specimen_key or None)
 
@@ -70,6 +74,7 @@ def normalize_specimen(specimen: str | None) -> str | None:
 _BLOOD = frozenset({"serum", "plasma", "whole_blood"})
 _WHOLE_BLOOD = frozenset({"whole_blood"})
 _URINE = frozenset({"urine"})
+_CSF = frozenset({"cerebrospinal fluid"})
 
 BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "glucose_serum": BiomarkerDefinition(
@@ -110,6 +115,19 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Glucose", "Urine Glucose", "GLU",
                  "Glucose [Mass/volume] in Urine by Test strip"),
     ),
+    "glucose_csf": BiomarkerDefinition(
+        biomarker_id="glucose_csf",
+        canonical_name="CSF Glucose",
+        loinc="2342-4",
+        normalized_unit="mg/dL",
+        allowed_specimens=_CSF,
+        aliases=(
+            "Glucose - CSF",
+            "CSF Glucose",
+            "Glucose (CSF) [Mass/Vol]",
+            "Glucose [Mass/volume] in Cerebral spinal fluid",
+        ),
+    ),
     "hba1c": BiomarkerDefinition(
         biomarker_id="hba1c",
         canonical_name="Hemoglobin A1c",
@@ -148,6 +166,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_BLOOD,
         aliases=("LDL Cholesterol", "LDL-C", "LDL", "LDL Chol Calc", "LDL Cholesterol Calc", "LDL Cholesterol Calculated", "LDL Calc",
                  "Cholesterol, LDL, Calculated",
+                 "Cholesterol, LDL, Measured",
                  "Low Density Lipoprotein Cholesterol", "LDL Chol Calc (NIH)",
                  "Cholesterol in LDL [Mass/volume] in Serum or Plasma",
                  "Cholesterol in LDL [Mass/volume] in Serum or Plasma by Direct assay",
@@ -183,6 +202,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Creatinine", "Creatinine, Serum", "Creatinine, Plasma", "Creat", "Crea", "SCr",
                  "Creatinina [Volume] no soro ou plasma",
                  "Creatinina sérica",
+                 "Creatinina",
                  "Serum Creatinine", "Creatinine SerPl",
                  "Creatinine [Mass/volume] in Blood", "Creatinine [Mass/volume] in Serum or Plasma"),
     ),
@@ -574,6 +594,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_BLOOD,
         aliases=("Bicarbonate", "CO2", "Total CO2", "Carbon Dioxide", "HCO3",
                  "Calculated Total CO2", "Calculated Bicarbonate", "Bicarb",
+                 "Calculated Bicarbonate, Whole Blood",
                  "Bicarbonate [Moles/volume] in Arterial blood",
                  "Bicarbonate [Moles/volume] in Venous blood",
                  "Carbon dioxide total [Moles/volume] in Blood",
@@ -1143,6 +1164,81 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Blasts", "Blasts Percent",
                  "Blasts/100 leukocytes in Blood"),
     ),
+    "cd3_absolute": BiomarkerDefinition(
+        biomarker_id="cd3_absolute",
+        canonical_name="Absolute CD3 Count",
+        loinc="8122-4",
+        normalized_unit="#/uL",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=(
+            "Absolute CD3 Count",
+            "CD3 Absolute Count",
+            "CD3 cells [#/volume] in Blood",
+            "CD3 cells (Bld) [#/Vol]",
+        ),
+    ),
+    "cd4_absolute": BiomarkerDefinition(
+        biomarker_id="cd4_absolute",
+        canonical_name="Absolute CD4 Count",
+        loinc="24467-3",
+        normalized_unit="#/uL",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=(
+            "Absolute CD4 Count",
+            "CD4 Absolute Count",
+            "CD3+CD4+ (T4 helper) cells [#/volume] in Blood",
+            "CD3+CD4+ (T4 helper) cells (Bld) [#/Vol]",
+        ),
+    ),
+    "cd4_pct": BiomarkerDefinition(
+        biomarker_id="cd4_pct",
+        canonical_name="CD4 Cells, Percent",
+        loinc="8123-2",
+        normalized_unit="%",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=(
+            "CD4 Cells, Percent",
+            "CD3+CD4+ (T4 helper) cells/cells in Blood",
+            "CD3+CD4+ (T4 helper) cells/Cells (Bld)",
+        ),
+    ),
+    "cd8_absolute": BiomarkerDefinition(
+        biomarker_id="cd8_absolute",
+        canonical_name="Absolute CD8 Count",
+        loinc="14135-8",
+        normalized_unit="#/uL",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=(
+            "Absolute CD8 Count",
+            "CD8 Absolute Count",
+            "CD3+CD8+ (T8 suppressor) cells [#/volume] in Blood",
+            "CD3+CD8+ (T8 suppressor) cells (Bld) [#/Vol]",
+        ),
+    ),
+    "cd4_cd8_ratio": BiomarkerDefinition(
+        biomarker_id="cd4_cd8_ratio",
+        canonical_name="CD4/CD8 Ratio",
+        loinc="54218-3",
+        normalized_unit="ratio",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=(
+            "CD4/CD8 Ratio",
+            "Helper Suppressor Ratio",
+            "CD3+CD4+ (T4 helper) cells/CD3+CD8+ (T8 suppressor cells) cells [# Ratio] in Blood",
+        ),
+    ),
+    "cd8_pct": BiomarkerDefinition(
+        biomarker_id="cd8_pct",
+        canonical_name="CD8 Cells, Percent",
+        loinc="8101-8",
+        normalized_unit="%",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=(
+            "CD8 Cells, Percent",
+            "CD3+CD8+ (T8 suppressor) cells/cells in Blood",
+            "CD3+CD8+ (T8 suppressor) cells/Cells (Bld)",
+        ),
+    ),
     # --- Wave 5: Other ---
     "total_protein": BiomarkerDefinition(
         biomarker_id="total_protein",
@@ -1152,6 +1248,19 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_BLOOD,
         aliases=("Total Protein", "Protein, Total", "Protein", "TP",
                  "Protein [Mass/volume] in Serum or Plasma"),
+    ),
+    "protein_csf": BiomarkerDefinition(
+        biomarker_id="protein_csf",
+        canonical_name="CSF Protein",
+        loinc="2880-3",
+        normalized_unit="mg/dL",
+        allowed_specimens=_CSF,
+        aliases=(
+            "Protein - CSF",
+            "CSF Protein",
+            "Protein (CSF) [Mass/Vol]",
+            "Protein [Mass/volume] in Cerebral spinal fluid",
+        ),
     ),
     "prealbumin": BiomarkerDefinition(
         biomarker_id="prealbumin",
@@ -1485,6 +1594,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="#/uL",
         allowed_specimens=_URINE,
         aliases=("RBC", "Urine RBC", "RBC, Urine", "Red Blood Cells, Urine",
+                 "Erythrocytes [#/area] in Urine sediment by Microscopy high power field",
                  "Erythrocytes [#/volume] in Urine by Automated count"),
     ),
     "urine_wbc": BiomarkerDefinition(
@@ -1494,6 +1604,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="#/uL",
         allowed_specimens=_URINE,
         aliases=("WBC", "Urine WBC", "WBC, Urine", "White Blood Cells, Urine",
+                 "Leukocytes [#/area] in Urine sediment by Microscopy high power field",
                  "Leukocytes [#/volume] in Urine by Automated count"),
     ),
     "epithelial_cells_urine": BiomarkerDefinition(

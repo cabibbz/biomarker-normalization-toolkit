@@ -21,6 +21,7 @@ class SourceRecord:
     row_number: int
     source_row_id: str
     source_test_name: str
+    source_loinc: str
     raw_value_text: str
     raw_value: Decimal | None
     source_unit: str

@@ -201,6 +201,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
         "mg/dL": Decimal("1"),
         "mmol/L": Decimal("18"),
     },
+    "glucose_csf": {"mg/dL": Decimal("1"), "mmol/L": Decimal("18")},
     "hba1c": {
         "%": Decimal("1"),
     },
@@ -333,6 +334,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "basophils": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
     # --- Wave 5: Other ---
     "total_protein": {"g/dL": Decimal("1"), "g/L": Decimal("0.1")},
+    "protein_csf": {"mg/dL": Decimal("1"), "g/L": Decimal("100")},
     "rdw_sd": {"fL": Decimal("1")},
     "mpv": {"fL": Decimal("1")},
     "pdw": {"fL": Decimal("1")},
@@ -396,6 +398,12 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "promyelocytes_pct": {"%": Decimal("1")},
     "other_cells_pct": {"%": Decimal("1")},
     "blasts_pct": {"%": Decimal("1")},
+    "cd3_absolute": {"#/uL": Decimal("1"), "K/uL": Decimal("1000"), "10^9/L": Decimal("1000")},
+    "cd4_absolute": {"#/uL": Decimal("1"), "K/uL": Decimal("1000"), "10^9/L": Decimal("1000")},
+    "cd4_pct": {"%": Decimal("1")},
+    "cd8_absolute": {"#/uL": Decimal("1"), "K/uL": Decimal("1000"), "10^9/L": Decimal("1000")},
+    "cd4_cd8_ratio": {"ratio": Decimal("1")},
+    "cd8_pct": {"%": Decimal("1")},
     # --- Wave 7: New biomarkers ---
     "ggt": {"U/L": Decimal("1")},
     "amylase": {"U/L": Decimal("1")},

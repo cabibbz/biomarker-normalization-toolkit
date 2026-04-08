@@ -24,6 +24,13 @@ REQUIRED_INPUT_COLUMNS = (
 )
 
 
+def _extract_loinc_code(coding: list[dict]) -> str:
+    for code in coding:
+        if (code.get("system", "") or "").strip() == "http://loinc.org" and code.get("code"):
+            return str(code["code"]).strip()
+    return ""
+
+
 def read_input(path: Path) -> list[dict[str, str]]:
     """Auto-detect format and read input file. Supports CSV, FHIR JSON, HL7v2, and C-CDA XML."""
     suffix = path.suffix.lower()
@@ -98,6 +105,7 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
 
         code_obj = resource.get("code", {})
         coding = code_obj.get("coding", [])
+        source_loinc = _extract_loinc_code(coding)
         test_name = (code_obj.get("text", "") or "").strip()
         if not test_name:
             for code in coding:
@@ -105,10 +113,8 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
                 if test_name:
                     break
         if not test_name:
-            for code in coding:
-                if code.get("system") == "http://loinc.org" and code.get("code"):
-                    test_name = str(code["code"]).strip()
-                    break
+            if source_loinc:
+                test_name = source_loinc
         if not test_name:
             for code in coding:
                 test_name = (code.get("code", "") or "").strip()
@@ -180,6 +186,7 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
             "source_lab_name": "",
             "source_panel_name": "",
             "source_test_name": test_name,
+            "source_loinc": source_loinc,
             "raw_value": str(value),
             "source_unit": unit,
             "specimen_type": specimen,
@@ -270,6 +277,11 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
             # OBX-3: Observation Identifier
             obx3_parts = fields[3].split(comp_sep)
             test_name = obx3_parts[1] if len(obx3_parts) > 1 else obx3_parts[0]
+            source_loinc = ""
+            if len(obx3_parts) > 2 and obx3_parts[2].strip().upper() in ("LN", "LOINC"):
+                source_loinc = obx3_parts[0].strip()
+            elif len(obx3_parts) > 5 and obx3_parts[5].strip().upper() in ("LN", "LOINC"):
+                source_loinc = obx3_parts[3].strip()
 
             # OBX-5: Observation Value
             raw_value = fields[5] if len(fields) > 5 else ""
@@ -298,6 +310,7 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
                 "source_lab_name": "",
                 "source_panel_name": current_obr_name,
                 "source_test_name": test_name,
+                "source_loinc": source_loinc,
                 "raw_value": raw_value,
                 "source_unit": unit,
                 "specimen_type": current_specimen,
@@ -321,6 +334,30 @@ def _ccda_find(parent: ET.Element, tag: str) -> ET.Element | None:
     if el is None:
         el = parent.find(f"{_HL7V3}{tag}")
     return el
+
+
+def _ccda_original_text(parent: ET.Element | None) -> str:
+    if parent is None:
+        return ""
+    original_text = _ccda_find(parent, "originalText")
+    if original_text is None:
+        return ""
+    return (original_text.text or "").strip()
+
+
+def _ccda_value_and_unit(element: ET.Element | None) -> tuple[str, str]:
+    if element is None:
+        return "", ""
+
+    value = element.attrib.get("value", "").strip()
+    unit = element.attrib.get("unit", "").strip()
+    translation = _ccda_find(element, "translation")
+    if translation is not None:
+        if not value:
+            value = translation.attrib.get("value", "").strip()
+        if not unit:
+            unit = translation.attrib.get("unit", "").strip() or _ccda_original_text(translation)
+    return value, unit
 
 
 def read_ccda_input(path: Path) -> list[dict[str, str]]:
@@ -354,15 +391,17 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
             continue
 
         # Get test name from code element
-        loinc_code = code_el.attrib.get("code", "")
+        loinc_code = ""
+        if code_el.attrib.get("codeSystem") == _LOINC_OID:
+            loinc_code = code_el.attrib.get("code", "")
         display_name = code_el.attrib.get("displayName", "")
         # Check translations for LOINC
-        if not display_name:
-            for trans in list(code_el.findall("translation")) + list(code_el.findall(f"{_HL7V3}translation")):
-                if trans.attrib.get("codeSystem") == _LOINC_OID:
+        for trans in list(code_el.findall("translation")) + list(code_el.findall(f"{_HL7V3}translation")):
+            if trans.attrib.get("codeSystem") == _LOINC_OID:
+                if not display_name:
                     display_name = trans.attrib.get("displayName", "")
-                    if not loinc_code:
-                        loinc_code = trans.attrib.get("code", "")
+                if not loinc_code:
+                    loinc_code = trans.attrib.get("code", "")
 
         test_name = display_name or loinc_code
         if not test_name:
@@ -380,26 +419,21 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
 
         if xsi_type == "PQ":
             # Physical Quantity: value + unit
-            raw_value = value_el.attrib.get("value", "").strip()
-            unit = value_el.attrib.get("unit", "").strip()
-            # Some C-CDA docs use translation for non-UCUM units
-            if not raw_value:
-                trans = _ccda_find(value_el, "translation")
-                if trans is not None:
-                    raw_value = trans.attrib.get("value", "").strip()
-                    unit = trans.attrib.get("unit", unit).strip()
+            raw_value, unit = _ccda_value_and_unit(value_el)
         elif xsi_type == "IVL_PQ":
             # Interval — used for "<10" style values
             low = _ccda_find(value_el, "low")
             high = _ccda_find(value_el, "high")
-            if low is not None and low.attrib.get("value"):
-                raw_value = low.attrib.get("value", "").strip()
-                unit = low.attrib.get("unit", "").strip()
+            low_value, low_unit = _ccda_value_and_unit(low)
+            high_value, high_unit = _ccda_value_and_unit(high)
+            if low is not None and low_value:
+                raw_value = low_value
+                unit = low_unit
                 if low.attrib.get("inclusive") == "false":
                     raw_value = f">{raw_value}"
-            elif high is not None and high.attrib.get("value"):
-                raw_value = high.attrib.get("value", "").strip()
-                unit = high.attrib.get("unit", "").strip()
+            elif high is not None and high_value:
+                raw_value = high_value
+                unit = high_unit
                 if high.attrib.get("inclusive") == "false":
                     raw_value = f"<{raw_value}"
         elif xsi_type in ("INT", "REAL"):
@@ -425,10 +459,9 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
         if ref_el is not None:
             ref_low = _ccda_find(ref_el, "low")
             ref_high = _ccda_find(ref_el, "high")
-            low_val = ref_low.attrib.get("value", "") if ref_low is not None else ""
-            high_val = ref_high.attrib.get("value", "") if ref_high is not None else ""
-            ref_unit_el = ref_low if ref_low is not None else ref_high
-            ref_unit_str = ref_unit_el.attrib.get("unit", unit) if ref_unit_el is not None else unit
+            low_val, low_unit = _ccda_value_and_unit(ref_low)
+            high_val, high_unit = _ccda_value_and_unit(ref_high)
+            ref_unit_str = low_unit or high_unit or unit
             if low_val and high_val:
                 ref_range = f"{low_val}-{high_val}"
                 if ref_unit_str:
@@ -461,6 +494,7 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
             "source_lab_name": "",
             "source_panel_name": "",
             "source_test_name": test_name,
+            "source_loinc": loinc_code,
             "raw_value": raw_value,
             "source_unit": unit,
             "specimen_type": specimen,
@@ -523,6 +557,7 @@ def read_excel_input(path: Path) -> list[dict[str, str]]:
             "source_reference_range": {"source_reference_range", "reference_range", "ref_range", "normal_range", "range"},
             "source_lab_name": {"source_lab_name", "lab_name", "lab", "laboratory", "performing_lab"},
             "source_panel_name": {"source_panel_name", "panel_name", "panel", "order_name", "test_group"},
+            "source_loinc": {"source_loinc", "loinc", "loinc_code", "observation_loinc"},
         }
 
         col_map: dict[int, str] = {}
@@ -551,6 +586,7 @@ def read_excel_input(path: Path) -> list[dict[str, str]]:
                 "source_lab_name": "",
                 "source_panel_name": "",
                 "source_test_name": "",
+                "source_loinc": "",
                 "raw_value": "",
                 "source_unit": "",
                 "specimen_type": "",

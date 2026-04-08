@@ -5871,7 +5871,7 @@ class ThreadSafetyTests(unittest.TestCase):
 class CatalogIntegrityTests(unittest.TestCase):
     """Verify internal consistency of all biomarker definitions in the catalog."""
 
-    _VALID_SPECIMENS = frozenset({"serum", "plasma", "whole_blood", "urine"})
+    _VALID_SPECIMENS = frozenset({"serum", "plasma", "whole_blood", "urine", "cerebrospinal fluid"})
     _LOINC_RE = re.compile(r"^\d+-\d$")
     _SNAKE_CASE_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 

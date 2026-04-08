@@ -42,6 +42,7 @@ _SIBLING_MAP: dict[str, list[str]] = {
 _SAFE_RAW_SOURCE_KEYS = frozenset({
     "source_row_id", "source_test_name", "raw_value", "source_unit",
     "specimen_type", "source_reference_range", "source_lab_name", "source_panel_name",
+    "source_loinc",
 })
 
 _CONTEXTUAL_ALIAS_OVERRIDES = (
@@ -53,6 +54,11 @@ _CONTEXTUAL_ALIAS_OVERRIDES = (
         "biomarker_id": "oxygen_saturation",
     },
 )
+
+_IMPLICIT_UNIT_BIOMARKERS = frozenset({
+    "esr",
+    "pdw",
+})
 
 
 def _str_field(row: dict, key: str) -> str:
@@ -73,6 +79,7 @@ def build_source_records(rows: list[dict[str, str]]) -> list[SourceRecord]:
                 row_number=index,
                 source_row_id=_str_field(row, "source_row_id"),
                 source_test_name=_str_field(row, "source_test_name"),
+                source_loinc=_str_field(row, "source_loinc"),
                 raw_value_text=_str_field(row, "raw_value"),
                 raw_value=parse_decimal(_str_field(row, "raw_value")),
                 source_unit=normalize_unit(_str_field(row, "source_unit")),
@@ -192,6 +199,13 @@ def _convert_range(range_value: RangeValue | None, biomarker_id: str) -> RangeVa
 
 
 _LOINC_INDEX: dict[str, str] = {bio.loinc: bio_id for bio_id, bio in BIOMARKER_CATALOG.items()}
+_LOINC_INDEX.update({
+    # Equivalent source LOINCs that we intentionally collapse into the same
+    # canonical biomarker output.
+    "2339-0": "glucose_serum",
+    "2947-0": "sodium",
+    "6298-4": "potassium",
+})
 
 
 def _contextual_alias_override(source: SourceRecord) -> str | None:
@@ -209,8 +223,20 @@ def _contextual_alias_override(source: SourceRecord) -> str | None:
     return None
 
 
+def _effective_source_unit(source_unit: str, biomarker_id: str) -> tuple[str, bool]:
+    if source_unit:
+        return source_unit, False
+    if biomarker_id in _IMPLICIT_UNIT_BIOMARKERS:
+        return BIOMARKER_CATALOG[biomarker_id].normalized_unit, True
+    return source_unit, False
+
+
 def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.0) -> NormalizedRecord:
-    candidate_ids = ALIAS_INDEX.get(source.alias_key, [])
+    source_loinc_matched = False
+    source_loinc_candidate = _LOINC_INDEX.get(source.source_loinc.strip()) if source.source_loinc else None
+    candidate_ids = [source_loinc_candidate] if source_loinc_candidate else ALIAS_INDEX.get(source.alias_key, [])
+    if source_loinc_candidate:
+        source_loinc_matched = True
     fuzzy_result: tuple[str, float] | None = None
     contextual_override_biomarker_id: str | None = None
     reference_range_disambiguated = False
@@ -291,15 +317,19 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
 
     original_biomarker_id = candidate.biomarker_id
     sibling_redirected = False
-    normalized_value = convert_to_normalized(source.raw_value, candidate.biomarker_id, source.source_unit)
-    if normalized_value is None:
+    effective_source_unit, implicit_unit_applied = _effective_source_unit(source.source_unit, candidate.biomarker_id)
+    normalized_value = convert_to_normalized(source.raw_value, candidate.biomarker_id, effective_source_unit)
+    if normalized_value is None and not source_loinc_matched:
         # Try explicit sibling biomarkers (curated pairs, not prefix matching)
         for sib_id in _SIBLING_MAP.get(candidate.biomarker_id, []):
             if sib_id in BIOMARKER_CATALOG:
-                sib_value = convert_to_normalized(source.raw_value, sib_id, source.source_unit)
+                sib_effective_source_unit, sib_implicit_unit_applied = _effective_source_unit(source.source_unit, sib_id)
+                sib_value = convert_to_normalized(source.raw_value, sib_id, sib_effective_source_unit)
                 if sib_value is not None:
                     candidate = BIOMARKER_CATALOG[sib_id]
                     normalized_value = sib_value
+                    effective_source_unit = sib_effective_source_unit
+                    implicit_unit_applied = sib_implicit_unit_applied
                     sibling_redirected = True
                     break
     if normalized_value is None:
@@ -313,11 +343,16 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
         )
 
     if source_range is None:
-        source_range = parse_reference_range(source.source_reference_range, source.source_unit)
+        source_range = parse_reference_range(source.source_reference_range, effective_source_unit)
     normalized_range = _convert_range(source_range, candidate.biomarker_id)
 
     # Determine confidence and reason
-    if fuzzy_result:
+    if source_loinc_matched:
+        confidence = "high"
+        status = "mapped"
+        reason = "mapped_by_source_loinc"
+        mapping_rule = f"source_loinc:{source.source_loinc}|biomarker:{candidate.biomarker_id}"
+    elif fuzzy_result:
         best_alias, best_score = fuzzy_result
         if best_score >= 0.85:
             confidence = "medium"
@@ -343,6 +378,14 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
         status = "mapped"
         reason = "panel_prefix_stripped"
         mapping_rule = f"panel_strip:{source.alias_key}|biomarker:{candidate.biomarker_id}"
+    elif implicit_unit_applied:
+        confidence = "medium"
+        status = "mapped"
+        reason = "mapped_by_alias_and_implicit_unit"
+        mapping_rule = (
+            f"alias:{source.alias_key}|biomarker:{candidate.biomarker_id}"
+            f"|implicit_unit:{effective_source_unit}"
+        )
     elif reference_range_disambiguated:
         confidence = "medium"
         status = "mapped"

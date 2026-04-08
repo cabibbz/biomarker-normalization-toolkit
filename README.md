@@ -15,6 +15,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 - Optional fuzzy matching for typos/misspellings (with medical safety guards)
 - Physiological plausibility checks (warns on likely data entry errors)
 - LOINC code lookup (resolves test names that are LOINC codes)
+- Structured-code fallback (uses embedded LOINC codes from FHIR/HL7/C-CDA/Excel rows when display text is localized or ambiguous)
 - Smart unit redirect (e.g., "Neutrophils" with % unit auto-redirects to percentage biomarker)
 
 ## What It Does NOT Do
@@ -25,7 +26,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ## Coverage
 
-236 biomarkers across preventive health, inpatient, longevity, and specialty panels:
+244 biomarkers across preventive health, inpatient, longevity, and specialty panels:
 
 | Panel | Biomarkers |
 |-------|-----------|
@@ -44,7 +45,8 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 | Electrolytes | Sodium, Potassium, Chloride, Bicarbonate |
 | Vitamins | D (25-OH), B12, Folate |
 | Minerals | Iron, Ferritin, TIBC, Transferrin, Transferrin Saturation, Magnesium |
-| Immunology | IgA, IgG, IgM, Complement C3, C4, Haptoglobin |
+| Immunology | IgA, IgG, IgM, Complement C3, C4, Haptoglobin, CD3/CD4/CD8 Absolute Counts, CD4%, CD8%, CD4/CD8 Ratio |
+| Neuro / CSF | CSF Glucose, CSF Protein |
 | Blood Gas | pH, pO2, pCO2, Base Excess, Base Deficit, Oxygen Saturation, Oxyhemoglobin, Carboxyhemoglobin, Methemoglobin, Oxygen Content, Alveolar-Arterial Gradient, Lactate |
 | Drug Monitoring / Toxicology | Vancomycin, Vancomycin Trough, Digoxin, Tacrolimus, Salicylates, Ethanol, Phenytoin, Acetaminophen |
 | Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin, Blood, Nitrite, Leukocyte Esterase, Urobilinogen, RBC, WBC, Epithelial Cells, Hyaline Casts, Granular Casts, Glucose/Protein/Ketones/Bilirubin Presence |
@@ -72,7 +74,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ```bash
 pip install biomarker-normalization-toolkit
-bnt status       # Shows 236 biomarkers, supported formats
+bnt status       # Shows 244 biomarkers, supported formats
 bnt catalog      # Lists all biomarkers with LOINC codes
 bnt demo --output-dir demo_out  # Run on bundled sample data
 ```

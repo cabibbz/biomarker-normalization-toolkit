@@ -66,6 +66,12 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "rbc": (Decimal("4.2"), Decimal("5.2"), "M/uL", "Male 4.5-5.5; female 4.0-5.0"),
     "mcv": (Decimal("82"), Decimal("94"), "fL", "80-100 normal; mid-range optimal"),
     "rdw": (Decimal("11.5"), Decimal("13.0"), "%", "< 14.5 normal; lower RDW = better longevity marker"),
+    "cd3_absolute": (Decimal("800"), Decimal("2500"), "#/uL", "Typical adult total T-cell reference interval"),
+    "cd4_absolute": (Decimal("500"), Decimal("1500"), "#/uL", "Typical adult helper T-cell reference interval"),
+    "cd8_absolute": (Decimal("200"), Decimal("900"), "#/uL", "Typical adult cytotoxic T-cell reference interval"),
+    "cd4_pct": (Decimal("30"), Decimal("60"), "%", "Typical adult helper T-cell fraction"),
+    "cd8_pct": (Decimal("12"), Decimal("38"), "%", "Typical adult cytotoxic T-cell fraction"),
+    "cd4_cd8_ratio": (Decimal("1.0"), Decimal("4.0"), "ratio", "Typical adult helper/suppressor T-cell ratio"),
 
     # Iron
     "ferritin": (Decimal("40"), Decimal("100"), "ng/mL", "Attia: 40-100 optimal; too high = inflammation"),
@@ -200,6 +206,8 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     # Urinalysis
     "urine_specific_gravity": (Decimal("1.010"), Decimal("1.025"), "", "1.005-1.030 normal"),
     "urine_ph": (Decimal("5.5"), Decimal("7.0"), "pH", "4.5-8.0 normal; 6-7 optimal"),
+    "glucose_csf": (Decimal("50"), Decimal("80"), "mg/dL", "Typical cerebrospinal fluid glucose range"),
+    "protein_csf": (Decimal("15"), Decimal("45"), "mg/dL", "Typical cerebrospinal fluid total protein range"),
     # Heavy metals (lower is better)
     "mercury": (Decimal("0"), Decimal("5"), "ug/L", "< 10 normal; < 5 optimal"),
     "lead": (Decimal("0"), Decimal("3.5"), "ug/dL", "< 5 normal; CDC reference < 3.5"),

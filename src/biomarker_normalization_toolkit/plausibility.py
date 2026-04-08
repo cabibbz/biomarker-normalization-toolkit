@@ -15,6 +15,7 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     # Endocrine
     "glucose_serum":    (Decimal("0"),    Decimal("1500")),
     "glucose_urine":    (Decimal("0"),    Decimal("5000")),
+    "glucose_csf":      (Decimal("0"),    Decimal("500")),
     "hba1c":            (Decimal("2"),    Decimal("20")),
     "eag":              (Decimal("20"),   Decimal("600")),
     # Lipids
@@ -61,6 +62,12 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "mpv":              (Decimal("3"),    Decimal("20")),
     "pdw":              (Decimal("5"),    Decimal("600")),
     "reticulocytes":    (Decimal("0"),    Decimal("30")),
+    "cd3_absolute":     (Decimal("0"),    Decimal("5000")),
+    "cd4_absolute":     (Decimal("0"),    Decimal("5000")),
+    "cd4_pct":          (Decimal("0"),    Decimal("100")),
+    "cd8_absolute":     (Decimal("0"),    Decimal("5000")),
+    "cd4_cd8_ratio":    (Decimal("0.01"), Decimal("20")),
+    "cd8_pct":          (Decimal("0"),    Decimal("100")),
     # WBC differentials (absolute)
     "neutrophils":      (Decimal("0"),    Decimal("100")),
     "lymphocytes":      (Decimal("0"),    Decimal("500")),
@@ -169,6 +176,7 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "osmolality_serum": (Decimal("200"), Decimal("400")),
     "albumin_urine":    (Decimal("0"),   Decimal("5000")),
     "albumin_creatinine_ratio": (Decimal("0"), Decimal("10000")),
+    "protein_csf":      (Decimal("0"),   Decimal("1000")),
     "total_protein_urine": (Decimal("0"), Decimal("5000")),
     "total_protein_urine_24h": (Decimal("0"), Decimal("50000")),
     "iga":              (Decimal("10"),  Decimal("1000")),
