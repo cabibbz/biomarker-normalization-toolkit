@@ -72,7 +72,9 @@ def validate_api_key(api_key: str | None) -> dict[str, Any]:
                 expected_sig = hmac.new(
                     license_secret.encode(), f"{tier_claim}:{expiry_str}".encode(), hashlib.sha256
                 ).hexdigest()[:32]
-                if hmac.compare_digest(signature.encode(), expected_sig.encode()) and time.time() < expiry:
+                if tier_claim not in ("pro", "enterprise"):
+                    pass  # Invalid tier claim — fall through to static key check
+                elif hmac.compare_digest(signature.encode(), expected_sig.encode()) and time.time() < expiry:
                     tier = LicenseTier.ENTERPRISE if tier_claim == "enterprise" else LicenseTier.PRO
                     return {
                         "tier": tier,

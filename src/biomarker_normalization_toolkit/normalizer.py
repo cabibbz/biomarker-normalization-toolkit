@@ -25,6 +25,8 @@ _SIBLING_MAP: dict[str, list[str]] = {
     "rdw_sd": ["rdw"],
     "reticulocytes": ["reticulocyte_absolute"],
     "reticulocyte_absolute": ["reticulocytes"],
+    "immature_granulocytes": ["immature_granulocytes_pct"],
+    "immature_granulocytes_pct": ["immature_granulocytes"],
     "glucose_serum": ["glucose_urine"],
     "glucose_urine": ["glucose_serum"],
     "creatinine": ["creatinine_urine"],
@@ -39,22 +41,32 @@ _SAFE_RAW_SOURCE_KEYS = frozenset({
 })
 
 
+def _str_field(row: dict, key: str) -> str:
+    """Safely extract a string field from a row dict, coercing non-string values."""
+    val = row.get(key, "")
+    if val is None:
+        return ""
+    return str(val).strip()
+
+
 def build_source_records(rows: list[dict[str, str]]) -> list[SourceRecord]:
     records: list[SourceRecord] = []
     for index, row in enumerate(rows, start=1):
+        if not isinstance(row, dict):
+            row = {}
         records.append(
             SourceRecord(
                 row_number=index,
-                source_row_id=row.get("source_row_id", "").strip(),
-                source_test_name=row.get("source_test_name", "").strip(),
-                raw_value_text=row.get("raw_value", "").strip(),
-                raw_value=parse_decimal(row.get("raw_value", "")),
-                source_unit=normalize_unit(row.get("source_unit", "")),
-                specimen_type=normalize_specimen(row.get("specimen_type", "").strip()) or "",
-                source_reference_range=row.get("source_reference_range", "").strip(),
-                source_lab_name=row.get("source_lab_name", "").strip(),
-                source_panel_name=row.get("source_panel_name", "").strip(),
-                alias_key=normalize_key(row.get("source_test_name", "")),
+                source_row_id=_str_field(row, "source_row_id"),
+                source_test_name=_str_field(row, "source_test_name"),
+                raw_value_text=_str_field(row, "raw_value"),
+                raw_value=parse_decimal(_str_field(row, "raw_value")),
+                source_unit=normalize_unit(_str_field(row, "source_unit")),
+                specimen_type=normalize_specimen(_str_field(row, "specimen_type")) or "",
+                source_reference_range=_str_field(row, "source_reference_range"),
+                source_lab_name=_str_field(row, "source_lab_name"),
+                source_panel_name=_str_field(row, "source_panel_name"),
+                alias_key=normalize_key(_str_field(row, "source_test_name")),
                 raw_source=row,
             )
         )
@@ -142,6 +154,16 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
         if loinc_match:
             candidate_ids = [loinc_match]
 
+    # Fallback: strip panel prefix (e.g. "COMPREHENSIVE METABOLIC PANEL:GLUCOSE" -> "GLUCOSE")
+    panel_prefix_stripped = False
+    if not candidate_ids and ":" in source.source_test_name:
+        suffix = source.source_test_name.rsplit(":", 1)[-1].strip()
+        if suffix:
+            stripped_key = normalize_key(suffix)
+            candidate_ids = ALIAS_INDEX.get(stripped_key, [])
+            if candidate_ids:
+                panel_prefix_stripped = True
+
     if not candidate_ids and fuzzy_threshold > 0:
         from biomarker_normalization_toolkit.fuzzy import fuzzy_match
         matches = fuzzy_match(source.alias_key, threshold=max(fuzzy_threshold, 0.70))
@@ -216,6 +238,11 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
             status = "review_needed"
             reason = "fuzzy_match_low_confidence"
         mapping_rule = f"fuzzy:{best_score:.2f}|source:{source.alias_key}|match:{best_alias}|biomarker:{candidate.biomarker_id}"
+    elif panel_prefix_stripped:
+        confidence = "medium"
+        status = "mapped"
+        reason = "panel_prefix_stripped"
+        mapping_rule = f"panel_strip:{source.alias_key}|biomarker:{candidate.biomarker_id}"
     elif sibling_redirected:
         # Biomarker identity changed via unit-based sibling redirect
         confidence = "medium"

@@ -152,6 +152,7 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "reticulocyte_absolute": (Decimal("0"), Decimal("500")),
     "bands":                (Decimal("0"),    Decimal("50")),
     "immature_granulocytes":(Decimal("0"),    Decimal("20")),
+    "immature_granulocytes_pct": (Decimal("0"), Decimal("10")),
     "nrbc":                 (Decimal("0"),    Decimal("10000")),
     "urine_rbc":            (Decimal("0"),    Decimal("100000")),
     "urine_wbc":            (Decimal("0"),    Decimal("100000")),
@@ -222,6 +223,12 @@ PLAUSIBILITY_RANGES: dict[str, tuple[Decimal, Decimal]] = {
     "cea":                  (Decimal("0"),    Decimal("100")),
     "afp":                  (Decimal("0"),    Decimal("500")),
     "ldl_particle_size":    (Decimal("15"),   Decimal("25")),
+    # NMR LipoProfile
+    "small_ldl_particle":   (Decimal("0"),    Decimal("2000")),
+    "hdl_particle":         (Decimal("0"),    Decimal("60")),
+    "large_hdl_particle":   (Decimal("0"),    Decimal("30")),
+    "large_vldl_particle":  (Decimal("0"),    Decimal("50")),
+    "lp_ir_score":          (Decimal("0"),    Decimal("100")),
 }
 
 

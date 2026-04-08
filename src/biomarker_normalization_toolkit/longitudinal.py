@@ -69,12 +69,9 @@ def compare_results(
             elif old_status == "optimal" and new_status != "optimal":
                 direction = "worsened"
                 worsened += 1
-            elif old_status == new_status:
+            elif old_status == "optimal" and new_status == "optimal":
                 direction = "stable"
                 stable += 1
-            elif new_status == "optimal":
-                direction = "improved"
-                improved += 1
             else:
                 # Both outside optimal — check if moving toward optimal
                 old_dist = min(abs(float(old - opt_low)), abs(float(old - opt_high)))

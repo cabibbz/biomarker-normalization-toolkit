@@ -206,9 +206,17 @@ class NormalizationTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.unit, "mg/dL")
 
-    def test_gt_lt_range_rejected(self) -> None:
-        self.assertIsNone(parse_reference_range(">60 mg/dL", "mg/dL"))
-        self.assertIsNone(parse_reference_range("<200 mg/dL", "mg/dL"))
+    def test_one_sided_range_parsed(self) -> None:
+        """One-sided reference ranges like '<200' and '>=60' should be parsed."""
+        result_lt = parse_reference_range("<200 mg/dL", "mg/dL")
+        self.assertIsNotNone(result_lt)
+        self.assertEqual(result_lt.high, Decimal("200"))
+        result_gt = parse_reference_range(">60 mg/dL", "mg/dL")
+        self.assertIsNotNone(result_gt)
+        self.assertEqual(result_gt.low, Decimal("60"))
+        result_lte = parse_reference_range("<=500 ng/mL", "ng/mL")
+        self.assertIsNotNone(result_lte)
+        self.assertEqual(result_lte.high, Decimal("500"))
 
     # --- Inequality value detection ---
 
@@ -871,8 +879,22 @@ class NormalizationTests(unittest.TestCase):
     def test_ucum_bracket_units_normalize(self) -> None:
         from biomarker_normalization_toolkit.units import normalize_unit
         self.assertEqual(normalize_unit("m[IU]/L"), "mIU/L")
-        self.assertEqual(normalize_unit("m[IU]/mL"), "mIU/L")
+        self.assertEqual(normalize_unit("m[IU]/mL"), "mIU/mL")
         self.assertEqual(normalize_unit("[IU]/mL"), "IU/mL")
+
+    def test_miu_ml_not_conflated_with_miu_l(self) -> None:
+        """Regression: mIU/mL and mIU/L differ by 1000x. They must not be synonyms."""
+        from biomarker_normalization_toolkit.units import normalize_unit, convert_to_normalized
+        from decimal import Decimal
+        # mIU/mL must stay mIU/mL, not collapse to mIU/L
+        self.assertEqual(normalize_unit("mIU/mL"), "mIU/mL")
+        self.assertEqual(normalize_unit("miu/ml"), "mIU/mL")
+        # Insulin: 25 mIU/mL = 25,000 uIU/mL (not 25)
+        result = convert_to_normalized(Decimal("25"), "insulin", "mIU/mL")
+        self.assertEqual(result, Decimal("25000"))
+        # LH: 10 mIU/mL = 10 mIU/mL (identity, it's the normalized unit)
+        result_lh = convert_to_normalized(Decimal("10"), "lh", "mIU/mL")
+        self.assertEqual(result_lh, Decimal("10"))
 
     def test_fhir_round_trip_tsh(self) -> None:
         """Export to FHIR then re-import should preserve the mapping."""
@@ -1447,7 +1469,10 @@ class NormalizationTests(unittest.TestCase):
         self.assertIsNotNone(pheno)
         self.assertIsNotNone(pheno["phenoage"])
         self.assertIsInstance(pheno["phenoage"], float)
-        self.assertIn("age_acceleration", pheno)
+        # Pin the expected PhenoAge value to catch coefficient/formula regressions
+        # Healthy 45yo with good biomarkers should have biological age < chronological age
+        self.assertAlmostEqual(pheno["phenoage"], 39.3, delta=2.0)
+        self.assertLess(pheno["age_acceleration"], 0)
         self.assertIn("interpretation", pheno)
 
     def test_phenoage_returns_missing_when_inputs_incomplete(self) -> None:
@@ -1630,6 +1655,913 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(missing_conv, [], f"Missing conversions: {missing_conv}")
         self.assertEqual(missing_plaus, [], f"Missing plausibility: {missing_plaus}")
 
+
+    # --- Longitudinal tracking tests ---
+
+    def test_longitudinal_basic_delta(self) -> None:
+        """compare_results computes correct deltas for common biomarkers."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = normalize_rows([
+            {"source_row_id": "b1", "source_test_name": "Glucose", "raw_value": "100",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "b2", "source_test_name": "HbA1c", "raw_value": "6.0",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""},
+        ])
+        after = normalize_rows([
+            {"source_row_id": "a1", "source_test_name": "Glucose", "raw_value": "90",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "a2", "source_test_name": "HbA1c", "raw_value": "5.4",
+             "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""},
+        ])
+        result = compare_results(before, after, days_between=90)
+        self.assertEqual(result["biomarkers_compared"], 2)
+        glucose_delta = next(d for d in result["deltas"] if d["biomarker_id"] == "glucose_serum")
+        self.assertEqual(glucose_delta["absolute_delta"], "-10")
+        self.assertIn("velocity_per_month", glucose_delta)
+
+    def test_longitudinal_zero_baseline(self) -> None:
+        """compare_results handles old=0 gracefully (no division by zero)."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord
+        rec_before = NormalizedRecord(
+            source_row_number=0, source_row_id="z1", source_lab_name="",
+            source_panel_name="", source_test_name="CRP", alias_key="crp",
+            raw_value="0", source_unit="mg/L", specimen_type="",
+            source_reference_range="", canonical_biomarker_id="crp",
+            canonical_biomarker_name="CRP", loinc="",
+            mapping_status="mapped", match_confidence="high",
+            status_reason="", mapping_rule="exact",
+            normalized_value="0", normalized_unit="mg/L",
+            normalized_reference_range="", provenance={},
+        )
+        rec_after = NormalizedRecord(
+            source_row_number=0, source_row_id="z2", source_lab_name="",
+            source_panel_name="", source_test_name="CRP", alias_key="crp",
+            raw_value="5", source_unit="mg/L", specimen_type="",
+            source_reference_range="", canonical_biomarker_id="crp",
+            canonical_biomarker_name="CRP", loinc="",
+            mapping_status="mapped", match_confidence="high",
+            status_reason="", mapping_rule="exact",
+            normalized_value="5", normalized_unit="mg/L",
+            normalized_reference_range="", provenance={},
+        )
+        before = NormalizationResult(input_file="", summary={"total_rows": 1, "mapped": 1, "unmapped": 0, "review_needed": 0}, records=[rec_before], warnings=())
+        after = NormalizationResult(input_file="", summary={"total_rows": 1, "mapped": 1, "unmapped": 0, "review_needed": 0}, records=[rec_after], warnings=())
+        result = compare_results(before, after)
+        delta = result["deltas"][0]
+        self.assertIsNone(delta["percent_delta"])  # Can't compute % from 0
+
+    # --- Derived metrics tests ---
+
+    def _make_result_with(self, biomarkers: dict[str, str]) -> "NormalizationResult":
+        """Helper: create a NormalizationResult with the given biomarker values."""
+        from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord
+        records = []
+        for bio_id, value in biomarkers.items():
+            records.append(NormalizedRecord(
+                source_row_number=0, source_row_id=bio_id, source_lab_name="",
+                source_panel_name="", source_test_name=bio_id, alias_key=bio_id,
+                raw_value=value, source_unit="", specimen_type="",
+                source_reference_range="", canonical_biomarker_id=bio_id,
+                canonical_biomarker_name=bio_id, loinc="",
+                mapping_status="mapped", match_confidence="high",
+                status_reason="", mapping_rule="test",
+                normalized_value=value, normalized_unit="",
+                normalized_reference_range="", provenance={},
+            ))
+        return NormalizationResult(
+            input_file="",
+            summary={"total_rows": len(records), "mapped": len(records), "unmapped": 0, "review_needed": 0},
+            records=records, warnings=())
+
+    def test_derived_tyg_index(self) -> None:
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        import math
+        result = self._make_result_with({"glucose_serum": "100", "triglycerides": "150"})
+        metrics = compute_derived_metrics(result)
+        self.assertIn("tyg_index", metrics)
+        expected = math.log(150 * 100 / 2)
+        self.assertAlmostEqual(float(metrics["tyg_index"]["value"]), expected, places=1)
+
+    def test_derived_de_ritis_ratio(self) -> None:
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({"ast": "30", "alt": "20"})
+        metrics = compute_derived_metrics(result)
+        self.assertIn("de_ritis_ratio", metrics)
+        self.assertAlmostEqual(float(metrics["de_ritis_ratio"]["value"]), 1.5, places=1)
+
+    def test_derived_nlr(self) -> None:
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({"neutrophils": "4.5", "lymphocytes": "2.0"})
+        metrics = compute_derived_metrics(result)
+        self.assertIn("nlr", metrics)
+        self.assertAlmostEqual(float(metrics["nlr"]["value"]), 2.25, places=1)
+
+    def test_derived_aip(self) -> None:
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        import math
+        result = self._make_result_with({"triglycerides": "150", "hdl_cholesterol": "50"})
+        metrics = compute_derived_metrics(result)
+        self.assertIn("atherogenic_index", metrics)
+        expected = math.log10((150 / 88.57) / (50 / 38.67))
+        self.assertAlmostEqual(float(metrics["atherogenic_index"]["value"]), expected, places=2)
+
+    def test_derived_homa_beta(self) -> None:
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({"glucose_serum": "100", "insulin": "10"})
+        metrics = compute_derived_metrics(result)
+        self.assertIn("homa_beta", metrics)
+        expected = (360 * 10) / (100 - 63)
+        self.assertAlmostEqual(float(metrics["homa_beta"]["value"]), expected, places=0)
+
+    def test_derived_division_by_zero_guarded(self) -> None:
+        """Derived metrics with zero denominators should not crash."""
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({"ast": "30", "alt": "0", "hdl_cholesterol": "0", "triglycerides": "100"})
+        metrics = compute_derived_metrics(result)
+        self.assertNotIn("de_ritis_ratio", metrics)
+        self.assertNotIn("tg_hdl_ratio", metrics)
+
+    # --- PhenoAge edge cases ---
+
+    def test_phenoage_without_chronological_age(self) -> None:
+        """PhenoAge with no age returns mortality_score but no phenoage."""
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+        result = self._make_result_with({
+            "albumin": "4.0", "creatinine": "1.0", "glucose_serum": "100",
+            "crp": "1.0", "lymphocytes_pct": "30", "mcv": "90",
+            "rdw": "13", "alp": "70", "wbc": "7",
+        })
+        pa = compute_phenoage(result, chronological_age=None)
+        self.assertIsNotNone(pa)
+        self.assertIsNone(pa["phenoage"])
+        self.assertIsNotNone(pa["mortality_score"])
+
+    def test_phenoage_crp_zero_handled(self) -> None:
+        """CRP=0 should not crash (floored to 0.001 mg/dL)."""
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+        result = self._make_result_with({
+            "albumin": "4.5", "creatinine": "0.9", "glucose_serum": "85",
+            "crp": "0", "lymphocytes_pct": "35", "mcv": "88",
+            "rdw": "12.5", "alp": "60", "wbc": "6",
+        })
+        pa = compute_phenoage(result, chronological_age=40)
+        self.assertIsNotNone(pa)
+        self.assertIsNotNone(pa["phenoage"])
+
+    # --- Optimal ranges sex-specific ---
+
+    def test_optimal_ranges_sex_specific(self) -> None:
+        """Male testosterone range differs from female."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result_with({"testosterone_total": "500"})
+        male_eval = evaluate_optimal_ranges(result, sex="male")
+        female_eval = evaluate_optimal_ranges(result, sex="female")
+        t_male = next((e for e in male_eval if e["biomarker_id"] == "testosterone_total"), None)
+        t_female = next((e for e in female_eval if e["biomarker_id"] == "testosterone_total"), None)
+        self.assertIsNotNone(t_male)
+        self.assertIsNotNone(t_female)
+        # 500 ng/dL is optimal for male, above optimal for female
+        self.assertEqual(t_male["status"], "optimal")
+        self.assertEqual(t_female["status"], "above_optimal")
+
+    # --- LH/FSH IU/L conversion (regression) ---
+
+    def test_lh_iu_l_converts_correctly(self) -> None:
+        """LH reported as IU/L should convert (IU/L normalizes to U/L via synonym)."""
+        result = convert_to_normalized(Decimal("5"), "lh", "IU/L")
+        # IU/L -> synonym -> U/L, factor = 1, so result = 5
+        self.assertIsNotNone(result)
+        self.assertEqual(result, Decimal("5"))
+
+    def test_u_ml_synonym_resolves(self) -> None:
+        """Lowercase u/ml should resolve to U/mL for biomarkers using that unit."""
+        from biomarker_normalization_toolkit.units import normalize_unit
+        self.assertEqual(normalize_unit("u/ml"), "U/mL")
+
+    # --- HL7 SN parsing ---
+
+    def test_hl7_sn_ratio_preserved(self) -> None:
+        """HL7 SN ratio values like ^1^:^8 should preserve the full ratio."""
+        from biomarker_normalization_toolkit.io_utils import _parse_hl7_sn
+        self.assertEqual(_parse_hl7_sn("^1^:^8"), "1:8")
+        self.assertEqual(_parse_hl7_sn("^100^-^200"), "100-200")
+        self.assertEqual(_parse_hl7_sn("<^10"), "<10")
+        self.assertEqual(_parse_hl7_sn(">^500"), ">500")
+        self.assertEqual(_parse_hl7_sn("^3^+"), "3+")
+
+    # --- FHIR value type fallbacks ---
+
+    def test_fhir_value_string_extracted(self) -> None:
+        """FHIR Observations with valueString should be extracted."""
+        import json, tempfile
+        from biomarker_normalization_toolkit.io_utils import read_fhir_input
+        from pathlib import Path
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [
+                {"resource": {
+                    "resourceType": "Observation",
+                    "id": "vs1",
+                    "code": {"text": "Urine Blood"},
+                    "valueString": "Negative",
+                }}
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(bundle, f)
+            f.flush()
+            rows = read_fhir_input(Path(f.name))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "Negative")
+
+    # --- FHIR DiagnosticReport with contained Observations ---
+
+    def test_fhir_diagnostic_report_contained(self) -> None:
+        """DiagnosticReport.contained Observations should be extracted."""
+        import json, tempfile
+        from biomarker_normalization_toolkit.io_utils import read_fhir_input
+        from pathlib import Path
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [
+                {"resource": {
+                    "resourceType": "DiagnosticReport",
+                    "contained": [
+                        {
+                            "resourceType": "Observation",
+                            "id": "c1",
+                            "code": {"text": "Glucose"},
+                            "valueQuantity": {"value": 95, "unit": "mg/dL"},
+                        }
+                    ],
+                }}
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(bundle, f)
+            f.flush()
+            rows = read_fhir_input(Path(f.name))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "95")
+
+
+    # --- Scientific notation parsing ---
+
+    def test_parse_decimal_x10_notation(self) -> None:
+        """Clinical lab 'x 10^N' format should parse correctly."""
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertEqual(parse_decimal("15.5 x 10^3"), Decimal("15500"))
+        self.assertEqual(parse_decimal("250 x 10^3"), Decimal("250000"))
+        self.assertEqual(parse_decimal("3.2x10^9"), Decimal("3200000000"))
+        self.assertEqual(parse_decimal("1.5 X10E3"), Decimal("1500"))
+        # Standard scientific notation (e.g., "1.5e6") should STILL be rejected
+        self.assertIsNone(parse_decimal("1.5e6"))
+
+    # --- FHIR one-sided reference range ---
+
+    def test_fhir_one_sided_range_omits_sentinel(self) -> None:
+        """FHIR reference range for '<200' should omit low, not emit 0."""
+        from biomarker_normalization_toolkit.fhir import build_observation
+        from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_source_record
+        rows = [{"source_row_id": "rr1", "source_test_name": "LDL Cholesterol", "raw_value": "120",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": "<130 mg/dL"}]
+        record = normalize_source_record(build_source_records(rows)[0])
+        obs = build_observation(record)
+        self.assertIsNotNone(obs)
+        rr = obs.get("referenceRange", [])
+        if rr:
+            self.assertIn("high", rr[0])
+            self.assertNotIn("low", rr[0])  # Sentinel 0 should be omitted
+
+    # --- FHIR subject reference ---
+
+    def test_fhir_subject_reference_included(self) -> None:
+        """build_observation with subject_reference should include subject field."""
+        from biomarker_normalization_toolkit.fhir import build_observation
+        from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_source_record
+        rows = [{"source_row_id": "sub1", "source_test_name": "Glucose", "raw_value": "95",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        record = normalize_source_record(build_source_records(rows)[0])
+        obs = build_observation(record, subject_reference="Patient/12345")
+        self.assertIsNotNone(obs)
+        self.assertEqual(obs["subject"]["reference"], "Patient/12345")
+        # Without subject_reference, field should be absent
+        obs2 = build_observation(record)
+        self.assertNotIn("subject", obs2)
+
+    # --- HL7 cancelled results skipped ---
+
+    def test_hl7_cancelled_results_skipped(self) -> None:
+        """HL7 OBX with result status X/D/W should be skipped."""
+        import tempfile
+        from biomarker_normalization_toolkit.io_utils import read_hl7_input
+        from pathlib import Path
+        hl7_msg = (
+            "MSH|^~\\&|LAB|FAC|APP|FAC|202401011200||ORU^R01|123|P|2.5\r"
+            "PID|||12345\r"
+            "OBR|1||1234|24326-1^CBC\r"
+            "OBX|1|NM|718-7^Hemoglobin||14.5|g/dL|13.0-17.0|N|||F\r"
+            "OBX|2|NM|4544-3^Hematocrit||42.0|%|36.0-46.0|N|||X\r"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".hl7", delete=False, encoding="utf-8") as f:
+            f.write(hl7_msg)
+            f.flush()
+            rows = read_hl7_input(Path(f.name))
+        # Only Hemoglobin (F=final) should be returned, Hematocrit (X=cancelled) should be skipped
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["source_test_name"], "Hemoglobin")
+
+
+    # --- format_decimal negative zero ---
+
+    def test_format_decimal_negative_zero(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(Decimal("-0")), "0")
+        self.assertEqual(format_decimal(Decimal("-0.0")), "0")
+        self.assertEqual(format_decimal(Decimal("-1E-7")), "0")
+
+    # --- FHIR UUID no collision on duplicate row IDs ---
+
+    def test_fhir_uuid_unique_for_different_biomarkers(self) -> None:
+        """Two observations with same source_row_id but different biomarkers must get unique UUIDs."""
+        from biomarker_normalization_toolkit.fhir import build_bundle
+        rows = [
+            {"source_row_id": "DUP1", "source_test_name": "Glucose", "raw_value": "100",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "DUP1", "source_test_name": "Hemoglobin", "raw_value": "14",
+             "source_unit": "g/dL", "specimen_type": "whole blood", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        bundle = build_bundle(result)
+        urls = [e["fullUrl"] for e in bundle["entry"]]
+        self.assertEqual(len(urls), len(set(urls)), f"Duplicate fullUrls found: {urls}")
+
+    # --- Longitudinal improving/worsening directions ---
+
+    def test_longitudinal_improving_direction(self) -> None:
+        """A value moving toward optimal (but still outside) should be 'improving'."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        # Glucose optimal range is 72-85 mg/dL. 50 -> 65 is still below but closer.
+        before = normalize_rows([
+            {"source_row_id": "b1", "source_test_name": "Glucose", "raw_value": "50",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ])
+        after = normalize_rows([
+            {"source_row_id": "a1", "source_test_name": "Glucose", "raw_value": "65",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ])
+        result = compare_results(before, after)
+        delta = result["deltas"][0]
+        self.assertEqual(delta["direction"], "improving")
+
+    def test_longitudinal_worsening_direction(self) -> None:
+        """A value moving away from optimal (both above) should be 'worsening'."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        # Glucose optimal 72-85. 90 -> 110 both above, 110 is farther.
+        before = normalize_rows([
+            {"source_row_id": "b1", "source_test_name": "Glucose", "raw_value": "90",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ])
+        after = normalize_rows([
+            {"source_row_id": "a1", "source_test_name": "Glucose", "raw_value": "110",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ])
+        result = compare_results(before, after)
+        delta = result["deltas"][0]
+        self.assertEqual(delta["direction"], "worsening")
+
+
+    # --- Exponent cap in parse_decimal ---
+
+    def test_parse_decimal_exponent_capped(self) -> None:
+        """Exponents > 15 in 'x 10^N' notation should return None (DoS prevention)."""
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal("1 x 10^16"))
+        self.assertIsNone(parse_decimal("1 x 10^999999999"))
+        # Exponent 15 should still work
+        self.assertEqual(parse_decimal("1 x 10^15"), Decimal("1000000000000000"))
+
+    # --- TSH mIU/mL conversion ---
+
+    def test_tsh_miu_ml_converts(self) -> None:
+        """TSH reported in mIU/mL should convert (1 mIU/mL = 1000 mIU/L)."""
+        result = convert_to_normalized(Decimal("2.5"), "tsh", "mIU/mL")
+        self.assertIsNotNone(result)
+        self.assertEqual(result, Decimal("2500"))
+
+    # --- format_decimal non-finite ---
+
+    def test_format_decimal_infinity_returns_empty(self) -> None:
+        from biomarker_normalization_toolkit.units import format_decimal
+        self.assertEqual(format_decimal(Decimal("Infinity")), "")
+        self.assertEqual(format_decimal(Decimal("-Infinity")), "")
+        self.assertEqual(format_decimal(Decimal("NaN")), "")
+
+
+    # --- Panel prefix stripping ---
+
+    def test_panel_prefix_stripped_glucose(self) -> None:
+        """Test names with panel prefixes like 'COMPREHENSIVE METABOLIC PANEL:GLUCOSE' should map."""
+        source_rows = [
+            {
+                "source_row_id": "pp1",
+                "source_lab_name": "Quest",
+                "source_panel_name": "",
+                "source_test_name": "COMPREHENSIVE METABOLIC PANEL:GLUCOSE",
+                "raw_value": "95",
+                "source_unit": "mg/dL",
+                "specimen_type": "serum",
+                "source_reference_range": "70-100 mg/dL",
+            }
+        ]
+        source_record = build_source_records(source_rows)[0]
+        normalized = normalize_source_record(source_record)
+
+        self.assertEqual(normalized.mapping_status, "mapped")
+        self.assertEqual(normalized.canonical_biomarker_id, "glucose_serum")
+        self.assertEqual(normalized.match_confidence, "medium")
+        self.assertEqual(normalized.status_reason, "panel_prefix_stripped")
+
+    def test_panel_prefix_stripped_wbc(self) -> None:
+        """Test names like 'CBC W/ DIFF: WBC' should map after stripping prefix."""
+        source_rows = [
+            {
+                "source_row_id": "pp2",
+                "source_lab_name": "LabCorp",
+                "source_panel_name": "",
+                "source_test_name": "CBC W/ DIFF: WBC",
+                "raw_value": "7.5",
+                "source_unit": "10^3/uL",
+                "specimen_type": "whole_blood",
+                "source_reference_range": "4.0-11.0 10^3/uL",
+            }
+        ]
+        source_record = build_source_records(source_rows)[0]
+        normalized = normalize_source_record(source_record)
+
+        self.assertEqual(normalized.mapping_status, "mapped")
+        self.assertEqual(normalized.canonical_biomarker_id, "wbc")
+        self.assertEqual(normalized.match_confidence, "medium")
+        self.assertEqual(normalized.status_reason, "panel_prefix_stripped")
+
+
+    # --- Longitudinal "improved" direction (non-optimal → optimal) ---
+
+    def test_longitudinal_improved_direction(self) -> None:
+        """A value transitioning from outside optimal to inside optimal should be 'improved'."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        # Glucose optimal 72-85. Going from 95 (above) to 80 (optimal) = improved.
+        before = normalize_rows([
+            {"source_row_id": "b1", "source_test_name": "Glucose", "raw_value": "95",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ])
+        after = normalize_rows([
+            {"source_row_id": "a1", "source_test_name": "Glucose", "raw_value": "80",
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ])
+        result = compare_results(before, after)
+        delta = result["deltas"][0]
+        self.assertEqual(delta["direction"], "improved")
+        self.assertEqual(result["improved"], 1)
+
+    # --- Quest/LabCorp alias coverage ---
+
+    def test_quest_calcium_serum_alias(self) -> None:
+        """Quest 'Calcium, Serum' should map to calcium."""
+        rows = [{"source_row_id": "q1", "source_test_name": "Calcium, Serum",
+                 "raw_value": "9.5", "source_unit": "mg/dL", "specimen_type": "serum",
+                 "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].canonical_biomarker_id, "calcium")
+
+    def test_quest_hscrp_cardiac_alias(self) -> None:
+        """Quest 'C-Reactive Protein, Cardiac' should map to hscrp."""
+        rows = [{"source_row_id": "q2", "source_test_name": "C-Reactive Protein, Cardiac",
+                 "raw_value": "0.5", "source_unit": "mg/L", "specimen_type": "serum",
+                 "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(result.records[0].canonical_biomarker_id, "hscrp")
+
+    # --- parse_decimal length guard ---
+
+    def test_parse_decimal_rejects_long_string(self) -> None:
+        """Strings longer than 50 chars should be rejected (DoS prevention)."""
+        from biomarker_normalization_toolkit.units import parse_decimal
+        self.assertIsNone(parse_decimal("9" * 51))
+        self.assertIsNotNone(parse_decimal("9" * 50))  # 50 is still ok
+
+
+    # --- Type coercion in build_source_records ---
+
+    def test_non_string_values_coerced(self) -> None:
+        """Non-string dict values (int, None, bool) should not crash."""
+        rows = [
+            {"source_row_id": 123, "source_test_name": "Glucose", "raw_value": 100,
+             "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        self.assertEqual(len(result.records), 1)
+        self.assertEqual(result.records[0].canonical_biomarker_id, "glucose_serum")
+
+    def test_non_dict_row_handled(self) -> None:
+        """A non-dict item in the rows list should not crash."""
+        rows = [None, "not a dict", {"source_row_id": "1", "source_test_name": "Glucose",
+                "raw_value": "90", "source_unit": "mg/dL", "specimen_type": "serum",
+                "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        self.assertEqual(len(result.records), 3)
+
+    # --- Derived PLR and SII ---
+
+    def test_derived_plr(self) -> None:
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({"platelets": "250", "lymphocytes": "2.0"})
+        metrics = compute_derived_metrics(result)
+        self.assertIn("plr", metrics)
+        self.assertAlmostEqual(float(metrics["plr"]["value"]), 125.0, places=0)
+
+    def test_derived_sii(self) -> None:
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({"neutrophils": "4.0", "platelets": "250", "lymphocytes": "2.0"})
+        metrics = compute_derived_metrics(result)
+        self.assertIn("sii", metrics)
+        self.assertAlmostEqual(float(metrics["sii"]["value"]), 500, places=-1)
+
+    # --- Sex-specific uric acid ---
+
+    def test_uric_acid_sex_specific_ranges(self) -> None:
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result_with({"uric_acid": "5.8"})
+        male_eval = evaluate_optimal_ranges(result, sex="male")
+        female_eval = evaluate_optimal_ranges(result, sex="female")
+        m = next(e for e in male_eval if e["biomarker_id"] == "uric_acid")
+        f = next(e for e in female_eval if e["biomarker_id"] == "uric_acid")
+        # 5.8 is optimal for male (4.0-6.0) but above optimal for female (3.0-5.5)
+        self.assertEqual(m["status"], "optimal")
+        self.assertEqual(f["status"], "above_optimal")
+
+
+    def test_immature_granulocytes_pct_maps(self) -> None:
+        result = normalize_rows([{
+            "source_test_name": "Immature Granulocytes Percent",
+            "raw_value": "0.5",
+            "source_unit": "%",
+            "specimen_type": "whole blood",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "mapped")
+        self.assertEqual(rec.canonical_biomarker_id, "immature_granulocytes_pct")
+        self.assertEqual(rec.normalized_unit, "%")
+        self.assertEqual(rec.normalized_value, "0.5")
+
+    def test_immature_granulocytes_bare_with_pct_redirects(self) -> None:
+        """'Immature Granulocytes' with unit '%' should redirect to immature_granulocytes_pct."""
+        result = normalize_rows([{
+            "source_test_name": "Immature Granulocytes",
+            "raw_value": "1.2",
+            "source_unit": "%",
+            "specimen_type": "whole blood",
+        }])
+        rec = result.records[0]
+        self.assertEqual(rec.mapping_status, "mapped")
+        self.assertEqual(rec.canonical_biomarker_id, "immature_granulocytes_pct")
+        self.assertEqual(rec.normalized_unit, "%")
+
+
+    # --- NMR LipoProfile biomarkers ---
+
+    def test_nmr_lipoprofile_biomarkers_in_catalog(self) -> None:
+        """Verify all 5 NMR LipoProfile biomarkers are defined and map correctly."""
+        from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG, ALIAS_INDEX, normalize_key
+        from biomarker_normalization_toolkit.plausibility import PLAUSIBILITY_RANGES
+        from biomarker_normalization_toolkit.optimal_ranges import OPTIMAL_RANGES
+        from biomarker_normalization_toolkit.units import CONVERSION_TO_NORMALIZED
+
+        expected = {
+            "small_ldl_particle": ("55440-2", "nmol/L", "Small LDL-P"),
+            "hdl_particle": ("55437-8", "umol/L", "HDL-P"),
+            "large_hdl_particle": ("55436-0", "umol/L", "Large HDL-P"),
+            "large_vldl_particle": ("55438-6", "nmol/L", "Large VLDL-P"),
+            "lp_ir_score": ("86909-9", "", "LP-IR"),
+        }
+        for bio_id, (loinc, unit, alias) in expected.items():
+            with self.subTest(biomarker=bio_id):
+                # Catalog entry exists
+                self.assertIn(bio_id, BIOMARKER_CATALOG)
+                defn = BIOMARKER_CATALOG[bio_id]
+                self.assertEqual(defn.loinc, loinc)
+                self.assertEqual(defn.normalized_unit, unit)
+                # Alias resolves
+                alias_key = normalize_key(alias)
+                self.assertIn(alias_key, ALIAS_INDEX)
+                self.assertIn(bio_id, ALIAS_INDEX[alias_key])
+                # Conversion entry exists
+                self.assertIn(bio_id, CONVERSION_TO_NORMALIZED)
+                # Plausibility range exists
+                self.assertIn(bio_id, PLAUSIBILITY_RANGES)
+                # Optimal range exists
+                self.assertIn(bio_id, OPTIMAL_RANGES)
+
+
+    # ===================================================================
+    # GOLDEN / SNAPSHOT TESTS — pin exact outputs to catch regressions
+    # ===================================================================
+
+    def test_golden_glucose_mmol_conversion(self) -> None:
+        """Pin exact Glucose 5.5 mmol/L -> mg/dL normalized output."""
+        rows = [{
+            "source_row_id": "g1", "source_test_name": "Glucose", "raw_value": "5.5",
+            "source_unit": "mmol/L", "specimen_type": "serum",
+            "source_reference_range": "3.9-5.5 mmol/L",
+            "source_lab_name": "TestLab", "source_panel_name": "BMP",
+        }]
+        result = normalize_rows(rows, input_file="golden_test.csv")
+        self.assertEqual(len(result.records), 1)
+        r = result.records[0]
+        self.assertEqual(r.normalized_value, "99")
+        self.assertEqual(r.loinc, "2345-7")
+        self.assertEqual(r.normalized_unit, "mg/dL")
+        self.assertEqual(r.mapping_rule, "alias:glucose|biomarker:glucose_serum|specimen:serum")
+        self.assertEqual(r.match_confidence, "high")
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.status_reason, "mapped_by_alias_and_specimen")
+        self.assertEqual(r.canonical_biomarker_id, "glucose_serum")
+        self.assertEqual(r.canonical_biomarker_name, "Glucose")
+        self.assertEqual(r.normalized_reference_range, "70.2-99 mg/dL")
+        self.assertEqual(r.alias_key, "glucose")
+        self.assertEqual(r.source_unit, "mmol/L")
+        self.assertEqual(r.raw_value, "5.5")
+        self.assertEqual(r.source_row_id, "g1")
+        self.assertEqual(r.source_lab_name, "TestLab")
+        self.assertEqual(r.source_panel_name, "BMP")
+        self.assertEqual(r.specimen_type, "serum")
+        self.assertEqual(r.source_reference_range, "3.9-5.5 mmol/L")
+
+    def test_golden_phenoage_exact_output(self) -> None:
+        """Pin exact PhenoAge for healthy 45yo profile."""
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+        rows = [
+            {"source_row_id": "pa1", "source_test_name": "Albumin", "raw_value": "4.5", "source_unit": "g/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "pa2", "source_test_name": "Creatinine", "raw_value": "0.9", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "pa3", "source_test_name": "Glucose", "raw_value": "90", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "pa4", "source_test_name": "hs-CRP", "raw_value": "0.5", "source_unit": "mg/L", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "pa5", "source_test_name": "Lymphocytes Percent", "raw_value": "30", "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "pa6", "source_test_name": "MCV", "raw_value": "88", "source_unit": "fL", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "pa7", "source_test_name": "RDW", "raw_value": "12.5", "source_unit": "%", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "pa8", "source_test_name": "ALP", "raw_value": "55", "source_unit": "U/L", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "pa9", "source_test_name": "WBC", "raw_value": "5.5", "source_unit": "K/uL", "specimen_type": "whole blood", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        pheno = compute_phenoage(result, chronological_age=45)
+        self.assertIsNotNone(pheno)
+        self.assertEqual(pheno["phenoage"], 39.3)
+        self.assertEqual(pheno["mortality_score"], -12.9162)
+        self.assertEqual(pheno["age_acceleration"], -5.7)
+        self.assertEqual(pheno["interpretation"], "Significantly younger biological age")
+        self.assertEqual(pheno["chronological_age"], 45)
+        self.assertEqual(pheno["inputs"]["albumin_g_dl"], 4.5)
+        self.assertEqual(pheno["inputs"]["creatinine_mg_dl"], 0.9)
+        self.assertEqual(pheno["inputs"]["glucose_mg_dl"], 90.0)
+        self.assertEqual(pheno["inputs"]["crp_mg_l"], 0.5)
+        self.assertEqual(pheno["inputs"]["lymphocytes_pct"], 30.0)
+        self.assertEqual(pheno["inputs"]["mcv_fl"], 88.0)
+        self.assertEqual(pheno["inputs"]["rdw_pct"], 12.5)
+        self.assertEqual(pheno["inputs"]["alp_u_l"], 55.0)
+        self.assertEqual(pheno["inputs"]["wbc_k_ul"], 5.5)
+        self.assertEqual(pheno["formula_reference"], "Levine ME et al. Aging (2018) 10(4):573-591")
+
+    def test_golden_all_derived_metrics(self) -> None:
+        """Pin exact values for all 15 derived metrics."""
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        rows = [
+            {"source_row_id": "d1", "source_test_name": "Glucose", "raw_value": "90", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d2", "source_test_name": "Insulin", "raw_value": "5", "source_unit": "uIU/mL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d3", "source_test_name": "Total Cholesterol", "raw_value": "200", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d4", "source_test_name": "HDL", "raw_value": "60", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d5", "source_test_name": "LDL", "raw_value": "110", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d6", "source_test_name": "Triglycerides", "raw_value": "120", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d7", "source_test_name": "ApoB", "raw_value": "90", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d8", "source_test_name": "ApoA1", "raw_value": "150", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d9", "source_test_name": "AST", "raw_value": "25", "source_unit": "U/L", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d10", "source_test_name": "ALT", "raw_value": "20", "source_unit": "U/L", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d11", "source_test_name": "Platelets", "raw_value": "250", "source_unit": "K/uL", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "d12", "source_test_name": "Albumin", "raw_value": "4.2", "source_unit": "g/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d13", "source_test_name": "Creatinine", "raw_value": "1.0", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d14", "source_test_name": "Neutrophils", "raw_value": "4.0", "source_unit": "K/uL", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "d15", "source_test_name": "Lymphocytes", "raw_value": "2.0", "source_unit": "K/uL", "specimen_type": "whole blood", "source_reference_range": ""},
+            {"source_row_id": "d16", "source_test_name": "Iron", "raw_value": "80", "source_unit": "ug/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "d17", "source_test_name": "TIBC", "raw_value": "300", "source_unit": "ug/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        result = normalize_rows(rows)
+        metrics = compute_derived_metrics(result)
+        expected_keys = [
+            "albumin_creatinine_serum_ratio", "apob_apoa1_ratio", "atherogenic_index",
+            "de_ritis_ratio", "fib4_no_age", "homa_beta", "homa_ir",
+            "ldl_hdl_ratio", "nlr", "plr", "remnant_cholesterol", "sii",
+            "tg_hdl_ratio", "tyg_index", "uibc",
+        ]
+        self.assertEqual(sorted(metrics.keys()), expected_keys)
+        self.assertEqual(metrics["homa_ir"]["value"], "1.11")
+        self.assertEqual(metrics["homa_ir"]["unit"], "")
+        self.assertEqual(metrics["homa_ir"]["category"], "metabolic")
+        self.assertEqual(metrics["homa_beta"]["value"], "66.7")
+        self.assertEqual(metrics["homa_beta"]["unit"], "%")
+        self.assertEqual(metrics["homa_beta"]["category"], "metabolic")
+        self.assertEqual(metrics["tyg_index"]["value"], "8.59")
+        self.assertEqual(metrics["tyg_index"]["unit"], "")
+        self.assertEqual(metrics["tyg_index"]["category"], "metabolic")
+        self.assertEqual(metrics["tg_hdl_ratio"]["value"], "2.00")
+        self.assertEqual(metrics["tg_hdl_ratio"]["unit"], "ratio")
+        self.assertEqual(metrics["tg_hdl_ratio"]["category"], "cardiovascular")
+        self.assertEqual(metrics["apob_apoa1_ratio"]["value"], "0.60")
+        self.assertEqual(metrics["apob_apoa1_ratio"]["unit"], "ratio")
+        self.assertEqual(metrics["apob_apoa1_ratio"]["category"], "cardiovascular")
+        self.assertEqual(metrics["ldl_hdl_ratio"]["value"], "1.83")
+        self.assertEqual(metrics["ldl_hdl_ratio"]["unit"], "ratio")
+        self.assertEqual(metrics["ldl_hdl_ratio"]["category"], "cardiovascular")
+        self.assertEqual(metrics["remnant_cholesterol"]["value"], "30.00")
+        self.assertEqual(metrics["remnant_cholesterol"]["unit"], "mg/dL")
+        self.assertEqual(metrics["remnant_cholesterol"]["category"], "cardiovascular")
+        self.assertEqual(metrics["atherogenic_index"]["value"], "-0.059")
+        self.assertEqual(metrics["atherogenic_index"]["unit"], "")
+        self.assertEqual(metrics["atherogenic_index"]["category"], "cardiovascular")
+        self.assertEqual(metrics["de_ritis_ratio"]["value"], "1.25")
+        self.assertEqual(metrics["de_ritis_ratio"]["unit"], "ratio")
+        self.assertEqual(metrics["de_ritis_ratio"]["category"], "liver")
+        self.assertEqual(metrics["fib4_no_age"]["value"], "0.022")
+        self.assertEqual(metrics["fib4_no_age"]["unit"], "")
+        self.assertEqual(metrics["fib4_no_age"]["category"], "liver")
+        self.assertEqual(metrics["albumin_creatinine_serum_ratio"]["value"], "4.20")
+        self.assertEqual(metrics["albumin_creatinine_serum_ratio"]["unit"], "ratio")
+        self.assertEqual(metrics["albumin_creatinine_serum_ratio"]["category"], "kidney")
+        self.assertEqual(metrics["nlr"]["value"], "2.00")
+        self.assertEqual(metrics["nlr"]["unit"], "ratio")
+        self.assertEqual(metrics["nlr"]["category"], "inflammation")
+        self.assertEqual(metrics["plr"]["value"], "125.0")
+        self.assertEqual(metrics["plr"]["unit"], "ratio")
+        self.assertEqual(metrics["plr"]["category"], "inflammation")
+        self.assertEqual(metrics["sii"]["value"], "500")
+        self.assertEqual(metrics["sii"]["unit"], "")
+        self.assertEqual(metrics["sii"]["category"], "inflammation")
+        self.assertEqual(metrics["uibc"]["value"], "220.00")
+        self.assertEqual(metrics["uibc"]["unit"], "ug/dL")
+        self.assertEqual(metrics["uibc"]["category"], "iron")
+
+    def test_golden_longitudinal_delta(self) -> None:
+        """Pin exact longitudinal delta output for Glucose and LDL."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before_rows = [
+            {"source_row_id": "lb1", "source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "lb2", "source_test_name": "LDL", "raw_value": "130", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        after_rows = [
+            {"source_row_id": "la1", "source_test_name": "Glucose", "raw_value": "85", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+            {"source_row_id": "la2", "source_test_name": "LDL", "raw_value": "110", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""},
+        ]
+        before_result = normalize_rows(before_rows)
+        after_result = normalize_rows(after_rows)
+        comp = compare_results(before_result, after_result, days_between=90)
+        # Pin summary
+        self.assertEqual(comp["biomarkers_compared"], 2)
+        self.assertEqual(comp["improved"], 2)
+        self.assertEqual(comp["worsened"], 0)
+        self.assertEqual(comp["stable"], 0)
+        self.assertEqual(comp["improvement_rate"], 100.0)
+        self.assertEqual(comp["days_between"], 90)
+        self.assertEqual(comp["biomarkers_only_in_before"], 0)
+        self.assertEqual(comp["biomarkers_only_in_after"], 0)
+        # Pin deltas (sorted by biomarker_id)
+        self.assertEqual(len(comp["deltas"]), 2)
+        glucose_d = comp["deltas"][0]
+        ldl_d = comp["deltas"][1]
+        # Glucose: 100 -> 85
+        self.assertEqual(glucose_d["biomarker_id"], "glucose_serum")
+        self.assertEqual(glucose_d["before"], "100")
+        self.assertEqual(glucose_d["after"], "85")
+        self.assertEqual(glucose_d["absolute_delta"], "-15")
+        self.assertEqual(glucose_d["percent_delta"], -15.0)
+        self.assertEqual(glucose_d["direction"], "improved")
+        self.assertEqual(glucose_d["velocity_per_month"], -5.0)
+        # LDL: 130 -> 110
+        self.assertEqual(ldl_d["biomarker_id"], "ldl_cholesterol")
+        self.assertEqual(ldl_d["before"], "130")
+        self.assertEqual(ldl_d["after"], "110")
+        self.assertEqual(ldl_d["absolute_delta"], "-20")
+        self.assertEqual(ldl_d["percent_delta"], -15.4)
+        self.assertEqual(ldl_d["direction"], "improving")
+        self.assertEqual(ldl_d["velocity_per_month"], -6.667)
+
+    def test_golden_fhir_observation_structure(self) -> None:
+        """Pin exact FHIR Observation JSON structure for Glucose."""
+        rows = [{
+            "source_row_id": "g1", "source_test_name": "Glucose", "raw_value": "5.5",
+            "source_unit": "mmol/L", "specimen_type": "serum",
+            "source_reference_range": "3.9-5.5 mmol/L",
+            "source_lab_name": "TestLab", "source_panel_name": "BMP",
+        }]
+        result = normalize_rows(rows, input_file="golden_test.csv")
+        obs = build_bundle(result)["entry"][0]["resource"]
+        # Pin resourceType and status
+        self.assertEqual(obs["resourceType"], "Observation")
+        self.assertEqual(obs["status"], "final")
+        # Pin deterministic UUID
+        self.assertEqual(obs["id"], "96556e66-69d2-5bd8-8226-5a0e98a0ac7c")
+        # Pin category
+        self.assertEqual(len(obs["category"]), 1)
+        cat_coding = obs["category"][0]["coding"][0]
+        self.assertEqual(cat_coding["system"], "http://terminology.hl7.org/CodeSystem/observation-category")
+        self.assertEqual(cat_coding["code"], "laboratory")
+        self.assertEqual(cat_coding["display"], "Laboratory")
+        self.assertEqual(obs["category"][0]["text"], "Laboratory")
+        # Pin code (LOINC)
+        code_coding = obs["code"]["coding"][0]
+        self.assertEqual(code_coding["system"], "http://loinc.org")
+        self.assertEqual(code_coding["code"], "2345-7")
+        self.assertEqual(code_coding["display"], "Glucose")
+        self.assertEqual(obs["code"]["text"], "Glucose")
+        # Pin valueQuantity
+        vq = obs["valueQuantity"]
+        self.assertEqual(vq["value"], 99.0)
+        self.assertEqual(vq["unit"], "mg/dL")
+        self.assertEqual(vq["system"], "http://unitsofmeasure.org")
+        self.assertEqual(vq["code"], "mg/dL")
+        # Pin note
+        self.assertEqual(len(obs["note"]), 1)
+        self.assertIn("alias:glucose|biomarker:glucose_serum|specimen:serum", obs["note"][0]["text"])
+        # Pin identifier
+        self.assertEqual(obs["identifier"][0]["system"], "urn:source-row-id")
+        self.assertEqual(obs["identifier"][0]["value"], "g1")
+        # Pin referenceRange
+        rr = obs["referenceRange"][0]
+        self.assertEqual(rr["text"], "70.2-99 mg/dL")
+        self.assertEqual(rr["low"]["value"], 70.2)
+        self.assertEqual(rr["low"]["unit"], "mg/dL")
+        self.assertEqual(rr["low"]["system"], "http://unitsofmeasure.org")
+        self.assertEqual(rr["low"]["code"], "mg/dL")
+        self.assertEqual(rr["high"]["value"], 99.0)
+        self.assertEqual(rr["high"]["unit"], "mg/dL")
+        # Pin specimen
+        self.assertEqual(obs["specimen"]["display"], "serum")
+        # Verify no effectiveDateTime when not provided
+        self.assertNotIn("effectiveDateTime", obs)
+
+    # --- 6. Edge case pinning ---
+
+    def test_golden_inequality_value_edge(self) -> None:
+        """Pin exact output for inequality value >500."""
+        rows = [{"source_row_id": "e1", "source_test_name": "Glucose", "raw_value": ">500", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "review_needed")
+        self.assertEqual(r.status_reason, "inequality_value")
+        self.assertEqual(r.match_confidence, "none")
+        self.assertEqual(r.canonical_biomarker_id, "glucose_serum")
+        self.assertEqual(r.loinc, "2345-7")
+        self.assertEqual(r.canonical_biomarker_name, "Glucose")
+        self.assertEqual(r.normalized_value, "")
+        self.assertEqual(r.normalized_unit, "")
+        self.assertEqual(r.mapping_rule, "")
+
+    def test_golden_empty_test_name_edge(self) -> None:
+        """Pin exact output for empty source_test_name."""
+        rows = [{"source_row_id": "e2", "source_test_name": "", "raw_value": "5", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "unmapped")
+        self.assertEqual(r.status_reason, "unknown_alias")
+        self.assertEqual(r.match_confidence, "none")
+        self.assertEqual(r.canonical_biomarker_id, "")
+        self.assertEqual(r.loinc, "")
+        self.assertEqual(r.normalized_value, "")
+        self.assertEqual(r.normalized_unit, "")
+        self.assertEqual(r.mapping_rule, "")
+
+    def test_golden_unknown_test_edge(self) -> None:
+        """Pin exact output for completely unknown test name."""
+        rows = [{"source_row_id": "e3", "source_test_name": "ZZZNotARealTest", "raw_value": "5", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "unmapped")
+        self.assertEqual(r.status_reason, "unknown_alias")
+        self.assertEqual(r.match_confidence, "none")
+        self.assertEqual(r.canonical_biomarker_id, "")
+        self.assertEqual(r.loinc, "")
+        self.assertEqual(r.normalized_value, "")
+
+    def test_golden_panel_prefix_stripped_edge(self) -> None:
+        """Pin exact output for panel prefix CMP:GLUCOSE."""
+        rows = [{"source_row_id": "e4", "source_test_name": "CMP:GLUCOSE", "raw_value": "90", "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        result = normalize_rows(rows)
+        r = result.records[0]
+        self.assertEqual(r.mapping_status, "mapped")
+        self.assertEqual(r.status_reason, "panel_prefix_stripped")
+        self.assertEqual(r.match_confidence, "medium")
+        self.assertEqual(r.canonical_biomarker_id, "glucose_serum")
+        self.assertEqual(r.mapping_rule, "panel_strip:cmp glucose|biomarker:glucose_serum")
+        self.assertEqual(r.normalized_value, "90")
+        self.assertEqual(r.loinc, "2345-7")
+        self.assertEqual(r.normalized_unit, "mg/dL")
 
 if __name__ == "__main__":
     unittest.main()

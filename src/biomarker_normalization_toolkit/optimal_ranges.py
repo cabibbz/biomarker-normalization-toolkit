@@ -36,7 +36,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     # Liver
     "alt": (Decimal("7"), Decimal("25"), "U/L", "< 35 normal; < 25 optimal for liver health"),
     "ast": (Decimal("10"), Decimal("25"), "U/L", "< 35 normal; < 25 optimal"),
-    "ggt": (Decimal("9"), Decimal("25"), "U/L", "Low GGT associated with lower mortality"),
+    "ggt": (Decimal("9"), Decimal("20"), "U/L", "Low GGT associated with lower mortality; UK Biobank 2024"),
     "total_bilirubin": (Decimal("0.3"), Decimal("1.0"), "mg/dL", "0.1-1.2 normal; slightly elevated = antioxidant"),
     "albumin": (Decimal("4.2"), Decimal("5.0"), "g/dL", "3.5-5.0 normal; > 4.2 associated with longevity"),
 
@@ -86,7 +86,7 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     # Electrolytes
     "sodium": (Decimal("137"), Decimal("142"), "mEq/L", "135-145 normal; mild hypernatremia associated with aging"),
     "potassium": (Decimal("4.0"), Decimal("4.8"), "mEq/L", "3.5-5.0 normal"),
-    "magnesium": (Decimal("2.0"), Decimal("2.5"), "mg/dL", "1.7-2.2 normal; most people are deficient"),
+    "magnesium": (Decimal("2.0"), Decimal("2.3"), "mg/dL", "1.7-2.2 normal; upper bound within standard reference range"),
     "calcium": (Decimal("9.0"), Decimal("10.0"), "mg/dL", "8.5-10.5 normal"),
 
     # Cardiac
@@ -268,6 +268,12 @@ OPTIMAL_RANGES: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "rheumatoid_factor": (Decimal("0"), Decimal("14"), "IU/mL", "< 14 negative"),
     "urine_rbc": (Decimal("0"), Decimal("3"), "#/uL", "0-2 normal"),
     "urine_wbc": (Decimal("0"), Decimal("5"), "#/uL", "0-5 normal"),
+    # NMR LipoProfile
+    "small_ldl_particle": (Decimal("0"), Decimal("500"), "nmol/L", "< 500 longevity target; fewer small LDL = less atherogenic"),
+    "hdl_particle": (Decimal("30"), Decimal("45"), "umol/L", "30-45 umol/L optimal; higher HDL-P = better cholesterol efflux"),
+    "large_hdl_particle": (Decimal("7"), Decimal("15"), "umol/L", "7-15 umol/L optimal; large HDL = more cardioprotective"),
+    "large_vldl_particle": (Decimal("0"), Decimal("2"), "nmol/L", "< 2 nmol/L optimal; lower = less insulin resistance"),
+    "lp_ir_score": (Decimal("0"), Decimal("27"), "", "< 27 low insulin resistance; 0-100 scale"),
 }
 
 # Sex-specific overrides (when sex is provided)
@@ -279,6 +285,8 @@ OPTIMAL_RANGES_MALE: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "ferritin": (Decimal("40"), Decimal("150"), "ng/mL", "Male: higher normal range"),
     "rbc": (Decimal("4.5"), Decimal("5.5"), "M/uL", "Male range"),
     "leptin": (Decimal("1"), Decimal("6"), "ng/mL", "Male: 2-5.6"),
+    "uric_acid": (Decimal("4.0"), Decimal("6.0"), "mg/dL", "Male: U-shaped mortality (NHANES/CHARLS 2025)"),
+    "ggt": (Decimal("9"), Decimal("20"), "U/L", "Male: mortality inflection ~16 U/L (UK Biobank 2024)"),
 }
 
 OPTIMAL_RANGES_FEMALE: dict[str, tuple[Decimal, Decimal, str, str]] = {
@@ -290,6 +298,8 @@ OPTIMAL_RANGES_FEMALE: dict[str, tuple[Decimal, Decimal, str, str]] = {
     "rbc": (Decimal("4.0"), Decimal("5.0"), "M/uL", "Female range"),
     "leptin": (Decimal("3"), Decimal("12"), "ng/mL", "Female: 3.7-11.1"),
     "hdl_cholesterol": (Decimal("60"), Decimal("100"), "mg/dL", "Female: higher target"),
+    "uric_acid": (Decimal("3.0"), Decimal("5.5"), "mg/dL", "Female: optimal range (NHANES/CHARLS 2025)"),
+    "ggt": (Decimal("5"), Decimal("15"), "U/L", "Female: mortality inflection ~9 U/L (UK Biobank 2024)"),
 }
 
 

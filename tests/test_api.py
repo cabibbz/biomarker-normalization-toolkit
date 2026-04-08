@@ -159,5 +159,23 @@ class APITests(unittest.TestCase):
         self.assertIn("/catalog", schema["paths"])
 
 
+    def test_licensing_rejects_invalid_tier_claim(self) -> None:
+        """HMAC key with tier_claim='free' should NOT get PRO access."""
+        import hashlib, hmac as _hmac, os, time as _time
+        os.environ["BNT_LICENSE_SECRET"] = "test-secret-key"
+        try:
+            from biomarker_normalization_toolkit.licensing import validate_api_key
+            # Create a validly signed key with tier="free"
+            expiry = str(int(_time.time()) + 3600)
+            sig = _hmac.new(b"test-secret-key", f"free:{expiry}".encode(), hashlib.sha256).hexdigest()[:32]
+            api_key = f"free:{expiry}:{sig}"
+            info = validate_api_key(api_key)
+            # Should NOT get pro features
+            self.assertFalse(info["features"].get("phenoage", False),
+                             "A 'free' tier HMAC key should not get PhenoAge access")
+        finally:
+            os.environ.pop("BNT_LICENSE_SECRET", None)
+
+
 if __name__ == "__main__":
     unittest.main()

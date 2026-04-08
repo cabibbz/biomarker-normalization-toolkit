@@ -25,7 +25,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ## Coverage
 
-141 biomarkers across preventive health, inpatient, longevity, and specialty panels:
+202 biomarkers across preventive health, inpatient, longevity, and specialty panels:
 
 | Panel | Biomarkers |
 |-------|-----------|
@@ -71,7 +71,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ```bash
 pip install biomarker-normalization-toolkit
-bnt status       # Shows 141 biomarkers, supported formats
+bnt status       # Shows 202 biomarkers, supported formats
 bnt catalog      # Lists all biomarkers with LOINC codes
 bnt demo --output-dir demo_out  # Run on bundled sample data
 ```
@@ -144,14 +144,28 @@ pip install biomarker-normalization-toolkit[rest]
 bnt serve --port 8000
 ```
 
-Then:
+### Authentication and Rate Limiting
+
+All endpoints accept an optional `X-API-Key` header. Without a key, requests run in free tier (limited biomarkers, no PhenoAge/optimal ranges). Pro tier keys unlock all features. Invalid keys receive a `401` response.
+
+Rate limiting is enforced per API key (default: 60 requests/minute). Exceeding the limit returns `429` with a `Retry-After` header. Every response includes `X-RateLimit-Remaining` and `X-Request-Duration-Ms` headers.
+
+### Endpoints
+
 ```bash
 # Health check
 curl localhost:8000/health
 
+# Prometheus-compatible metrics (JSON by default, text/plain for Prometheus)
+curl localhost:8000/metrics
+curl -H "Accept: text/plain" localhost:8000/metrics
+
 # List all biomarkers
 curl localhost:8000/catalog
 curl "localhost:8000/catalog?search=glucose"
+
+# Look up a test name to find matching biomarkers
+curl "localhost:8000/lookup?test_name=GLU&specimen=serum"
 
 # Normalize JSON rows
 curl -X POST localhost:8000/normalize \
@@ -166,12 +180,37 @@ curl -X POST "localhost:8000/normalize?emit_fhir=true" \
 # Upload a file (CSV, FHIR, HL7, C-CDA, Excel)
 curl -X POST localhost:8000/normalize/upload -F "file=@labs.csv"
 
-# Coverage analysis
+# Coverage analysis from JSON rows
+curl -X POST localhost:8000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
+
+# Coverage analysis from file upload
 curl -X POST localhost:8000/analyze/upload -F "file=@labs.csv"
+
+# Compute PhenoAge biological age (Pro tier, requires 9 biomarkers)
+curl -X POST localhost:8000/phenoage \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_PRO_KEY" \
+  -d '{"chronological_age": 45, "rows": [{"source_test_name": "Albumin", "raw_value": "4.2", "source_unit": "g/dL", "specimen_type": "serum", "source_row_id": "1"}, ...]}'
+
+# Evaluate biomarker values against longevity-optimal ranges (Pro tier)
+curl -X POST localhost:8000/optimal-ranges \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_PRO_KEY" \
+  -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "88", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
+
+# Longitudinal before/after comparison (Pro tier)
+curl -X POST localhost:8000/compare \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_PRO_KEY" \
+  -d '{"before": {"rows": [...]}, "after": {"rows": [...]}, "days_between": 90}'
 
 # Interactive API docs
 open http://localhost:8000/docs
 ```
+
+All endpoints are also available under the `/v1/` prefix (e.g., `/v1/normalize`, `/v1/phenoage`).
 
 ## Docker
 

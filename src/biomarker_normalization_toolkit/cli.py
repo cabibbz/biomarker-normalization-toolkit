@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 from importlib import resources
 from pathlib import Path
 import sys
@@ -8,6 +9,22 @@ import sys
 from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG, load_custom_aliases
 from biomarker_normalization_toolkit.io_utils import read_input, write_fhir_bundle, write_result, write_summary_report
 from biomarker_normalization_toolkit.normalizer import normalize_rows
+
+logger = logging.getLogger("bnt.cli")
+
+
+def _user_friendly_error(exc: Exception) -> str:
+    """Strip filesystem paths and module names from exception messages."""
+    msg = str(exc)
+    # Detect messages that contain filesystem paths (common leak pattern)
+    # e.g. "No such file: /tmp/tmpABCD.csv" or "Error in C:\\Users\\..."
+    import re
+    # Remove absolute filesystem paths (Unix and Windows)
+    msg = re.sub(r'[A-Za-z]:\\[\w\\.\-_ ]+', '<file>', msg)
+    msg = re.sub(r'/(?:tmp|home|usr|var|etc|opt|private)[\w/.\-_ ]*', '<file>', msg)
+    # Remove Python module references like "biomarker_normalization_toolkit.foo"
+    msg = re.sub(r'biomarker_normalization_toolkit\.\w+', '<internal>', msg)
+    return msg
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -23,7 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     checkpoint = subparsers.add_parser(
         "where-left-off",
-        help="Show the latest saved context checkpoint.",
+        help=argparse.SUPPRESS,
     )
     checkpoint.add_argument(
         "--path",
@@ -203,19 +220,19 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
         json_path, csv_path = write_result(result, Path(output_dir))
         fhir_path = write_fhir_bundle(result, Path(output_dir)) if emit_fhir else None
         summary_path = write_summary_report(result, Path(output_dir))
+        # Derived metrics and optimal ranges
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges, summarize_optimal
+        derived = compute_derived_metrics(result)
+        optimal_evals = evaluate_optimal_ranges(result)
+        optimal_summary = summarize_optimal(optimal_evals)
     except Exception as exc:
-        print(f"Normalization failed: {exc}", file=sys.stderr)
+        logger.debug("Normalization failed", exc_info=True)
+        print(f"Normalization failed: {_user_friendly_error(exc)}", file=sys.stderr)
         return 1
 
     for warning in result.warnings:
         print(f"WARNING: {warning}", file=sys.stderr)
-
-    # Derived metrics and optimal ranges
-    from biomarker_normalization_toolkit.derived import compute_derived_metrics
-    from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges, summarize_optimal
-    derived = compute_derived_metrics(result)
-    optimal_evals = evaluate_optimal_ranges(result)
-    optimal_summary = summarize_optimal(optimal_evals)
 
     print(f"Normalized {result.summary['total_rows']} rows.")
     print(
@@ -273,7 +290,8 @@ def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_thre
         rows = read_input(source_path)
         result = normalize_rows(rows, input_file=source_path.name, fuzzy_threshold=fuzzy_threshold)
     except Exception as exc:
-        print(f"Analysis failed: {exc}", file=sys.stderr)
+        logger.debug("Analysis failed", exc_info=True)
+        print(f"Analysis failed: {_user_friendly_error(exc)}", file=sys.stderr)
         return 1
 
     total = result.summary["total_rows"]
@@ -387,8 +405,10 @@ def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path
             pct = result.summary["mapped"] / result.summary["total_rows"] * 100 if result.summary["total_rows"] else 0
             print(f"  {source_file.name}: {result.summary['mapped']}/{result.summary['total_rows']} mapped ({pct:.0f}%)")
         except Exception as exc:
-            errors.append(f"{source_file.name}: {exc}")
-            print(f"  {source_file.name}: ERROR - {exc}", file=sys.stderr)
+            safe_msg = _user_friendly_error(exc)
+            logger.debug("Batch error for %s", source_file.name, exc_info=True)
+            errors.append(f"{source_file.name}: {safe_msg}")
+            print(f"  {source_file.name}: ERROR - {safe_msg}", file=sys.stderr)
 
     overall_pct = total_mapped / total_rows * 100 if total_rows else 0
     print(f"\nBatch complete: {len(files)} files, {total_rows} total rows, {total_mapped} mapped ({overall_pct:.1f}%)")

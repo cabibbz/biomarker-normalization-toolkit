@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 
 from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord
 from biomarker_normalization_toolkit.units import parse_reference_range
 
 
-FHIR_VERSION = "4.0.1"
 _BNT_NAMESPACE = uuid.UUID("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
 
 UCUM_CODES: dict[str, str] = {
@@ -68,23 +68,23 @@ def _build_reference_range(record: NormalizedRecord) -> list[dict]:
     if parsed is None:
         return []
 
-    return [
-        {
-            "low": {
-                "value": float(parsed.low),
-                "unit": parsed.unit,
-                "system": "http://unitsofmeasure.org",
-                "code": _ucum_code(parsed.unit),
-            },
-            "high": {
-                "value": float(parsed.high),
-                "unit": parsed.unit,
-                "system": "http://unitsofmeasure.org",
-                "code": _ucum_code(parsed.unit),
-            },
-            "text": record.normalized_reference_range,
+    rr: dict = {"text": record.normalized_reference_range}
+    # Omit synthetic sentinel values from one-sided ranges
+    if parsed.low != Decimal(0):
+        rr["low"] = {
+            "value": float(parsed.low),
+            "unit": parsed.unit,
+            "system": "http://unitsofmeasure.org",
+            "code": _ucum_code(parsed.unit),
         }
-    ]
+    if parsed.high != Decimal("99999"):
+        rr["high"] = {
+            "value": float(parsed.high),
+            "unit": parsed.unit,
+            "system": "http://unitsofmeasure.org",
+            "code": _ucum_code(parsed.unit),
+        }
+    return [rr]
 
 
 def _build_value_quantity(record: NormalizedRecord) -> dict:
@@ -98,11 +98,12 @@ def _build_value_quantity(record: NormalizedRecord) -> dict:
 
 def _observation_uuid(record: NormalizedRecord, input_file: str = "") -> str:
     key = record.source_row_id or f"row-{record.source_row_number}"
-    seed = f"observation-{input_file}-{key}" if input_file else f"observation-{key}"
+    bio = record.canonical_biomarker_id or "unknown"
+    seed = f"observation-{input_file}-{key}-{bio}" if input_file else f"observation-{key}-{bio}"
     return str(uuid.uuid5(_BNT_NAMESPACE, seed))
 
 
-def build_observation(record: NormalizedRecord, input_file: str = "", effective_datetime: str | None = None) -> dict | None:
+def build_observation(record: NormalizedRecord, input_file: str = "", effective_datetime: str | None = None, subject_reference: str | None = None) -> dict | None:
     if record.mapping_status != "mapped":
         return None
 
@@ -145,6 +146,9 @@ def build_observation(record: NormalizedRecord, input_file: str = "", effective_
         ],
     }
 
+    if subject_reference:
+        observation["subject"] = {"reference": subject_reference}
+
     if record.source_row_id:
         observation["identifier"] = [
             {
@@ -163,10 +167,10 @@ def build_observation(record: NormalizedRecord, input_file: str = "", effective_
     return observation
 
 
-def build_bundle(result: NormalizationResult) -> dict:
+def build_bundle(result: NormalizationResult, subject_reference: str | None = None) -> dict:
     entries = []
     for record in result.records:
-        observation = build_observation(record, input_file=result.input_file)
+        observation = build_observation(record, input_file=result.input_file, subject_reference=subject_reference)
         if observation is None:
             continue
         entries.append(

@@ -18,7 +18,8 @@ def _get_value(result: NormalizationResult, biomarker_id: str) -> Decimal | None
     for record in result.records:
         if record.canonical_biomarker_id == biomarker_id and record.mapping_status == "mapped":
             try:
-                return Decimal(record.normalized_value)
+                val = Decimal(record.normalized_value)
+                return val if val.is_finite() else None
             except Exception:
                 return None
     return None
@@ -227,6 +228,32 @@ def compute_derived_metrics(result: NormalizationResult) -> dict[str, Any]:
             "inputs": {"tibc": str(tibc_val), "iron": str(iron_val)},
             "unit": "ug/dL",
             "category": "iron",
+        }
+
+    # --- Inflammation (additional) ---
+
+    if platelets and lymphocytes_val and lymphocytes_val > 0:
+        plr = platelets / lymphocytes_val
+        metrics["plr"] = {
+            "name": "Platelet-to-Lymphocyte Ratio (PLR)",
+            "value": _fmt(plr, 1),
+            "formula": "Platelets / Lymphocytes (absolute counts)",
+            "inputs": {"platelets": str(platelets), "lymphocytes": str(lymphocytes_val)},
+            "unit": "ratio",
+            "category": "inflammation",
+            "optimal_range": "< 150 (lower associated with better outcomes)",
+        }
+
+    if neutrophils_val and platelets and lymphocytes_val and lymphocytes_val > 0:
+        sii = (neutrophils_val * platelets) / lymphocytes_val
+        metrics["sii"] = {
+            "name": "Systemic Immune-Inflammation Index (SII)",
+            "value": _fmt(sii, 0),
+            "formula": "(Neutrophils x Platelets) / Lymphocytes",
+            "inputs": {"neutrophils": str(neutrophils_val), "platelets": str(platelets), "lymphocytes": str(lymphocytes_val)},
+            "unit": "",
+            "category": "inflammation",
+            "optimal_range": "< 500 (lower associated with better outcomes)",
         }
 
     return metrics

@@ -8,6 +8,10 @@ import re
 
 logger = logging.getLogger("bnt.catalog")
 
+# Pre-compiled regexes for normalize_key (hot path)
+_RE_NON_ALNUM = re.compile(r"[^a-z0-9]+")
+_RE_MULTI_SPACE = re.compile(r"\s+")
+
 
 @dataclass(frozen=True)
 class BiomarkerDefinition:
@@ -21,8 +25,8 @@ class BiomarkerDefinition:
 
 def normalize_key(value: str) -> str:
     lowered = value.strip().lower()
-    lowered = re.sub(r"[^a-z0-9]+", " ", lowered)
-    return re.sub(r"\s+", " ", lowered).strip()
+    lowered = _RE_NON_ALNUM.sub(" ", lowered)
+    return _RE_MULTI_SPACE.sub(" ", lowered).strip()
 
 
 def normalize_specimen(specimen: str | None) -> str | None:
@@ -91,6 +95,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
             "Glucose [Moles/volume] in Serum or Plasma",
             "Glucose, Fasting", "Glucose,Fasting",
             "Bedside Glucose",
+            "Random Glucose",
         ),
     ),
     "glucose_urine": BiomarkerDefinition(
@@ -137,9 +142,9 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2089-1",
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
-        aliases=("LDL Cholesterol", "LDL-C", "LDL", "LDL Chol Calc", "LDL Cholesterol Calculated", "LDL Calc",
+        aliases=("LDL Cholesterol", "LDL-C", "LDL", "LDL Chol Calc", "LDL Cholesterol Calc", "LDL Cholesterol Calculated", "LDL Calc",
                  "Cholesterol, LDL, Calculated", "LDL-Cholesterol",
-                 "Low Density Lipoprotein Cholesterol",
+                 "Low Density Lipoprotein Cholesterol", "LDL Chol Calc (NIH)",
                  "Cholesterol in LDL [Mass/volume] in Serum or Plasma",
                  "Cholesterol in LDL [Mass/volume] in Serum or Plasma by Direct assay",
                  "Cholesterol in LDL [Mass/volume] in Serum or Plasma by calculation"),
@@ -219,7 +224,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="1975-2",
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
-        aliases=("Total Bilirubin", "Bilirubin", "TBIL", "Bili", "Bilirubin Total",
+        aliases=("Total Bilirubin", "Bilirubin", "TBIL", "Bili", "T Bili", "Bilirubin Total",
                  "Bilirubin, Total",
                  "Bilirubin.total [Mass/volume] in Blood",
                  "Bilirubin.total [Mass/volume] in Serum or Plasma"),
@@ -231,6 +236,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="g/dL",
         allowed_specimens=_BLOOD,
         aliases=("Albumin", "Alb", "Serum Albumin", "Albumin, Blood",
+                 "Albumin, Serum",
                  "Albumin [Mass/volume] in Serum or Plasma"),
     ),
     # --- Wave 2: Thyroid ---
@@ -251,7 +257,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="ng/dL",
         allowed_specimens=_BLOOD,
         aliases=("Free T4", "FT4", "Thyroxine Free", "Free Thyroxine",
-                 "Thyroxine (T4), Free", "T4, Free",
+                 "Thyroxine (T4), Free", "T4, Free", "Thyroxine, Free (FT4)",
                  "Thyroxine (T4) free [Mass/volume] in Serum or Plasma"),
     ),
     # --- Wave 2: Renal expansion ---
@@ -272,7 +278,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mg/L",
         allowed_specimens=_BLOOD,
         aliases=("hs-CRP", "hsCRP", "High Sensitivity CRP", "High Sensitivity C-Reactive Protein",
-                 "C-Reactive Protein, High Sensitivity"),
+                 "C-Reactive Protein, High Sensitivity",
+                 "C-Reactive Protein, Cardiac", "C-Reactive Protein, Quant"),
     ),
     "crp": BiomarkerDefinition(
         biomarker_id="crp",
@@ -344,7 +351,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2132-9",
         normalized_unit="pg/mL",
         allowed_specimens=_BLOOD,
-        aliases=("Vitamin B12", "B12", "Cobalamin"),
+        aliases=("Vitamin B12", "B12", "Cobalamin", "Vitamin B-12", "Cyanocobalamin"),
     ),
     "folate": BiomarkerDefinition(
         biomarker_id="folate",
@@ -352,7 +359,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2155-0",
         normalized_unit="ng/mL",
         allowed_specimens=_BLOOD,
-        aliases=("Folate", "Folic Acid", "Vitamin B9"),
+        aliases=("Folate", "Folic Acid", "Vitamin B9", "Folate (Folic Acid), Serum"),
     ),
     # --- Wave 3: Minerals ---
     "iron": BiomarkerDefinition(
@@ -370,7 +377,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="2276-4",
         normalized_unit="ng/mL",
         allowed_specimens=_BLOOD,
-        aliases=("Ferritin", "Serum Ferritin",
+        aliases=("Ferritin", "Serum Ferritin", "Ferritin, Serum",
                  "Ferritin [Mass/volume] in Serum or Plasma"),
     ),
     "magnesium": BiomarkerDefinition(
@@ -380,6 +387,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
         aliases=("Magnesium", "Mag", "Mg", "Serum Magnesium",
+                 "Magnesium, Serum",
                  "Magnesium [Mass/volume] in Serum or Plasma",
                  "Magnesium [Mass/volume] in Blood"),
     ),
@@ -567,6 +575,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
         aliases=("Calcium", "Ca", "Calcium, Total", "Serum Calcium", "Total Calcium",
+                 "Calcium, Serum",
                  "Calcium [Mass/volume] in Blood", "Calcium [Mass/volume] in Serum or Plasma"),
     ),
     "phosphate": BiomarkerDefinition(
@@ -770,7 +779,8 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="K/uL",
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Neutrophils", "Neutrophil Count", "ANC", "Absolute Neutrophil Count",
-                 "Absolute Neutrophils", "Polys", "Segs", "PMN",
+                 "Absolute Neutrophils", "Polys", "Segs", "Seg", "PMN",
+                 "Neutrophils (Absolute)",
                  "Neutrophils [#/volume] in Blood",
                  "Neutrophils [#/volume] in Blood by Automated count"),
     ),
@@ -782,6 +792,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Lymphocytes", "Lymphocyte Count", "Lymph", "Lymphs",
                  "Absolute Lymphocyte Count", "Absolute Lymphocytes",
+                 "Lymphocytes (Absolute)",
                  "Lymphocytes [#/volume] in Blood",
                  "Lymphocytes [#/volume] in Blood by Automated count"),
     ),
@@ -793,6 +804,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Monocytes", "Monocyte Count", "Mono", "Monos",
                  "Absolute Monocyte Count", "Absolute Monocytes",
+                 "Monocytes (Absolute)",
                  "Monocytes [#/volume] in Blood",
                  "Monocytes [#/volume] in Blood by Automated count"),
     ),
@@ -804,6 +816,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Eosinophils", "Eosinophil Count", "Eos",
                  "Absolute Eosinophil Count", "Absolute Eosinophils",
+                 "Eosinophils (Absolute)",
                  "Eosinophils [#/volume] in Blood",
                  "Eosinophils [#/volume] in Blood by Automated count"),
     ),
@@ -815,6 +828,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Basophils", "Basophil Count", "Baso", "Basos",
                  "Absolute Basophil Count", "Absolute Basophils",
+                 "Basophils (Absolute)",
                  "Basophils [#/volume] in Blood",
                  "Basophils [#/volume] in Blood by Automated count"),
     ),
@@ -928,6 +942,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
         aliases=("Direct Bilirubin", "Bilirubin Direct", "Conjugated Bilirubin", "DBIL",
+                 "Direct Bili",
                  "Bilirubin.direct [Mass/volume] in Serum or Plasma"),
     ),
     "troponin_i": BiomarkerDefinition(
@@ -1022,7 +1037,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="ug/dL",
         allowed_specimens=_BLOOD,
         aliases=("DHEA-S", "DHEA-Sulfate", "DHEA Sulfate", "Dehydroepiandrosterone Sulfate",
-                 "DHEA-SO4",
+                 "DHEA-SO4", "Dehydroepiandrosterone (DHEA) Sulfate",
                  "Dehydroepiandrosterone sulfate (DHEA-S) [Mass/volume] in Serum or Plasma"),
     ),
     "estradiol": BiomarkerDefinition(
@@ -1107,6 +1122,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_BLOOD,
         aliases=("Total Cholesterol/HDL Ratio", "Chol/HDL Ratio", "TC/HDL Ratio",
                  "Cholesterol Ratio (Total/HDL)", "Cholesterol Ratio",
+                 "T. Chol/HDL Ratio",
                  "Cholesterol.total/Cholesterol in HDL [Mass Ratio] in Serum or Plasma"),
     ),
     "non_hdl_cholesterol": BiomarkerDefinition(
@@ -1135,6 +1151,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_BLOOD,
         aliases=("Testosterone", "Testosterone Total", "Testosterone, Total", "Total Testosterone",
                  "Testosterone,Total,MS", "Testosterone, Total, MS", "Testosterone,Total",
+                 "Testosterone, Total, LC/MS/MS",
                  "Testosterone [Mass/volume] in Serum or Plasma"),
     ),
     "shbg": BiomarkerDefinition(
@@ -1153,6 +1170,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="pg/mL",
         allowed_specimens=_BLOOD,
         aliases=("Free Testosterone", "Testosterone Free", "Testosterone, Free",
+                 "Free Testosterone(Direct)",
                  "Testosterone Free [Mass/volume] in Serum or Plasma"),
     ),
     "bioavailable_testosterone": BiomarkerDefinition(
@@ -1245,6 +1263,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
         aliases=("Indirect Bilirubin", "Bilirubin, Indirect", "Unconjugated Bilirubin",
+                 "Indirect Bili",
                  "Bilirubin.indirect [Mass/volume] in Serum or Plasma"),
     ),
     "cortisol": BiomarkerDefinition(
@@ -1254,6 +1273,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="ug/dL",
         allowed_specimens=_BLOOD,
         aliases=("Cortisol", "Serum Cortisol", "Cortisol AM", "Cortisol, AM",
+                 "Cortisol, Total",
                  "Cortisol [Mass/volume] in Serum or Plasma"),
     ),
     "esr": BiomarkerDefinition(
@@ -1358,6 +1378,16 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Immature Granulocytes", "IG", "Immature Grans",
                  "Immature granulocytes [#/volume] in Blood"),
     ),
+    "immature_granulocytes_pct": BiomarkerDefinition(
+        biomarker_id="immature_granulocytes_pct",
+        canonical_name="Immature Granulocytes %",
+        loinc="71695-1",
+        normalized_unit="%",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=("Immature Granulocytes Percent", "IG Percent",
+                 "Immature Grans Percent",
+                 "Immature Granulocytes/100 leukocytes"),
+    ),
     "nrbc": BiomarkerDefinition(
         biomarker_id="nrbc",
         canonical_name="Nucleated Red Blood Cells",
@@ -1424,6 +1454,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="ng/dL",
         allowed_specimens=_BLOOD,
         aliases=("Triiodothyronine (T3)", "T3", "Total T3", "T3, Total",
+                 "Triiodothyronine (T3), Total",
                  "Triiodothyronine (T3) [Mass/volume] in Serum or Plasma"),
     ),
     "t4_total": BiomarkerDefinition(
@@ -1433,6 +1464,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="ug/dL",
         allowed_specimens=_BLOOD,
         aliases=("Thyroxine (T4)", "T4", "Total T4", "T4, Total",
+                 "Thyroxine (T4), Total",
                  "Thyroxine (T4) [Mass/volume] in Serum or Plasma"),
     ),
     "complement_c3": BiomarkerDefinition(
@@ -1470,6 +1502,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="ng/mL",
         allowed_specimens=_BLOOD,
         aliases=("IGF-1", "IGF1", "Insulin-like Growth Factor 1", "Somatomedin C",
+                 "IGF I, LC/MS", "Insulin-Like Growth Factor I",
                  "Insulin-like growth factor-I [Mass/volume] in Serum or Plasma"),
     ),
     "cystatin_c": BiomarkerDefinition(
@@ -1488,6 +1521,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="pg/mL",
         allowed_specimens=_BLOOD,
         aliases=("Free T3", "FT3", "Triiodothyronine Free", "Free Triiodothyronine",
+                 "Triiodothyronine (T3), Free",
                  "Triiodothyronine Free (T3) [Mass/volume] in Serum or Plasma"),
     ),
     "reverse_t3": BiomarkerDefinition(
@@ -1615,6 +1649,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
         aliases=("VLDL Cholesterol", "VLDL-C", "VLDL",
+                 "VLDL Cholesterol Cal", "VLDL Cholesterol Calc",
                  "Cholesterol in VLDL [Mass/volume] in Serum or Plasma"),
     ),
     # --- Heavy metals / toxicology ---
@@ -1749,7 +1784,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         loinc="10886-0",
         normalized_unit="ng/mL",
         allowed_specimens=_BLOOD,
-        aliases=("Free PSA", "PSA, Free",
+        aliases=("Free PSA", "PSA Free ng/mL",
                  "Prostate specific Ag Free [Mass/volume] in Serum or Plasma"),
     ),
     "psa_free_pct": BiomarkerDefinition(
@@ -1948,6 +1983,49 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="nm",
         allowed_specimens=_BLOOD,
         aliases=("LDL Particle Size", "LDL Peak Size", "LDL Size"),
+    ),
+    # --- NMR LipoProfile ---
+    "small_ldl_particle": BiomarkerDefinition(
+        biomarker_id="small_ldl_particle",
+        canonical_name="Small LDL Particle Number",
+        loinc="55440-2",
+        normalized_unit="nmol/L",
+        allowed_specimens=_BLOOD,
+        aliases=("Small LDL-P", "Small LDL Particle Number", "Small LDL Particles"),
+    ),
+    "hdl_particle": BiomarkerDefinition(
+        biomarker_id="hdl_particle",
+        canonical_name="HDL Particle Number",
+        loinc="55437-8",
+        normalized_unit="umol/L",
+        allowed_specimens=_BLOOD,
+        aliases=("HDL-P", "HDL Particle Number", "Total HDL Particles",
+                 "HDL Particle Number (NMR)"),
+    ),
+    "large_hdl_particle": BiomarkerDefinition(
+        biomarker_id="large_hdl_particle",
+        canonical_name="Large HDL Particle Number",
+        loinc="55436-0",
+        normalized_unit="umol/L",
+        allowed_specimens=_BLOOD,
+        aliases=("Large HDL-P", "Large HDL Particles", "Large HDL Particle Number"),
+    ),
+    "large_vldl_particle": BiomarkerDefinition(
+        biomarker_id="large_vldl_particle",
+        canonical_name="Large VLDL Particle Number",
+        loinc="55438-6",
+        normalized_unit="nmol/L",
+        allowed_specimens=_BLOOD,
+        aliases=("Large VLDL-P", "Large VLDL Particles", "Large VLDL Particle Number"),
+    ),
+    "lp_ir_score": BiomarkerDefinition(
+        biomarker_id="lp_ir_score",
+        canonical_name="Lipoprotein Insulin Resistance Score",
+        loinc="86909-9",
+        normalized_unit="",
+        allowed_specimens=_BLOOD,
+        aliases=("LP-IR", "LP-IR Score", "Lipoprotein Insulin Resistance Score",
+                 "LP-IR Score (NMR)"),
     ),
 }
 

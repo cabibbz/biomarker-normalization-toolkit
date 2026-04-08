@@ -1,10 +1,33 @@
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, localcontext
+from functools import lru_cache
 import re
 
 from biomarker_normalization_toolkit.models import RangeValue
 
+# Pre-compiled regexes for hot-path functions (30% of CPU per profiling)
+_RE_WHITESPACE = re.compile(r"\s+")
+_RE_SLASH_SPACES = re.compile(r"\s*/\s*")
+
+# is_inequality_value
+_RE_INEQUALITY = re.compile(r"^[<>]=?\s*-?\d+(\.\d+)?$")
+
+# parse_decimal: European comma-decimal, scientific "x 10^N", [eE] reject,
+# thousands-with-dot validation
+_RE_EURO_COMMA = re.compile(r"^-?\d+,\d{1,2}$")
+_RE_X10_NOTATION = re.compile(r"^(-?\d+(?:\.\d+)?)\s*[xX]\s*10[\^eE](\d+)$")
+_RE_SCI_NOTATION = re.compile(r"[eE]")
+_RE_THOUSANDS_DOT = re.compile(r"^-?\d{1,3}(,\d{3})*\.\d+$")
+
+# parse_reference_range: thousands-separator strip, range patterns
+_RE_THOUSANDS_SEP = re.compile(r"(\d),(\d{3})")
+_RE_RANGE = re.compile(
+    r"^\s*(?P<low>[+-]?\d+(?:\.\d+)?)\s*(?:to|–|—|-)\s*(?P<high>[+-]?\d+(?:\.\d+)?)(?:\s+(?P<unit>.+?))?$"
+)
+_RE_ONE_SIDED = re.compile(
+    r"^\s*(?P<op>[<>]=?)\s*(?P<val>[+-]?\d+(?:\.\d+)?)(?:\s+(?P<unit>.+?))?$"
+)
 
 UNIT_SYNONYMS = {
     "mg/dl": "mg/dL",
@@ -63,7 +86,7 @@ UNIT_SYNONYMS = {
     "g%": "g/dL",
     "vol%": "%",
     "mu/l": "mIU/L",
-    "miu/ml": "mIU/L",
+    "miu/ml": "mIU/mL",
     "iu/ml": "IU/mL",
     "ug/ml": "ug/mL",
     "ml/min/1.73m2": "mL/min/1.73m2",
@@ -81,7 +104,7 @@ UNIT_SYNONYMS = {
     "cells/ul": "#/uL",
     # UCUM bracket notations (for FHIR round-trip)
     "m[iu]/l": "mIU/L",
-    "m[iu]/ml": "mIU/L",
+    "m[iu]/ml": "mIU/mL",
     "[iu]/ml": "IU/mL",
     # Legacy / alternate notations
     "gm/dl": "g/dL",
@@ -113,8 +136,10 @@ UNIT_SYNONYMS = {
     "1": "",
     "k/mcl": "K/uL",
     "units/l": "U/L",
-    "mcu/ml": "mIU/L",
+    "mcu/ml": "mIU/mL",
     "#/hpf": "#/hpf",
+    "u/ml": "U/mL",
+    "nmol/min/ml": "nmol/min/mL",
     "ml/min/1.73 m2": "mL/min/1.73m2",
     "ml/min/1.73 m\u00b2": "mL/min/1.73m2",
     "ml/min/1.73m\u00b2": "mL/min/1.73m2",
@@ -174,7 +199,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
         "g/L": Decimal("0.1"),
     },
     # --- Wave 2: Thyroid ---
-    "tsh": {"mIU/L": Decimal("1")},
+    "tsh": {"mIU/L": Decimal("1"), "mIU/mL": Decimal("1000")},
     "free_t4": {
         "ng/dL": Decimal("1"),
         "pmol/L": Decimal("1") / Decimal("12.87"),
@@ -326,8 +351,8 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "dhea_s": {"ug/dL": Decimal("1"), "umol/L": Decimal("1") / Decimal("0.02714")},
     "estradiol": {"pg/mL": Decimal("1"), "pmol/L": Decimal("1") / Decimal("3.671")},
     # LH/FSH: normalized to mIU/mL. 1 IU/L = 1 mIU/mL. 1 mIU/L = 0.001 mIU/mL.
-    "lh": {"mIU/mL": Decimal("1"), "mIU/L": Decimal("0.001"), "IU/L": Decimal("1")},
-    "fsh": {"mIU/mL": Decimal("1"), "mIU/L": Decimal("0.001"), "IU/L": Decimal("1")},
+    "lh": {"mIU/mL": Decimal("1"), "mIU/L": Decimal("0.001"), "IU/L": Decimal("1"), "U/L": Decimal("1")},
+    "fsh": {"mIU/mL": Decimal("1"), "mIU/L": Decimal("0.001"), "IU/L": Decimal("1"), "U/L": Decimal("1")},
     "homocysteine": {"umol/L": Decimal("1")},
     # Insulin: normalized to uIU/mL. 1 mIU/L = 1 uIU/mL. 1 mIU/mL = 1000 uIU/mL.
     "insulin": {"uIU/mL": Decimal("1"), "mIU/L": Decimal("1"), "mIU/mL": Decimal("1000"), "pmol/L": Decimal("1") / Decimal("6.945")},
@@ -368,6 +393,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     # % inputs will get status="review_needed" with reason="unsupported_unit_for_biomarker".
     "bands": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
     "immature_granulocytes": {"K/uL": Decimal("1"), "10^9/L": Decimal("1"), "#/uL": Decimal("0.001")},
+    "immature_granulocytes_pct": {"%": Decimal("1")},
     "nrbc": {"#/uL": Decimal("1"), "K/uL": Decimal("1000")},
     "osmolality_urine": {"mOsm/kg": Decimal("1")},
     "sodium_urine": {"mEq/L": Decimal("1"), "mmol/L": Decimal("1")},
@@ -415,7 +441,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "leptin": {"ng/mL": Decimal("1")},
     # C-peptide: 1 nmol/L = 3.021 ng/mL (MW 3020, 1 ng/mL = 0.331 nmol/L)
     "c_peptide": {"ng/mL": Decimal("1"), "nmol/L": Decimal("3.021")},
-    "prolactin": {"ng/mL": Decimal("1"), "mIU/L": Decimal("1") / Decimal("21.2")},
+    "prolactin": {"ng/mL": Decimal("1"), "mIU/L": Decimal("1") / Decimal("21.2"), "mIU/mL": Decimal("1000") / Decimal("21.2")},
     "free_psa": {"ng/mL": Decimal("1")},
     "psa_free_pct": {"%": Decimal("1")},
     "rheumatoid_factor": {"IU/mL": Decimal("1")},
@@ -441,28 +467,41 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "cea": {"ng/mL": Decimal("1")},
     "afp": {"ng/mL": Decimal("1"), "IU/mL": Decimal("1.21")},
     "ldl_particle_size": {"nm": Decimal("1")},
+    # --- NMR LipoProfile ---
+    "small_ldl_particle": {"nmol/L": Decimal("1")},
+    "hdl_particle": {"umol/L": Decimal("1")},
+    "large_hdl_particle": {"umol/L": Decimal("1")},
+    "large_vldl_particle": {"nmol/L": Decimal("1")},
+    "lp_ir_score": {"": Decimal("1")},
 }
 
 
+@lru_cache(maxsize=256)
 def normalize_unit(value: str | None) -> str:
     if value is None:
         return ""
     stripped = value.strip()
     # Collapse whitespace, remove spaces around slashes (e.g., "mg / dL" -> "mg/dl")
-    key = re.sub(r"\s+", " ", stripped.lower())
-    key = re.sub(r"\s*/\s*", "/", key)
+    key = _RE_WHITESPACE.sub(" ", stripped.lower())
+    key = _RE_SLASH_SPACES.sub("/", key)
     return UNIT_SYNONYMS.get(key, stripped)
 
 
 def format_decimal(value: Decimal | None) -> str:
     if value is None:
         return ""
+    if not value.is_finite():
+        return ""
 
     try:
-        quantized = value.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+        with localcontext() as ctx:
+            ctx.prec = 28
+            quantized = value.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
     except Exception:
         return str(value)
     text = format(quantized, "f").rstrip("0").rstrip(".")
+    if text == "-0":
+        return "0"
     return text or "0"
 
 
@@ -470,14 +509,16 @@ def convert_to_normalized(value: Decimal, biomarker_id: str, source_unit: str) -
     factor = CONVERSION_TO_NORMALIZED.get(biomarker_id, {}).get(normalize_unit(source_unit))
     if factor is None:
         return None
-    return value * factor
+    with localcontext() as ctx:
+        ctx.prec = 28  # Isolate from external decimal context changes
+        return value * factor
 
 
 def is_inequality_value(value: str | None) -> bool:
     if value is None:
         return False
     stripped = value.strip()
-    return bool(re.match(r"^[<>]=?\s*-?\d+(\.\d+)?$", stripped))
+    return bool(_RE_INEQUALITY.match(stripped))
 
 
 def parse_decimal(value: str | None, *, locale: str = "us") -> Decimal | None:
@@ -485,7 +526,7 @@ def parse_decimal(value: str | None, *, locale: str = "us") -> Decimal | None:
     if value is None:
         return None
     stripped = value.strip()
-    if not stripped:
+    if not stripped or len(stripped) > 50:  # Reject absurdly long strings (DoS prevention)
         return None
     # European locale: treat comma as decimal separator
     if locale == "eu" and "," in stripped and "." not in stripped:
@@ -501,15 +542,26 @@ def parse_decimal(value: str | None, *, locale: str = "us") -> Decimal | None:
     # NOTE: "5,123" is ambiguous (5.123 European or 5123 thousands). With exactly
     # 3 trailing digits AND no other commas, we assume thousands separator (US convention).
     # Set locale="eu" to treat all single-comma values as European decimals.
-    if re.match(r"^-?\d+,\d{1,2}$", stripped):
+    if _RE_EURO_COMMA.match(stripped):
         return None  # Ambiguous European decimal — reject rather than corrupt
+    # Parse clinical lab "x 10^N" notation (e.g., "15.5 x 10^3", "250 x10^6",
+    # "1.5 X10E3").  Must be handled before the generic [eE] rejection below.
+    m_x10 = _RE_X10_NOTATION.match(stripped)
+    if m_x10:
+        mantissa = Decimal(m_x10.group(1))
+        exponent = int(m_x10.group(2))
+        if exponent > 15:  # Cap exponent to prevent memory exhaustion
+            return None
+        result = mantissa * Decimal(10) ** exponent
+        return result if result.is_finite() else None
+
     # Reject scientific notation (e.g., "1e3", "2.5E2") — likely OCR/data artifact
-    if re.search(r"[eE]", stripped):
+    if _RE_SCI_NOTATION.search(stripped):
         return None
     # Reject mixed comma+dot garbage (e.g., "1.5,2" -> would become "1.52")
     if "," in stripped and "." in stripped:
         # Only valid pattern: "1,234.56" (comma before dot as thousands separator)
-        if not re.match(r"^-?\d{1,3}(,\d{3})*\.\d+$", stripped):
+        if not _RE_THOUSANDS_DOT.match(stripped):
             return None
     # Strip thousands separators (e.g., "250,000" -> "250000")
     cleaned = stripped.replace(",", "")
@@ -529,24 +581,33 @@ def parse_reference_range(text: str, fallback_unit: str) -> RangeValue | None:
 
     # Strip thousands-separator commas from the numeric portions before matching
     # e.g., "150,000-400,000 K/uL" -> "150000-400000 K/uL"
-    cleaned = re.sub(r"(\d),(\d{3})", r"\1\2", stripped)
+    cleaned = _RE_THOUSANDS_SEP.sub(r"\1\2", stripped)
     # Repeat to handle multi-group: "1,000,000" -> "1000,000" -> "1000000"
-    cleaned = re.sub(r"(\d),(\d{3})", r"\1\2", cleaned)
+    cleaned = _RE_THOUSANDS_SEP.sub(r"\1\2", cleaned)
 
-    match = re.match(
-        r"^\s*(?P<low>[+-]?\d+(?:\.\d+)?)\s*(?:to|–|—|-)\s*(?P<high>[+-]?\d+(?:\.\d+)?)(?:\s+(?P<unit>.+?))?$",
-        cleaned,
-    )
-    if not match:
-        return None
+    match = _RE_RANGE.match(cleaned)
+    if match:
+        low = Decimal(match.group("low"))
+        high = Decimal(match.group("high"))
+        if low > high:
+            return None
+        raw_unit = (match.group("unit") or "").strip()
+        unit = normalize_unit(raw_unit or fallback_unit)
+        return RangeValue(low=low, high=high, unit=unit)
 
-    low = Decimal(match.group("low"))
-    high = Decimal(match.group("high"))
-    if low > high:
-        return None
-    raw_unit = (match.group("unit") or "").strip()
-    unit = normalize_unit(raw_unit or fallback_unit)
-    return RangeValue(low=low, high=high, unit=unit)
+    # One-sided ranges: "<200", "<= 200", ">60", ">= 60"
+    one_sided = _RE_ONE_SIDED.match(cleaned)
+    if one_sided:
+        val = Decimal(one_sided.group("val"))
+        raw_unit = (one_sided.group("unit") or "").strip()
+        unit = normalize_unit(raw_unit or fallback_unit)
+        op = one_sided.group("op")
+        if op.startswith("<"):
+            return RangeValue(low=Decimal(0), high=val, unit=unit)
+        else:
+            return RangeValue(low=val, high=Decimal("99999"), unit=unit)
+
+    return None
 
 
 def format_range(range_value: RangeValue | None) -> str:

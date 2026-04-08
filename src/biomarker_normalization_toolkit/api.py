@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import tempfile
 import time
 import traceback
@@ -56,16 +57,6 @@ RATE_LIMIT_WINDOW = 60  # seconds
 
 
 # ─── Pydantic Models ─────────────────────────────────────
-
-class LabRow(BaseModel):
-    source_row_id: str = ""
-    source_test_name: str
-    raw_value: str
-    source_unit: str = ""
-    specimen_type: str = ""
-    source_reference_range: str = ""
-    source_lab_name: str = ""
-    source_panel_name: str = ""
 
 
 class NormalizeRequest(BaseModel):
@@ -147,36 +138,50 @@ class MetricsCollector:
                 self.error_count += 1
 
     def to_dict(self) -> dict[str, Any]:
-        uptime = time.time() - self.start_time
-        avg_latency = self.total_latency_ms / self.request_count if self.request_count else 0
-        return {
-            "uptime_seconds": round(uptime, 1),
-            "total_requests": self.request_count,
-            "total_errors": self.error_count,
-            "error_rate": round(self.error_count / self.request_count * 100, 2) if self.request_count else 0,
-            "total_rows_processed": self.total_rows_processed,
-            "avg_latency_ms": round(avg_latency, 2),
-            "requests_per_endpoint": dict(self.endpoint_counts),
-            "status_code_counts": dict(self.status_counts),
-        }
+        with self._lock:
+            uptime = time.time() - self.start_time
+            avg_latency = self.total_latency_ms / self.request_count if self.request_count else 0
+            return {
+                "uptime_seconds": round(uptime, 1),
+                "total_requests": self.request_count,
+                "total_errors": self.error_count,
+                "error_rate": round(self.error_count / self.request_count * 100, 2) if self.request_count else 0,
+                "total_rows_processed": self.total_rows_processed,
+                "avg_latency_ms": round(avg_latency, 2),
+                "requests_per_endpoint": dict(self.endpoint_counts),
+                "status_code_counts": dict(self.status_counts),
+            }
 
     def to_prometheus(self) -> str:
+        _KNOWN_ENDPOINTS = {"/normalize", "/normalize/upload", "/analyze",
+                            "/analyze/upload", "/phenoage", "/optimal-ranges",
+                            "/compare", "/lookup", "/catalog",
+                            "/health", "/metrics",
+                            "/v1/normalize", "/v1/analyze", "/v1/phenoage",
+                            "/v1/optimal-ranges", "/v1/compare"}
+        with self._lock:
+            req_count = self.request_count
+            err_count = self.error_count
+            rows_proc = self.total_rows_processed
+            avg = self.total_latency_ms / req_count if req_count else 0
+            endpoint_snapshot = dict(self.endpoint_counts)
         lines = []
         lines.append(f"# HELP bnt_requests_total Total API requests")
         lines.append(f"# TYPE bnt_requests_total counter")
-        lines.append(f"bnt_requests_total {self.request_count}")
+        lines.append(f"bnt_requests_total {req_count}")
         lines.append(f"# HELP bnt_errors_total Total API errors")
         lines.append(f"# TYPE bnt_errors_total counter")
-        lines.append(f"bnt_errors_total {self.error_count}")
+        lines.append(f"bnt_errors_total {err_count}")
         lines.append(f"# HELP bnt_rows_processed_total Total lab rows processed")
         lines.append(f"# TYPE bnt_rows_processed_total counter")
-        lines.append(f"bnt_rows_processed_total {self.total_rows_processed}")
-        avg = self.total_latency_ms / self.request_count if self.request_count else 0
+        lines.append(f"bnt_rows_processed_total {rows_proc}")
         lines.append(f"# HELP bnt_avg_latency_ms Average request latency")
         lines.append(f"# TYPE bnt_avg_latency_ms gauge")
         lines.append(f"bnt_avg_latency_ms {avg:.2f}")
-        for ep, count in self.endpoint_counts.items():
-            safe_ep = ep.replace("/", "_").strip("_").replace('"', '').replace("\n", "")
+        for ep, count in endpoint_snapshot.items():
+            if ep not in _KNOWN_ENDPOINTS:
+                ep = "/unknown"
+            safe_ep = re.sub(r"[^a-zA-Z0-9_/]", "", ep).replace("/", "_").strip("_")
             lines.append(f'bnt_endpoint_requests{{endpoint="{safe_ep}"}} {count}')
         return "\n".join(lines) + "\n"
 
@@ -206,13 +211,19 @@ app.add_middleware(
 
 class RequestMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        # Enforce body size limit (checks header AND actual body for chunked transfers)
         content_length = request.headers.get("content-length")
         try:
             if content_length and int(content_length) > MAX_JSON_BODY_BYTES:
                 return JSONResponse(status_code=413, content={
                     "error": f"Request body too large. Maximum is {MAX_JSON_BODY_BYTES // (1024 * 1024)} MB."})
         except (ValueError, TypeError):
-            pass  # Malformed content-length header — ignore and proceed
+            pass
+        if request.method in ("POST", "PUT", "PATCH"):
+            body = await request.body()
+            if len(body) > MAX_JSON_BODY_BYTES:
+                return JSONResponse(status_code=413, content={
+                    "error": f"Request body too large. Maximum is {MAX_JSON_BODY_BYTES // (1024 * 1024)} MB."})
 
         # Rate limiting
         api_key = request.headers.get("x-api-key", "anonymous")
@@ -239,8 +250,12 @@ app.add_middleware(RequestMiddleware)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.error("Unhandled error: %s\n%s", exc, traceback.format_exc())
-    return JSONResponse(status_code=500, content={"error": "Internal server error"})
+    request_id = str(uuid.uuid4())
+    logger.error("Unhandled error [request_id=%s]: %s\n%s", request_id, exc, traceback.format_exc())
+    return JSONResponse(status_code=500, content={
+        "error": "Internal server error",
+        "request_id": request_id,
+    })
 
 
 # ─── Helpers ──────────────────────────────────────────────
@@ -263,6 +278,47 @@ def _validate_rows(body: dict[str, Any]) -> tuple[list[dict[str, str]], str | No
     return [_coerce_row(r) for r in rows], None
 
 
+def _apply_tier_filter(result: "NormalizationResult", allowed_ids: set[str] | list[str] | None) -> "NormalizationResult":
+    """Filter biomarkers not in allowed_ids for free-tier enforcement."""
+    if allowed_ids is None:
+        return result
+    from biomarker_normalization_toolkit.models import NormalizedRecord
+    filtered = []
+    for r in result.records:
+        if r.canonical_biomarker_id and r.canonical_biomarker_id not in allowed_ids:
+            filtered.append(NormalizedRecord(
+                source_row_number=r.source_row_number, source_row_id=r.source_row_id,
+                source_lab_name=r.source_lab_name, source_panel_name=r.source_panel_name,
+                source_test_name=r.source_test_name, alias_key=r.alias_key,
+                raw_value=r.raw_value, source_unit=r.source_unit,
+                specimen_type=r.specimen_type, source_reference_range=r.source_reference_range,
+                canonical_biomarker_id="", canonical_biomarker_name="",
+                loinc="", mapping_status="review_needed", match_confidence="none",
+                status_reason="biomarker_requires_pro_tier",
+                mapping_rule="", normalized_value="", normalized_unit="",
+                normalized_reference_range="", provenance=r.provenance,
+            ))
+        else:
+            filtered.append(r)
+    return result.__class__(
+        input_file=result.input_file,
+        summary={
+            "total_rows": len(filtered),
+            "mapped": sum(1 for r in filtered if r.mapping_status == "mapped"),
+            "review_needed": sum(1 for r in filtered if r.mapping_status == "review_needed"),
+            "unmapped": sum(1 for r in filtered if r.mapping_status == "unmapped"),
+            "confidence_breakdown": {
+                "high": sum(1 for r in filtered if r.match_confidence == "high"),
+                "medium": sum(1 for r in filtered if r.match_confidence == "medium"),
+                "low": sum(1 for r in filtered if r.match_confidence == "low"),
+                "none": sum(1 for r in filtered if r.match_confidence == "none"),
+            },
+        },
+        records=filtered,
+        warnings=result.warnings,
+    )
+
+
 def _read_upload(file: UploadFile) -> tuple[list[dict[str, str]], str | None]:
     filename = Path(file.filename or "upload.csv").name
     suffix = Path(filename).suffix.lower()
@@ -278,7 +334,8 @@ def _read_upload(file: UploadFile) -> tuple[list[dict[str, str]], str | None]:
             tmp_path = Path(tmp.name)
         return read_input(tmp_path), None
     except Exception as exc:
-        return [], f"Failed to parse file: {exc}"
+        logger.warning("File parse error for %s: %s", suffix, exc, exc_info=True)
+        return [], f"Failed to parse uploaded {suffix} file. Ensure the file is valid and not corrupted."
     finally:
         if tmp_path is not None:
             tmp_path.unlink(missing_ok=True)
@@ -422,45 +479,7 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
     result = normalize_rows(rows, input_file=input_file, fuzzy_threshold=fuzzy_threshold)
 
     # Enforce biomarker filtering for free tier
-    allowed_ids = license_info.get("biomarker_ids")
-    if allowed_ids is not None:
-        from biomarker_normalization_toolkit.models import NormalizedRecord
-        filtered = []
-        for r in result.records:
-            if r.canonical_biomarker_id and r.canonical_biomarker_id not in allowed_ids:
-                filtered.append(NormalizedRecord(
-                    source_row_number=r.source_row_number, source_row_id=r.source_row_id,
-                    source_lab_name=r.source_lab_name, source_panel_name=r.source_panel_name,
-                    source_test_name=r.source_test_name, alias_key=r.alias_key,
-                    raw_value=r.raw_value, source_unit=r.source_unit,
-                    specimen_type=r.specimen_type, source_reference_range=r.source_reference_range,
-                    canonical_biomarker_id="",
-                    canonical_biomarker_name="",
-                    loinc="", mapping_status="review_needed",
-                    match_confidence="none",
-                    status_reason="biomarker_requires_pro_tier",
-                    mapping_rule="", normalized_value="", normalized_unit="",
-                    normalized_reference_range="", provenance=r.provenance,
-                ))
-            else:
-                filtered.append(r)
-        result = result.__class__(
-            input_file=result.input_file,
-            summary={
-                "total_rows": len(filtered),
-                "mapped": sum(1 for r in filtered if r.mapping_status == "mapped"),
-                "review_needed": sum(1 for r in filtered if r.mapping_status == "review_needed"),
-                "unmapped": sum(1 for r in filtered if r.mapping_status == "unmapped"),
-                "confidence_breakdown": {
-                    "high": sum(1 for r in filtered if r.match_confidence == "high"),
-                    "medium": sum(1 for r in filtered if r.match_confidence == "medium"),
-                    "low": sum(1 for r in filtered if r.match_confidence == "low"),
-                    "none": sum(1 for r in filtered if r.match_confidence == "none"),
-                },
-            },
-            records=filtered,
-            warnings=result.warnings,
-        )
+    result = _apply_tier_filter(result, license_info.get("biomarker_ids"))
 
     # Row count tracked via middleware record() call — no double-counting
     response = result.to_json_dict()
@@ -532,46 +551,8 @@ def normalize_upload(file: UploadFile = File(...),
     safe_name = Path(file.filename or "").name
     result = normalize_rows(rows, input_file=safe_name, fuzzy_threshold=fuzzy_threshold)
 
-    # Enforce biomarker filtering for free tier (same as JSON endpoint)
-    allowed_ids = license_info.get("biomarker_ids")
-    if allowed_ids is not None:
-        from biomarker_normalization_toolkit.models import NormalizedRecord
-        filtered = []
-        for r in result.records:
-            if r.canonical_biomarker_id and r.canonical_biomarker_id not in allowed_ids:
-                filtered.append(NormalizedRecord(
-                    source_row_number=r.source_row_number, source_row_id=r.source_row_id,
-                    source_lab_name=r.source_lab_name, source_panel_name=r.source_panel_name,
-                    source_test_name=r.source_test_name, alias_key=r.alias_key,
-                    raw_value=r.raw_value, source_unit=r.source_unit,
-                    specimen_type=r.specimen_type, source_reference_range=r.source_reference_range,
-                    canonical_biomarker_id="",
-                    canonical_biomarker_name="",
-                    loinc="", mapping_status="review_needed",
-                    match_confidence="none",
-                    status_reason="biomarker_requires_pro_tier",
-                    mapping_rule="", normalized_value="", normalized_unit="",
-                    normalized_reference_range="", provenance=r.provenance,
-                ))
-            else:
-                filtered.append(r)
-        result = result.__class__(
-            input_file=result.input_file,
-            summary={
-                "total_rows": len(filtered),
-                "mapped": sum(1 for r in filtered if r.mapping_status == "mapped"),
-                "review_needed": sum(1 for r in filtered if r.mapping_status == "review_needed"),
-                "unmapped": sum(1 for r in filtered if r.mapping_status == "unmapped"),
-                "confidence_breakdown": {
-                    "high": sum(1 for r in filtered if r.match_confidence == "high"),
-                    "medium": sum(1 for r in filtered if r.match_confidence == "medium"),
-                    "low": sum(1 for r in filtered if r.match_confidence == "low"),
-                    "none": sum(1 for r in filtered if r.match_confidence == "none"),
-                },
-            },
-            records=filtered,
-            warnings=result.warnings,
-        )
+    # Enforce biomarker filtering for free tier
+    result = _apply_tier_filter(result, license_info.get("biomarker_ids"))
 
     response = result.to_json_dict()
     response["tier"] = license_info["tier"]
@@ -706,17 +687,18 @@ def compare_endpoint(body: CompareRequest,
         return rejection
     if not license_info["features"].get("optimal_ranges"):
         return JSONResponse(status_code=403, content={"error": "Longitudinal tracking requires Pro tier."})
-    before_rows = body.before.get("rows", [])
-    after_rows = body.after.get("rows", [])
-    if not before_rows or not after_rows:
-        return JSONResponse(status_code=400, content={
-            "error": 'Provide {"before": {"rows": [...]}, "after": {"rows": [...]}}'})
+    before_validated, before_err = _validate_rows(body.before)
+    if before_err:
+        return JSONResponse(status_code=400, content={"error": f"before: {before_err}"})
+    after_validated, after_err = _validate_rows(body.after)
+    if after_err:
+        return JSONResponse(status_code=400, content={"error": f"after: {after_err}"})
     max_rows = license_info["max_rows"]
-    if len(before_rows) > max_rows or len(after_rows) > max_rows:
+    if len(before_validated) > max_rows or len(after_validated) > max_rows:
         return JSONResponse(status_code=400, content={
             "error": f"Row limit exceeded ({license_info['tier']} tier: {max_rows} max per set)."})
-    before_result = normalize_rows([_coerce_row(r) for r in before_rows])
-    after_result = normalize_rows([_coerce_row(r) for r in after_rows])
+    before_result = normalize_rows(before_validated)
+    after_result = normalize_rows(after_validated)
     comparison = compare_results(before_result, after_result,
                                 days_between=body.days_between)
     return JSONResponse(content=comparison)

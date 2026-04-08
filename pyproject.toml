@@ -14,9 +14,11 @@ dependencies = ["defusedxml>=0.7"]
 [project.optional-dependencies]
 excel = ["openpyxl>=3.1"]
 fuzzy = ["rapidfuzz>=3.0"]
-fhir-validation = ["fhir.resources"]
+fhir-validation = ["fhir.resources>=7.0"]
 rest = ["fastapi>=0.100", "uvicorn[standard]>=0.24", "pydantic>=2.0", "python-multipart>=0.0.5"]
-all = ["openpyxl>=3.1", "rapidfuzz>=3.0", "fhir.resources", "fastapi>=0.100", "uvicorn[standard]>=0.24", "pydantic>=2.0", "python-multipart>=0.0.5"]
+logging = ["python-json-logger>=2.0"]
+dev = ["pytest>=7.0", "httpx>=0.24", "hypothesis>=6.0"]
+all = ["openpyxl>=3.1", "rapidfuzz>=3.0", "fhir.resources>=7.0", "fastapi>=0.100", "uvicorn[standard]>=0.24", "pydantic>=2.0", "python-multipart>=0.0.5", "python-json-logger>=2.0"]
 
 [project.scripts]
 bnt = "biomarker_normalization_toolkit.cli:main"

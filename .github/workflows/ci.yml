@@ -29,6 +29,9 @@ jobs:
       - name: Run normalization tests
         run: pytest tests/test_normalization.py -v
 
+      - name: Run property-based tests
+        run: pytest tests/test_properties.py -v
+
       - name: Run API tests
         run: pytest tests/test_api.py -v
 

@@ -51,6 +51,13 @@ def build_summary_report(result: NormalizationResult) -> str:
     else:
         lines.append("- None")
 
+    if result.warnings:
+        lines.extend(["", "## Warnings", ""])
+        for warning in result.warnings[:20]:
+            lines.append(f"- {warning}")
+        if len(result.warnings) > 20:
+            lines.append(f"- ... and {len(result.warnings) - 20} more warnings")
+
     lines.extend([
         "",
         "## Notes",

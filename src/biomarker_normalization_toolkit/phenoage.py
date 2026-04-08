@@ -23,7 +23,10 @@ def _get_value(result: NormalizationResult, *biomarker_ids: str) -> float | None
     for record in result.records:
         if record.canonical_biomarker_id in biomarker_ids and record.mapping_status == "mapped":
             try:
-                return float(record.normalized_value)
+                val = float(record.normalized_value)
+                if not math.isfinite(val):
+                    continue
+                return val
             except (ValueError, TypeError):
                 continue
     return None

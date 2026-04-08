@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import csv
 import json
+import logging
 from defusedxml.ElementTree import fromstring as _xml_fromstring
 import xml.etree.ElementTree as ET
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from biomarker_normalization_toolkit.fhir import build_bundle
 from biomarker_normalization_toolkit.models import NormalizationResult
@@ -46,11 +49,20 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
     else:
         raise ValueError(f"Unrecognized FHIR resourceType: {data.get('resourceType', 'none')}")
 
-    rows: list[dict[str, str]] = []
-    for index, entry in enumerate(entries, start=1):
+    # Flatten: extract Observations from DiagnosticReport.contained as well
+    all_observations: list[dict] = []
+    for entry in entries:
         resource = entry.get("resource", entry)
-        if resource.get("resourceType") != "Observation":
-            continue
+        rt = resource.get("resourceType")
+        if rt == "Observation":
+            all_observations.append(resource)
+        elif rt == "DiagnosticReport":
+            for contained in resource.get("contained", []):
+                if contained.get("resourceType") == "Observation":
+                    all_observations.append(contained)
+
+    rows: list[dict[str, str]] = []
+    for index, resource in enumerate(all_observations, start=1):
 
         code_obj = resource.get("code", {})
         coding = code_obj.get("coding", [{}])
@@ -62,10 +74,25 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
 
         vq = resource.get("valueQuantity", {})
         value = vq.get("value")
-        if value is None:
-            continue
+        unit = vq.get("unit", vq.get("code", "")) if vq else ""
 
-        unit = vq.get("unit", vq.get("code", ""))
+        # Fall back to other FHIR value types if no valueQuantity
+        if value is None:
+            if "valueString" in resource:
+                value = resource["valueString"]
+            elif "valueInteger" in resource:
+                value = resource["valueInteger"]
+            elif "valueCodeableConcept" in resource:
+                cc = resource["valueCodeableConcept"]
+                value = cc.get("text", "")
+                if not value:
+                    cc_coding = cc.get("coding", [{}])
+                    value = cc_coding[0].get("display", "") if cc_coding else ""
+            elif "valueBoolean" in resource:
+                value = "Positive" if resource["valueBoolean"] else "Negative"
+
+        if value is None or (isinstance(value, str) and not value.strip()):
+            continue
 
         ref_range = ""
         ref_ranges = resource.get("referenceRange", [])
@@ -73,11 +100,21 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
             rr = ref_ranges[0]
             low = rr.get("low", {}).get("value")
             high = rr.get("high", {}).get("value")
-            rr_unit = rr.get("low", {}).get("unit", unit)
+            rr_unit = rr.get("low", rr.get("high", {})).get("unit", unit)
             if low is not None and high is not None:
                 ref_range = f"{low}-{high}"
                 if rr_unit:
                     ref_range += f" {rr_unit}"
+            elif low is not None:
+                ref_range = f">={low}"
+                if rr_unit:
+                    ref_range += f" {rr_unit}"
+            elif high is not None:
+                ref_range = f"<={high}"
+                if rr_unit:
+                    ref_range += f" {rr_unit}"
+            elif rr.get("text"):
+                ref_range = rr["text"]
 
         specimen = ""
         spec_obj = resource.get("specimen", {})
@@ -107,9 +144,27 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
 
 
 def _parse_hl7_sn(value: str) -> str:
-    """Parse HL7 SN (Structured Numeric) value like '<^10' or '>^500'."""
+    """Parse HL7 SN (Structured Numeric) value.
+
+    Format: comparator^num1^separator^num2
+    Examples: '<^10' -> '<10', '>^500' -> '>500', '^1^:^8' -> '1:8',
+              '^100^-^200' -> '100-200', '^3^+' -> '3+'
+    """
     parts = value.split("^")
-    if len(parts) >= 2:
+    if len(parts) >= 4:
+        comparator = parts[0].strip()
+        num1 = parts[1].strip()
+        separator = parts[2].strip()
+        num2 = parts[3].strip()
+        result = f"{comparator}{num1}{separator}{num2}".strip()
+        return result if result else value
+    if len(parts) == 3:
+        comparator = parts[0].strip()
+        num1 = parts[1].strip()
+        suffix = parts[2].strip()
+        result = f"{comparator}{num1}{suffix}".strip()
+        return result if result else value
+    if len(parts) == 2:
         comparator = parts[0].strip()
         number = parts[1].strip()
         if comparator and number:
@@ -166,7 +221,6 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
             # OBX-3: Observation Identifier
             obx3_parts = fields[3].split(comp_sep)
             test_name = obx3_parts[1] if len(obx3_parts) > 1 else obx3_parts[0]
-            loinc_code = obx3_parts[0] if obx3_parts else ""
 
             # OBX-5: Observation Value
             raw_value = fields[5] if len(fields) > 5 else ""
@@ -184,11 +238,10 @@ def read_hl7_input(path: Path) -> list[dict[str, str]]:
             # like 10*3/uL)
             ref_range = fields[7].strip() if len(fields) > 7 else ""
 
-            # OBX-8: Abnormal Flags
-            abnormal_flag = fields[8].strip() if len(fields) > 8 else ""
-
-            # OBX-11: Result Status
-            result_status = fields[11].strip() if len(fields) > 11 else ""
+            # OBX-11: Result Status — skip cancelled/deleted/withdrawn results
+            result_status = fields[11].strip().upper() if len(fields) > 11 else ""
+            if result_status in ("X", "D", "W"):
+                continue
 
             row_id += 1
             rows.append({
@@ -323,14 +376,22 @@ def read_ccda_input(path: Path) -> list[dict[str, str]]:
         if ref_el is not None:
             ref_low = _ccda_find(ref_el, "low")
             ref_high = _ccda_find(ref_el, "high")
-            if ref_low is not None and ref_high is not None:
-                low_val = ref_low.attrib.get("value", "")
-                high_val = ref_high.attrib.get("value", "")
-                ref_unit = ref_low.attrib.get("unit", unit)
-                if low_val and high_val:
-                    ref_range = f"{low_val}-{high_val}"
-                    if ref_unit:
-                        ref_range += f" {ref_unit}"
+            low_val = ref_low.attrib.get("value", "") if ref_low is not None else ""
+            high_val = ref_high.attrib.get("value", "") if ref_high is not None else ""
+            ref_unit_el = ref_low if ref_low is not None else ref_high
+            ref_unit_str = ref_unit_el.attrib.get("unit", unit) if ref_unit_el is not None else unit
+            if low_val and high_val:
+                ref_range = f"{low_val}-{high_val}"
+                if ref_unit_str:
+                    ref_range += f" {ref_unit_str}"
+            elif low_val:
+                ref_range = f">={low_val}"
+                if ref_unit_str:
+                    ref_range += f" {ref_unit_str}"
+            elif high_val:
+                ref_range = f"<={high_val}"
+                if ref_unit_str:
+                    ref_range += f" {ref_unit_str}"
 
         # Get specimen type from specimen/specimenRole/specimenPlayingEntity/code
         specimen = ""
@@ -378,6 +439,16 @@ def read_excel_input(path: Path) -> list[dict[str, str]]:
 
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     try:
+        sheet_names = wb.sheetnames
+        if len(sheet_names) > 1:
+            logger.warning(
+                "Excel file '%s' has %d sheets (%s). Only the active sheet "
+                "will be read; data in other sheets will be ignored.",
+                path.name,
+                len(sheet_names),
+                ", ".join(repr(s) for s in sheet_names),
+            )
+
         ws = wb.active
         if ws is None:
             raise ValueError("Excel file has no active worksheet.")
@@ -460,8 +531,12 @@ def read_excel_input(path: Path) -> list[dict[str, str]]:
 
 def _detect_csv_dialect(path: Path) -> csv.Dialect | None:
     """Auto-detect CSV delimiter by sniffing the first line."""
-    with path.open("r", encoding="utf-8-sig") as f:
-        sample = f.read(4096)
+    try:
+        with path.open("r", encoding="utf-8-sig") as f:
+            sample = f.read(4096)
+    except UnicodeDecodeError:
+        with path.open("r", encoding="latin-1") as f:
+            sample = f.read(4096)
     try:
         return csv.Sniffer().sniff(sample, delimiters=",;\t|")
     except csv.Error:
@@ -470,7 +545,14 @@ def _detect_csv_dialect(path: Path) -> csv.Dialect | None:
 
 def read_input_csv(path: Path) -> list[dict[str, str]]:
     dialect = _detect_csv_dialect(path)
-    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+    try:
+        handle = path.open("r", encoding="utf-8-sig", newline="")
+        handle.read(1)  # Test read to detect encoding errors early
+        handle.seek(0)
+    except UnicodeDecodeError:
+        handle.close()  # Close the failed UTF-8 handle before opening Latin-1
+        handle = path.open("r", encoding="latin-1", newline="")
+    with handle:
         reader = csv.DictReader(handle, dialect=dialect) if dialect else csv.DictReader(handle)
         if reader.fieldnames is None:
             raise ValueError("Input CSV has no header row.")
@@ -479,7 +561,10 @@ def read_input_csv(path: Path) -> list[dict[str, str]]:
         if missing:
             raise ValueError(f"Input CSV is missing required columns: {', '.join(missing)}")
 
-        return [{key: (value or "") for key, value in row.items() if key is not None} for row in reader]
+        rows = [{key: (value or "") for key, value in row.items() if key is not None} for row in reader]
+        if not rows:
+            raise ValueError("Input CSV has a header row but no data rows.")
+        return rows
 
 
 def write_result(result: NormalizationResult, output_dir: Path) -> tuple[Path, Path]:
