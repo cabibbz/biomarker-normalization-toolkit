@@ -791,5 +791,425 @@ class LicensingTests(unittest.TestCase):
             self._restore_env(saved)
 
 
+class APISnapshotTests(unittest.TestCase):
+    """Snapshot tests that pin the exact JSON structure of every API endpoint.
+
+    These tests catch any field additions, removals, or type changes in the
+    API contract. Each test asserts every expected key exists and that value
+    types match the documented contract.
+    """
+
+    # ─── Shared fixtures ─────────────────────────────────────
+
+    GLUCOSE_ROW = {
+        "source_test_name": "Glucose",
+        "raw_value": "100",
+        "source_unit": "mg/dL",
+        "specimen_type": "serum",
+        "source_row_id": "snap-1",
+        "source_reference_range": "70-99 mg/dL",
+    }
+
+    # ─── 1. GET /health ──────────────────────────────────────
+
+    def test_snapshot_health(self) -> None:
+        """Pin all keys and value types of the /health response."""
+        response = client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        expected_keys = {"status", "version", "biomarkers"}
+        self.assertEqual(set(data.keys()), expected_keys,
+                         f"Health endpoint keys changed: {set(data.keys())} != {expected_keys}")
+
+        self.assertIsInstance(data["status"], str)
+        self.assertIsInstance(data["version"], str)
+        self.assertIsInstance(data["biomarkers"], int)
+
+    # ─── 2. GET /catalog?limit=1 ─────────────────────────────
+
+    def test_snapshot_catalog_entry(self) -> None:
+        """Pin the biomarker entry structure from /catalog."""
+        response = client.get("/catalog?limit=1")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        # Top-level catalog keys
+        catalog_keys = {"biomarkers", "count", "total", "offset"}
+        self.assertEqual(set(data.keys()), catalog_keys,
+                         f"Catalog top-level keys changed: {set(data.keys())} != {catalog_keys}")
+        self.assertIsInstance(data["biomarkers"], list)
+        self.assertIsInstance(data["count"], int)
+        self.assertIsInstance(data["total"], int)
+        self.assertIsInstance(data["offset"], int)
+
+        # Biomarker entry keys
+        self.assertGreater(len(data["biomarkers"]), 0)
+        entry = data["biomarkers"][0]
+        entry_keys = {
+            "biomarker_id", "canonical_name", "loinc",
+            "normalized_unit", "allowed_specimens", "aliases",
+        }
+        self.assertEqual(set(entry.keys()), entry_keys,
+                         f"Catalog entry keys changed: {set(entry.keys())} != {entry_keys}")
+        self.assertIsInstance(entry["biomarker_id"], str)
+        self.assertIsInstance(entry["canonical_name"], str)
+        self.assertIsInstance(entry["loinc"], str)
+        self.assertIsInstance(entry["normalized_unit"], str)
+        self.assertIsInstance(entry["allowed_specimens"], list)
+        self.assertIsInstance(entry["aliases"], list)
+
+    # ─── 3. GET /lookup matched ──────────────────────────────
+
+    def test_snapshot_lookup_matched(self) -> None:
+        """Pin matched=True response structure from /lookup."""
+        response = client.get("/lookup", params={
+            "test_name": "Glucose", "specimen": "serum",
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        lookup_keys = {"matched", "test_name", "alias_key", "candidates"}
+        self.assertEqual(set(data.keys()), lookup_keys,
+                         f"Lookup keys changed: {set(data.keys())} != {lookup_keys}")
+        self.assertIsInstance(data["matched"], bool)
+        self.assertTrue(data["matched"])
+        self.assertIsInstance(data["test_name"], str)
+        self.assertIsInstance(data["alias_key"], str)
+        self.assertIsInstance(data["candidates"], list)
+        self.assertGreater(len(data["candidates"]), 0)
+
+        # Candidate entry structure
+        candidate = data["candidates"][0]
+        candidate_keys = {"biomarker_id", "canonical_name", "loinc", "normalized_unit"}
+        self.assertEqual(set(candidate.keys()), candidate_keys,
+                         f"Lookup candidate keys changed: {set(candidate.keys())} != {candidate_keys}")
+        self.assertIsInstance(candidate["biomarker_id"], str)
+        self.assertIsInstance(candidate["canonical_name"], str)
+        self.assertIsInstance(candidate["loinc"], str)
+        self.assertIsInstance(candidate["normalized_unit"], str)
+
+    # ─── 4. GET /lookup unmatched ────────────────────────────
+
+    def test_snapshot_lookup_unmatched(self) -> None:
+        """Pin matched=False response structure from /lookup."""
+        response = client.get("/lookup", params={"test_name": "Fake"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        lookup_keys = {"matched", "test_name", "alias_key", "candidates"}
+        self.assertEqual(set(data.keys()), lookup_keys,
+                         f"Unmatched lookup keys changed: {set(data.keys())} != {lookup_keys}")
+        self.assertIsInstance(data["matched"], bool)
+        self.assertFalse(data["matched"])
+        self.assertIsInstance(data["test_name"], str)
+        self.assertEqual(data["test_name"], "Fake")
+        self.assertIsInstance(data["alias_key"], str)
+        self.assertIsInstance(data["candidates"], list)
+        self.assertEqual(len(data["candidates"]), 0)
+
+    # ─── 5. POST /normalize top-level keys ───────────────────
+
+    def test_snapshot_normalize_response(self) -> None:
+        """Pin top-level response keys from POST /normalize."""
+        response = client.post("/normalize", json={
+            "rows": [self.GLUCOSE_ROW],
+            "input_file": "snapshot_test.csv",
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        required_keys = {
+            "schema_version", "bnt_version", "generated_at",
+            "input_file", "summary", "records", "tier",
+        }
+        for key in required_keys:
+            self.assertIn(key, data, f"Missing top-level normalize key: {key}")
+
+        self.assertIsInstance(data["schema_version"], str)
+        self.assertIsInstance(data["bnt_version"], str)
+        self.assertIsInstance(data["generated_at"], str)
+        self.assertIsInstance(data["input_file"], str)
+        self.assertIsInstance(data["summary"], dict)
+        self.assertIsInstance(data["records"], list)
+        self.assertIsInstance(data["tier"], str)
+
+        # warnings is optional (only present when non-empty)
+        if "warnings" in data:
+            self.assertIsInstance(data["warnings"], list)
+
+    # ─── 6. Normalized record fields ─────────────────────────
+
+    def test_snapshot_normalize_record_fields(self) -> None:
+        """Pin every field in a normalized record (21 fields)."""
+        response = client.post("/normalize", json={
+            "rows": [self.GLUCOSE_ROW],
+        })
+        self.assertEqual(response.status_code, 200)
+        records = response.json()["records"]
+        self.assertEqual(len(records), 1)
+        record = records[0]
+
+        record_keys = {
+            "source_row_number",
+            "source_row_id",
+            "source_lab_name",
+            "source_panel_name",
+            "source_test_name",
+            "alias_key",
+            "raw_value",
+            "source_unit",
+            "specimen_type",
+            "source_reference_range",
+            "canonical_biomarker_id",
+            "canonical_biomarker_name",
+            "loinc",
+            "mapping_status",
+            "match_confidence",
+            "status_reason",
+            "mapping_rule",
+            "normalized_value",
+            "normalized_unit",
+            "normalized_reference_range",
+            "provenance",
+        }
+        self.assertEqual(set(record.keys()), record_keys,
+                         f"Record keys changed: {set(record.keys())} != {record_keys}")
+
+        # Assert types for every field
+        self.assertIsInstance(record["source_row_number"], int)
+        self.assertIsInstance(record["source_row_id"], str)
+        self.assertIsInstance(record["source_lab_name"], str)
+        self.assertIsInstance(record["source_panel_name"], str)
+        self.assertIsInstance(record["source_test_name"], str)
+        self.assertIsInstance(record["alias_key"], str)
+        self.assertIsInstance(record["raw_value"], str)
+        self.assertIsInstance(record["source_unit"], str)
+        self.assertIsInstance(record["specimen_type"], str)
+        self.assertIsInstance(record["source_reference_range"], str)
+        self.assertIsInstance(record["canonical_biomarker_id"], str)
+        self.assertIsInstance(record["canonical_biomarker_name"], str)
+        self.assertIsInstance(record["loinc"], str)
+        self.assertIsInstance(record["mapping_status"], str)
+        self.assertIsInstance(record["match_confidence"], str)
+        self.assertIsInstance(record["status_reason"], str)
+        self.assertIsInstance(record["mapping_rule"], str)
+        self.assertIsInstance(record["normalized_value"], str)
+        self.assertIsInstance(record["normalized_unit"], str)
+        self.assertIsInstance(record["normalized_reference_range"], str)
+        self.assertIsInstance(record["provenance"], dict)
+
+        # Verify mapping_status and match_confidence are from allowed enums
+        self.assertIn(record["mapping_status"], {"mapped", "review_needed", "unmapped"})
+        self.assertIn(record["match_confidence"], {"high", "medium", "low", "none"})
+
+    # ─── 7. Summary fields ───────────────────────────────────
+
+    def test_snapshot_normalize_summary_fields(self) -> None:
+        """Pin every key in summary dict including confidence_breakdown."""
+        response = client.post("/normalize", json={
+            "rows": [self.GLUCOSE_ROW],
+        })
+        self.assertEqual(response.status_code, 200)
+        summary = response.json()["summary"]
+
+        summary_keys = {"total_rows", "mapped", "review_needed", "unmapped", "confidence_breakdown"}
+        self.assertEqual(set(summary.keys()), summary_keys,
+                         f"Summary keys changed: {set(summary.keys())} != {summary_keys}")
+
+        self.assertIsInstance(summary["total_rows"], int)
+        self.assertIsInstance(summary["mapped"], int)
+        self.assertIsInstance(summary["review_needed"], int)
+        self.assertIsInstance(summary["unmapped"], int)
+        self.assertIsInstance(summary["confidence_breakdown"], dict)
+
+        # confidence_breakdown sub-keys
+        cb = summary["confidence_breakdown"]
+        cb_keys = {"high", "medium", "low", "none"}
+        self.assertEqual(set(cb.keys()), cb_keys,
+                         f"confidence_breakdown keys changed: {set(cb.keys())} != {cb_keys}")
+        for level in cb_keys:
+            self.assertIsInstance(cb[level], int,
+                                 f"confidence_breakdown['{level}'] should be int")
+
+    # ─── 8. POST /analyze response ───────────────────────────
+
+    def test_snapshot_analyze_response(self) -> None:
+        """Pin all top-level keys from POST /analyze."""
+        response = client.post("/analyze", json={
+            "rows": [
+                self.GLUCOSE_ROW,
+                {"source_test_name": "FakeTest999", "raw_value": "1",
+                 "source_unit": "U/L", "specimen_type": "serum",
+                 "source_row_id": "snap-2", "source_reference_range": ""},
+            ],
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        analyze_keys = {
+            "input_file", "summary", "mapping_rate",
+            "mapped_biomarkers", "unmapped_tests",
+            "review_reasons", "unsupported_units",
+            "warnings", "tier",
+        }
+        self.assertEqual(set(data.keys()), analyze_keys,
+                         f"Analyze keys changed: {set(data.keys())} != {analyze_keys}")
+
+        self.assertIsInstance(data["input_file"], str)
+        self.assertIsInstance(data["summary"], dict)
+        self.assertIsInstance(data["mapping_rate"], (int, float))
+        self.assertIsInstance(data["mapped_biomarkers"], dict)
+        self.assertIsInstance(data["unmapped_tests"], dict)
+        self.assertIsInstance(data["review_reasons"], dict)
+        self.assertIsInstance(data["unsupported_units"], dict)
+        self.assertIsInstance(data["warnings"], list)
+        self.assertIsInstance(data["tier"], str)
+
+        # Summary within analyze should have the same structure
+        summary = data["summary"]
+        for key in ("total_rows", "mapped", "review_needed", "unmapped", "confidence_breakdown"):
+            self.assertIn(key, summary, f"Missing analyze summary key: {key}")
+
+    # ─── 9. FHIR bundle top-level keys ──────────────────────
+
+    def test_snapshot_fhir_bundle_top_level(self) -> None:
+        """Pin fhir_bundle top-level keys from POST /normalize?emit_fhir=true."""
+        response = client.post("/normalize?emit_fhir=true", json={
+            "rows": [self.GLUCOSE_ROW],
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("fhir_bundle", data)
+
+        bundle = data["fhir_bundle"]
+        bundle_keys = {"resourceType", "type", "meta", "identifier", "entry"}
+        self.assertEqual(set(bundle.keys()), bundle_keys,
+                         f"FHIR bundle keys changed: {set(bundle.keys())} != {bundle_keys}")
+
+        self.assertIsInstance(bundle["resourceType"], str)
+        self.assertEqual(bundle["resourceType"], "Bundle")
+        self.assertIsInstance(bundle["type"], str)
+        self.assertEqual(bundle["type"], "collection")
+        self.assertIsInstance(bundle["meta"], dict)
+        self.assertIn("profile", bundle["meta"])
+        self.assertIsInstance(bundle["meta"]["profile"], list)
+        self.assertIsInstance(bundle["identifier"], dict)
+        self.assertIn("system", bundle["identifier"])
+        self.assertIn("value", bundle["identifier"])
+        self.assertIsInstance(bundle["identifier"]["system"], str)
+        self.assertIsInstance(bundle["identifier"]["value"], str)
+        self.assertIsInstance(bundle["entry"], list)
+
+    # ─── 10. FHIR Observation resource fields ────────────────
+
+    def test_snapshot_fhir_observation_fields(self) -> None:
+        """Pin every key in a FHIR Observation resource."""
+        response = client.post("/normalize?emit_fhir=true", json={
+            "rows": [self.GLUCOSE_ROW],
+        })
+        self.assertEqual(response.status_code, 200)
+        bundle = response.json()["fhir_bundle"]
+        self.assertGreater(len(bundle["entry"]), 0)
+
+        entry = bundle["entry"][0]
+        # Entry structure
+        entry_keys = {"fullUrl", "resource"}
+        self.assertEqual(set(entry.keys()), entry_keys,
+                         f"FHIR entry keys changed: {set(entry.keys())} != {entry_keys}")
+        self.assertIsInstance(entry["fullUrl"], str)
+        self.assertTrue(entry["fullUrl"].startswith("urn:uuid:"))
+
+        obs = entry["resource"]
+
+        # Required Observation fields (always present for a mapped glucose with row_id and ref range)
+        obs_required_keys = {
+            "resourceType", "id", "status", "category", "code",
+            "valueQuantity", "note", "identifier", "referenceRange",
+            "specimen",
+        }
+        for key in obs_required_keys:
+            self.assertIn(key, obs, f"Missing FHIR Observation key: {key}")
+
+        # resourceType and status
+        self.assertEqual(obs["resourceType"], "Observation")
+        self.assertIsInstance(obs["id"], str)
+        self.assertEqual(obs["status"], "final")
+
+        # category
+        self.assertIsInstance(obs["category"], list)
+        self.assertGreater(len(obs["category"]), 0)
+        cat = obs["category"][0]
+        self.assertIn("coding", cat)
+        self.assertIsInstance(cat["coding"], list)
+        cat_coding = cat["coding"][0]
+        self.assertIn("system", cat_coding)
+        self.assertIn("code", cat_coding)
+        self.assertIn("display", cat_coding)
+        self.assertEqual(cat_coding["code"], "laboratory")
+
+        # code
+        self.assertIn("coding", obs["code"])
+        self.assertIn("text", obs["code"])
+        self.assertIsInstance(obs["code"]["coding"], list)
+        code_coding = obs["code"]["coding"][0]
+        self.assertIn("system", code_coding)
+        self.assertIn("code", code_coding)
+        self.assertIn("display", code_coding)
+        self.assertEqual(code_coding["system"], "http://loinc.org")
+
+        # valueQuantity
+        vq = obs["valueQuantity"]
+        self.assertIsInstance(vq, dict)
+        self.assertIn("value", vq)
+        self.assertIsInstance(vq["value"], (int, float))
+        self.assertIn("unit", vq)
+        self.assertIsInstance(vq["unit"], str)
+        self.assertIn("system", vq)
+        self.assertEqual(vq["system"], "http://unitsofmeasure.org")
+        self.assertIn("code", vq)
+        self.assertIsInstance(vq["code"], str)
+
+        # note
+        self.assertIsInstance(obs["note"], list)
+        self.assertGreater(len(obs["note"]), 0)
+        self.assertIn("text", obs["note"][0])
+        self.assertIsInstance(obs["note"][0]["text"], str)
+
+        # identifier (present because source_row_id is set)
+        self.assertIsInstance(obs["identifier"], list)
+        self.assertGreater(len(obs["identifier"]), 0)
+        ident = obs["identifier"][0]
+        self.assertIn("system", ident)
+        self.assertIn("value", ident)
+        self.assertEqual(ident["system"], "urn:source-row-id")
+
+        # referenceRange (present because source_reference_range is "70-99 mg/dL")
+        self.assertIsInstance(obs["referenceRange"], list)
+        self.assertGreater(len(obs["referenceRange"]), 0)
+        rr = obs["referenceRange"][0]
+        self.assertIn("text", rr)
+        self.assertIsInstance(rr["text"], str)
+        # Reference range should have low and/or high
+        has_low_or_high = "low" in rr or "high" in rr
+        self.assertTrue(has_low_or_high,
+                        "referenceRange should have 'low' and/or 'high'")
+        if "low" in rr:
+            self.assertIn("value", rr["low"])
+            self.assertIn("unit", rr["low"])
+            self.assertIn("system", rr["low"])
+            self.assertIn("code", rr["low"])
+        if "high" in rr:
+            self.assertIn("value", rr["high"])
+            self.assertIn("unit", rr["high"])
+            self.assertIn("system", rr["high"])
+            self.assertIn("code", rr["high"])
+
+        # specimen (present because specimen_type is "serum")
+        self.assertIsInstance(obs["specimen"], dict)
+        self.assertIn("display", obs["specimen"])
+        self.assertIsInstance(obs["specimen"]["display"], str)
+
+
 if __name__ == "__main__":
     unittest.main()

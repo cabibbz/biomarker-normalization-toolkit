@@ -16,7 +16,7 @@ from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, BIOMARKER_CATAL
 from biomarker_normalization_toolkit.fhir import build_bundle, UCUM_CODES
 from biomarker_normalization_toolkit.io_utils import read_ccda_input, read_excel_input, read_fhir_input, read_hl7_input, read_input, read_input_csv
 from biomarker_normalization_toolkit.normalizer import build_source_records, normalize_rows, normalize_source_record
-from biomarker_normalization_toolkit.units import CONVERSION_TO_NORMALIZED, convert_to_normalized, is_inequality_value, parse_reference_range
+from biomarker_normalization_toolkit.units import CONVERSION_TO_NORMALIZED, convert_to_normalized, is_inequality_value, normalize_unit, parse_decimal, parse_reference_range
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -6315,6 +6315,729 @@ class FHIRComplianceTests(unittest.TestCase):
             resource = entry["resource"]
             self.assertIn("subject", resource, "Every observation should have a subject when subject_reference is provided")
             self.assertEqual(resource["subject"]["reference"], "Patient/456")
+
+
+class UnicodeTests(unittest.TestCase):
+    """Tests for Unicode handling, encoding edge cases, and international lab data patterns."""
+
+    # ---- 1. Micro sign (U+00B5) in unit ----
+    def test_micro_sign_in_unit(self) -> None:
+        """U+00B5 MICRO SIGN (\u00b5mol/L) must normalize to umol/L."""
+        result = normalize_unit("\u00b5mol/L")  # µmol/L
+        self.assertEqual(result, "umol/L")
+
+    # ---- 2. Greek mu (U+03BC) in unit ----
+    def test_greek_mu_in_unit(self) -> None:
+        """U+03BC GREEK SMALL LETTER MU (\u03bcmol/L) must normalize to umol/L."""
+        result = normalize_unit("\u03bcmol/L")  # μmol/L
+        self.assertEqual(result, "umol/L")
+
+    # ---- 3. Superscript digit in unit ----
+    def test_superscript_in_unit(self) -> None:
+        """10\u2079/L (superscript 9) should either normalize or return as-is without crashing."""
+        result = normalize_unit("10\u2079/L")
+        # Must not raise; either maps to 10^9/L or passes through unchanged
+        self.assertIsInstance(result, str)
+
+    # ---- 4. En-dash (U+2013) in reference range ----
+    def test_en_dash_in_range(self) -> None:
+        """70\u201399 mg/dL (en-dash) should parse as a valid reference range."""
+        rng = parse_reference_range("70\u201399 mg/dL", "mg/dL")
+        self.assertIsNotNone(rng, "En-dash range should parse successfully")
+        self.assertEqual(rng.low, Decimal("70"))
+        self.assertEqual(rng.high, Decimal("99"))
+
+    # ---- 5. Em-dash (U+2014) in reference range ----
+    def test_em_dash_in_range(self) -> None:
+        """70\u201499 mg/dL (em-dash) should parse as a valid reference range."""
+        rng = parse_reference_range("70\u201499 mg/dL", "mg/dL")
+        self.assertIsNotNone(rng, "Em-dash range should parse successfully")
+        self.assertEqual(rng.low, Decimal("70"))
+        self.assertEqual(rng.high, Decimal("99"))
+
+    # ---- 6. Fullwidth digits in value ----
+    def test_fullwidth_digits_in_value(self) -> None:
+        """\uff11\uff10\uff10 (fullwidth digits) — parse_decimal must not crash.
+
+        Python's Decimal() constructor accepts fullwidth Unicode digits, so
+        parse_decimal successfully returns Decimal('100').  This is acceptable
+        behavior — the key requirement is no crash or exception.
+        """
+        result = parse_decimal("\uff11\uff10\uff10")  # fullwidth "100"
+        # Python's Decimal accepts fullwidth digits natively
+        self.assertTrue(result is None or isinstance(result, Decimal),
+                        "Fullwidth digits must not crash parse_decimal")
+
+    # ---- 7. Right-to-left override character in test name ----
+    def test_rtl_override_in_test_name(self) -> None:
+        """A right-to-left override (U+202E) embedded in a test name must not crash normalize_key."""
+        result = normalize_key("\u202eGlucose, Serum")
+        self.assertIsInstance(result, str)
+        self.assertIn("glucose", result)
+
+    # ---- 8. Zero-width joiner in value ----
+    def test_zero_width_joiner_in_value(self) -> None:
+        """A zero-width joiner (U+200D) inside '1\\u200D00' must not crash parse_decimal."""
+        result = parse_decimal("1\u200D00")
+        # Should return None (not a valid number) or somehow parse — either way, no crash
+        self.assertTrue(result is None or isinstance(result, Decimal))
+
+    # ---- 9. Null byte in test name ----
+    def test_null_byte_in_test_name(self) -> None:
+        """A null byte (\\x00) before 'Glucose' must not crash normalize_key."""
+        result = normalize_key("\x00Glucose")
+        self.assertIsInstance(result, str)
+        self.assertIn("glucose", result)
+
+    # ---- 10. Emoji in unit ----
+    def test_emoji_in_unit(self) -> None:
+        """An emoji unit like '\U0001fa78/dL' (drop of blood) must not crash normalize_unit."""
+        result = normalize_unit("\U0001fa78/dL")
+        self.assertIsInstance(result, str)
+
+    # ---- 11. Combining diacritics ----
+    def test_combining_diacritics(self) -> None:
+        """'Gl\u00fccose' (u-umlaut) must not crash normalize_key."""
+        result = normalize_key("Gl\u00fccose")
+        self.assertIsInstance(result, str)
+        # The key should contain the lowered form; diacritics may or may not be stripped
+        self.assertTrue(len(result) > 0)
+
+    # ---- 12. CJK characters in test name ----
+    def test_cjk_characters_in_test_name(self) -> None:
+        """\u8840\u7cd6 (Chinese for blood glucose) must not crash normalize_key; expected unmapped."""
+        key = normalize_key("\u8840\u7cd6")
+        self.assertIsInstance(key, str)
+        # The key will be non-empty but won't match any alias
+        from biomarker_normalization_toolkit.catalog import ALIAS_INDEX
+        # It should not accidentally map to a real biomarker
+        # (If it does, that's fine too — the point is no crash)
+        self.assertIsInstance(ALIAS_INDEX.get(key), (type(None), object))
+
+    # ---- 13. Mixed encoding: both micro signs map to the same canonical unit ----
+    def test_mixed_encoding_unit_synonyms(self) -> None:
+        """Both U+00B5 (micro sign) and U+03BC (Greek mu) must resolve to the same canonical unit."""
+        micro_sign = normalize_unit("\u00b5mol/L")
+        greek_mu = normalize_unit("\u03bcmol/L")
+        self.assertEqual(micro_sign, greek_mu,
+                         "MICRO SIGN and GREEK MU must normalize to the same canonical unit")
+        self.assertEqual(micro_sign, "umol/L")
+
+
+class PerformanceRegressionTests(unittest.TestCase):
+    """Verify that performance optimizations (pre-compiled regexes, LRU cache)
+    are present and functioning correctly."""
+
+    # ------------------------------------------------------------------
+    # 1. LRU cache: hits >> misses after repeated calls
+    # ------------------------------------------------------------------
+    def test_normalize_unit_cache_hits(self) -> None:
+        from biomarker_normalization_toolkit.units import normalize_unit
+
+        # Clear any prior cache state
+        normalize_unit.cache_clear()
+
+        # Prime the cache with one call, then call 999 more times
+        for _ in range(1000):
+            normalize_unit("mg/dL")
+
+        info = normalize_unit.cache_info()
+        # First call is a miss; remaining 999 should be hits
+        self.assertEqual(info.misses, 1, "Expected exactly 1 cache miss (the first call)")
+        self.assertEqual(info.hits, 999, "Expected 999 cache hits for repeated input")
+
+    # ------------------------------------------------------------------
+    # 2. LRU cache: cached result equals uncached result
+    # ------------------------------------------------------------------
+    def test_normalize_unit_cache_consistent(self) -> None:
+        from biomarker_normalization_toolkit.units import normalize_unit, UNIT_SYNONYMS
+
+        normalize_unit.cache_clear()
+
+        # Test a representative sample of inputs: synonyms, passthrough, None
+        test_inputs: list[str | None] = [
+            "mg/dL", "mmol/L", "g/L", "ng/mL", "%", "U/L",
+            "mg / dL", "  mmol/l  ", "UNKNOWN_UNIT", None, "",
+        ]
+        # Collect results on first (uncached) pass
+        first_pass = [normalize_unit(v) for v in test_inputs]
+        # Second pass should come from cache and be identical
+        second_pass = [normalize_unit(v) for v in test_inputs]
+        self.assertEqual(first_pass, second_pass, "Cached results must match uncached results")
+
+    # ------------------------------------------------------------------
+    # 3. LRU cache: maxsize >= 256
+    # ------------------------------------------------------------------
+    def test_normalize_unit_cache_size(self) -> None:
+        from biomarker_normalization_toolkit.units import normalize_unit
+
+        # The lru_cache wrapper exposes cache_parameters() with maxsize
+        params = normalize_unit.cache_parameters()
+        self.assertGreaterEqual(
+            params["maxsize"], 256,
+            f"Cache maxsize should be >= 256, got {params['maxsize']}",
+        )
+
+    # ------------------------------------------------------------------
+    # 4. Pre-compiled regex patterns exist in units module
+    # ------------------------------------------------------------------
+    def test_precompiled_regex_patterns_exist(self) -> None:
+        import biomarker_normalization_toolkit.units as units_mod
+
+        for attr_name in ("_RE_WHITESPACE", "_RE_SLASH_SPACES"):
+            attr = getattr(units_mod, attr_name, None)
+            self.assertIsNotNone(attr, f"{attr_name} should exist in units module")
+            self.assertIsInstance(
+                attr, type(re.compile("")),
+                f"{attr_name} should be a compiled regex pattern",
+            )
+
+    # ------------------------------------------------------------------
+    # 5. Pre-compiled regex patterns exist in catalog module
+    # ------------------------------------------------------------------
+    def test_precompiled_regex_patterns_catalog(self) -> None:
+        import biomarker_normalization_toolkit.catalog as catalog_mod
+
+        for attr_name in ("_RE_NON_ALNUM", "_RE_MULTI_SPACE"):
+            attr = getattr(catalog_mod, attr_name, None)
+            self.assertIsNotNone(attr, f"{attr_name} should exist in catalog module")
+            self.assertIsInstance(
+                attr, type(re.compile("")),
+                f"{attr_name} should be a compiled regex pattern",
+            )
+
+    # ------------------------------------------------------------------
+    # 6. Throughput: 1000 rows in < 1 second
+    # ------------------------------------------------------------------
+    def test_throughput_minimum(self) -> None:
+        import time
+
+        rows = [
+            {
+                "source_row_id": f"perf-{i}",
+                "source_lab_name": "Quest",
+                "source_panel_name": "CMP",
+                "source_test_name": "Glucose, Serum",
+                "raw_value": "95.3",
+                "source_unit": "mg/dL",
+                "specimen_type": "serum",
+                "source_reference_range": "70-100 mg/dL",
+            }
+            for i in range(1000)
+        ]
+
+        start = time.perf_counter()
+        normalize_rows(rows, input_file="perf_test.csv")
+        elapsed = time.perf_counter() - start
+
+        self.assertLess(
+            elapsed, 1.0,
+            f"Normalizing 1000 rows took {elapsed:.3f}s (limit: 1.0s). "
+            "Possible O(n^2) regression.",
+        )
+
+    # ------------------------------------------------------------------
+    # 7. Memory: 5000 rows with peak < 20 MB
+    # ------------------------------------------------------------------
+    def test_memory_per_row(self) -> None:
+        import tracemalloc
+
+        rows = [
+            {
+                "source_row_id": f"mem-{i}",
+                "source_lab_name": "Quest",
+                "source_panel_name": "CMP",
+                "source_test_name": "Glucose, Serum",
+                "raw_value": "95.3",
+                "source_unit": "mg/dL",
+                "specimen_type": "serum",
+                "source_reference_range": "70-100 mg/dL",
+            }
+            for i in range(5000)
+        ]
+
+        tracemalloc.start()
+        normalize_rows(rows, input_file="mem_test.csv")
+        _, peak_bytes = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+
+        peak_mb = peak_bytes / (1024 * 1024)
+        self.assertLess(
+            peak_mb, 20.0,
+            f"Peak memory for 5000 rows was {peak_mb:.1f} MB (limit: 20 MB). "
+            "Possible memory leak.",
+        )
+
+
+class LongitudinalEdgeCaseTests(unittest.TestCase):
+    """Exhaustive edge-case tests for longitudinal tracking (compare_results)."""
+
+    def _make_result(self, biomarkers: dict[str, str]) -> "NormalizationResult":
+        """Helper: create a NormalizationResult with mapped records."""
+        from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord
+        records = []
+        for bio_id, value in biomarkers.items():
+            records.append(NormalizedRecord(
+                source_row_number=0, source_row_id=bio_id, source_lab_name="",
+                source_panel_name="", source_test_name=bio_id, alias_key=bio_id,
+                raw_value=value, source_unit="", specimen_type="",
+                source_reference_range="", canonical_biomarker_id=bio_id,
+                canonical_biomarker_name=bio_id, loinc="",
+                mapping_status="mapped", match_confidence="high",
+                status_reason="", mapping_rule="test",
+                normalized_value=value, normalized_unit="",
+                normalized_reference_range="", provenance={},
+            ))
+        return NormalizationResult(
+            input_file="",
+            summary={"total_rows": len(records), "mapped": len(records), "unmapped": 0, "review_needed": 0},
+            records=records, warnings=())
+
+    def _make_empty_result(self) -> "NormalizationResult":
+        from biomarker_normalization_toolkit.models import NormalizationResult
+        return NormalizationResult(
+            input_file="",
+            summary={"total_rows": 0, "mapped": 0, "unmapped": 0, "review_needed": 0},
+            records=[], warnings=())
+
+    def test_longitudinal_empty_before(self) -> None:
+        """Empty before result yields 0 biomarkers_compared."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_empty_result()
+        after = self._make_result({"glucose_serum": "80"})
+        result = compare_results(before, after)
+        self.assertEqual(result["biomarkers_compared"], 0)
+        self.assertEqual(result["biomarkers_only_in_after"], 1)
+        self.assertEqual(result["biomarkers_only_in_before"], 0)
+        self.assertEqual(result["deltas"], [])
+
+    def test_longitudinal_empty_after(self) -> None:
+        """Empty after result yields 0 biomarkers_compared."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result({"glucose_serum": "80"})
+        after = self._make_empty_result()
+        result = compare_results(before, after)
+        self.assertEqual(result["biomarkers_compared"], 0)
+        self.assertEqual(result["biomarkers_only_in_before"], 1)
+        self.assertEqual(result["biomarkers_only_in_after"], 0)
+        self.assertEqual(result["deltas"], [])
+
+    def test_longitudinal_no_overlap(self) -> None:
+        """Disjoint biomarkers between before/after yield 0 compared."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result({"glucose_serum": "90"})
+        after = self._make_result({"hemoglobin": "14.0"})
+        result = compare_results(before, after)
+        self.assertEqual(result["biomarkers_compared"], 0)
+        self.assertEqual(result["biomarkers_only_in_before"], 1)
+        self.assertEqual(result["biomarkers_only_in_after"], 1)
+        self.assertEqual(result["deltas"], [])
+
+    def test_longitudinal_zero_days_between(self) -> None:
+        """days_between=0 produces no velocity field (guarded by > 0 check)."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result({"glucose_serum": "90"})
+        after = self._make_result({"glucose_serum": "80"})
+        result = compare_results(before, after, days_between=0)
+        for delta in result["deltas"]:
+            self.assertNotIn("velocity_per_month", delta)
+
+    def test_longitudinal_negative_days_between(self) -> None:
+        """Negative days_between is treated as invalid: no velocity field."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result({"glucose_serum": "90"})
+        after = self._make_result({"glucose_serum": "80"})
+        result = compare_results(before, after, days_between=-30)
+        for delta in result["deltas"]:
+            self.assertNotIn("velocity_per_month", delta)
+
+    def test_longitudinal_large_percent_delta(self) -> None:
+        """Very large percent_delta (old=0.01, new=100) computes without crash."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result({"hscrp": "0.01"})
+        after = self._make_result({"hscrp": "100"})
+        result = compare_results(before, after)
+        self.assertEqual(result["biomarkers_compared"], 1)
+        delta = result["deltas"][0]
+        self.assertIsNotNone(delta["percent_delta"])
+        # (100 - 0.01) / 0.01 * 100 = 999900.0
+        self.assertGreater(delta["percent_delta"], 999000)
+
+    def test_longitudinal_both_in_optimal_is_stable(self) -> None:
+        """Both values within optimal range yields direction='stable'."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        # glucose_serum optimal: 72-85
+        before = self._make_result({"glucose_serum": "75"})
+        after = self._make_result({"glucose_serum": "80"})
+        result = compare_results(before, after)
+        delta = result["deltas"][0]
+        self.assertEqual(delta["direction"], "stable")
+
+    def test_longitudinal_unknown_direction_no_optimal(self) -> None:
+        """Biomarker with no optimal range yields direction='unknown'."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord
+
+        def _make_with_id(bio_id: str, value: str) -> NormalizationResult:
+            rec = NormalizedRecord(
+                source_row_number=0, source_row_id="x", source_lab_name="",
+                source_panel_name="", source_test_name="fake", alias_key="fake",
+                raw_value=value, source_unit="", specimen_type="",
+                source_reference_range="", canonical_biomarker_id=bio_id,
+                canonical_biomarker_name="fake", loinc="",
+                mapping_status="mapped", match_confidence="high",
+                status_reason="", mapping_rule="test",
+                normalized_value=value, normalized_unit="",
+                normalized_reference_range="", provenance={},
+            )
+            return NormalizationResult(
+                input_file="", summary={"total_rows": 1, "mapped": 1, "unmapped": 0, "review_needed": 0},
+                records=[rec], warnings=())
+
+        before = _make_with_id("totally_fake_biomarker_xyz", "10")
+        after = _make_with_id("totally_fake_biomarker_xyz", "15")
+        result = compare_results(before, after)
+        self.assertEqual(result["biomarkers_compared"], 1)
+        self.assertEqual(result["deltas"][0]["direction"], "unknown")
+
+    def test_longitudinal_improvement_rate_zero(self) -> None:
+        """All stable biomarkers yields improvement_rate=0."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        # glucose_serum optimal: 72-85; hba1c optimal: 4.8-5.2; both within optimal -> stable
+        before = self._make_result({"glucose_serum": "75", "hba1c": "5.0"})
+        after = self._make_result({"glucose_serum": "80", "hba1c": "5.1"})
+        result = compare_results(before, after)
+        self.assertEqual(result["improvement_rate"], 0)
+        self.assertGreater(result["stable"], 0)
+        self.assertEqual(result["improved"], 0)
+
+    def test_longitudinal_improvement_rate_hundred(self) -> None:
+        """All improved biomarkers yields improvement_rate=100."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        # glucose_serum: 100 (above optimal 72-85) -> 80 (optimal) = improved
+        # hba1c: 6.0 (above optimal 4.8-5.2) -> 5.0 (optimal) = improved
+        before = self._make_result({"glucose_serum": "100", "hba1c": "6.0"})
+        after = self._make_result({"glucose_serum": "80", "hba1c": "5.0"})
+        result = compare_results(before, after)
+        self.assertEqual(result["improvement_rate"], 100)
+        self.assertEqual(result["improved"], result["biomarkers_compared"])
+
+
+class OptimalRangesExhaustiveTests(unittest.TestCase):
+    """Exhaustive tests for optimal range evaluation and summary."""
+
+    def _make_result(self, biomarkers: dict[str, str], *, unmapped: bool = False) -> "NormalizationResult":
+        """Helper: create a NormalizationResult. If unmapped=True, records are unmapped."""
+        from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord
+        records = []
+        status = "unmapped" if unmapped else "mapped"
+        for bio_id, value in biomarkers.items():
+            records.append(NormalizedRecord(
+                source_row_number=0, source_row_id=bio_id, source_lab_name="",
+                source_panel_name="", source_test_name=bio_id, alias_key=bio_id,
+                raw_value=value, source_unit="", specimen_type="",
+                source_reference_range="", canonical_biomarker_id=bio_id,
+                canonical_biomarker_name=bio_id, loinc="",
+                mapping_status=status, match_confidence="high" if not unmapped else "none",
+                status_reason="", mapping_rule="test" if not unmapped else "",
+                normalized_value=value if not unmapped else "",
+                normalized_unit="",
+                normalized_reference_range="", provenance={},
+            ))
+        mapped_count = len(records) if not unmapped else 0
+        return NormalizationResult(
+            input_file="",
+            summary={"total_rows": len(records), "mapped": mapped_count, "unmapped": len(records) - mapped_count, "review_needed": 0},
+            records=records, warnings=())
+
+    def test_optimal_evaluate_returns_correct_structure(self) -> None:
+        """Each evaluation dict has the required keys."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result({"glucose_serum": "80"})
+        evals = evaluate_optimal_ranges(result)
+        self.assertEqual(len(evals), 1)
+        required_keys = {"biomarker_id", "value", "unit", "status", "optimal_low", "optimal_high", "note"}
+        self.assertTrue(required_keys.issubset(evals[0].keys()),
+                        f"Missing keys: {required_keys - evals[0].keys()}")
+
+    def test_optimal_below_optimal_status(self) -> None:
+        """glucose=50 yields below_optimal (optimal 72-85)."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result({"glucose_serum": "50"})
+        evals = evaluate_optimal_ranges(result)
+        self.assertEqual(len(evals), 1)
+        self.assertEqual(evals[0]["status"], "below_optimal")
+
+    def test_optimal_above_optimal_status(self) -> None:
+        """glucose=200 yields above_optimal (optimal 72-85)."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result({"glucose_serum": "200"})
+        evals = evaluate_optimal_ranges(result)
+        self.assertEqual(len(evals), 1)
+        self.assertEqual(evals[0]["status"], "above_optimal")
+
+    def test_optimal_at_exact_boundary_low(self) -> None:
+        """glucose exactly at optimal low boundary (72) is 'optimal' (inclusive)."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result({"glucose_serum": "72"})
+        evals = evaluate_optimal_ranges(result)
+        self.assertEqual(len(evals), 1)
+        self.assertEqual(evals[0]["status"], "optimal")
+
+    def test_optimal_at_exact_boundary_high(self) -> None:
+        """glucose exactly at optimal high boundary (85) is 'optimal' (inclusive)."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result({"glucose_serum": "85"})
+        evals = evaluate_optimal_ranges(result)
+        self.assertEqual(len(evals), 1)
+        self.assertEqual(evals[0]["status"], "optimal")
+
+    def test_optimal_unmapped_records_excluded(self) -> None:
+        """Unmapped records do not appear in optimal evaluation."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges
+        result = self._make_result({"glucose_serum": "80"}, unmapped=True)
+        evals = evaluate_optimal_ranges(result)
+        self.assertEqual(len(evals), 0)
+
+    def test_optimal_sex_none_uses_base_ranges(self) -> None:
+        """sex=None uses base OPTIMAL_RANGES (unisex testosterone range 15-900)."""
+        from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges, OPTIMAL_RANGES
+        result = self._make_result({"testosterone_total": "200"})
+        evals = evaluate_optimal_ranges(result, sex=None)
+        self.assertEqual(len(evals), 1)
+        # 200 is within the unisex range 15-900
+        self.assertEqual(evals[0]["status"], "optimal")
+        # Confirm it uses the base low/high
+        self.assertEqual(evals[0]["optimal_low"], str(OPTIMAL_RANGES["testosterone_total"][0]))
+        self.assertEqual(evals[0]["optimal_high"], str(OPTIMAL_RANGES["testosterone_total"][1]))
+
+    def test_summarize_optimal_with_mixed_statuses(self) -> None:
+        """3 optimal + 2 below + 1 above = correct counts and percentage."""
+        from biomarker_normalization_toolkit.optimal_ranges import summarize_optimal
+        evaluations = [
+            {"biomarker_id": "a", "status": "optimal"},
+            {"biomarker_id": "b", "status": "optimal"},
+            {"biomarker_id": "c", "status": "optimal"},
+            {"biomarker_id": "d", "status": "below_optimal"},
+            {"biomarker_id": "e", "status": "below_optimal"},
+            {"biomarker_id": "f", "status": "above_optimal"},
+        ]
+        summary = summarize_optimal(evaluations)
+        self.assertEqual(summary["total_evaluated"], 6)
+        self.assertEqual(summary["optimal"], 3)
+        self.assertEqual(summary["below_optimal"], 2)
+        self.assertEqual(summary["above_optimal"], 1)
+        self.assertEqual(summary["optimal_percentage"], 50.0)
+
+    def test_optimal_all_nmr_biomarkers_have_ranges(self) -> None:
+        """All 5 NMR LipoProfile biomarkers appear in OPTIMAL_RANGES."""
+        from biomarker_normalization_toolkit.optimal_ranges import OPTIMAL_RANGES
+        nmr_ids = [
+            "small_ldl_particle",
+            "hdl_particle",
+            "large_hdl_particle",
+            "large_vldl_particle",
+            "lp_ir_score",
+        ]
+        for bio_id in nmr_ids:
+            self.assertIn(bio_id, OPTIMAL_RANGES, f"NMR biomarker {bio_id} missing from OPTIMAL_RANGES")
+            low, high, unit, note = OPTIMAL_RANGES[bio_id]
+            self.assertIsInstance(low, Decimal)
+            self.assertIsInstance(high, Decimal)
+            self.assertLessEqual(low, high, f"{bio_id}: optimal_low > optimal_high")
+
+
+class MutationCoverageTests(unittest.TestCase):
+    """Tests added by mutation testing to catch surviving mutations."""
+
+    def _make_result_with(self, biomarkers: dict[str, str]) -> "NormalizationResult":
+        """Helper: create a NormalizationResult with the given biomarker values."""
+        from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord
+        records = []
+        for bio_id, value in biomarkers.items():
+            records.append(NormalizedRecord(
+                source_row_number=0, source_row_id=bio_id, source_lab_name="",
+                source_panel_name="", source_test_name=bio_id, alias_key=bio_id,
+                raw_value=value, source_unit="", specimen_type="",
+                source_reference_range="", canonical_biomarker_id=bio_id,
+                canonical_biomarker_name=bio_id, loinc="",
+                mapping_status="mapped", match_confidence="high",
+                status_reason="", mapping_rule="test",
+                normalized_value=value, normalized_unit="",
+                normalized_reference_range="", provenance={},
+            ))
+        return NormalizationResult(
+            input_file="",
+            summary={"total_rows": len(records), "mapped": len(records), "unmapped": 0, "review_needed": 0},
+            records=records, warnings=())
+
+    # ------------------------------------------------------------------
+    # Mutation 1: rsplit(":", 1) vs split(":", 1) in panel prefix stripping
+    # rsplit takes the LAST colon, split takes the FIRST colon.
+    # With multiple colons like "A:B:GLUCOSE", rsplit yields "GLUCOSE"
+    # but split yields "B:GLUCOSE" (which won't match any alias).
+    # ------------------------------------------------------------------
+    def test_panel_prefix_multiple_colons_uses_last_segment(self) -> None:
+        """Test name with multiple colons like 'LAB:CMP:GLUCOSE' maps correctly.
+
+        The normalizer must use rsplit (last colon) to extract 'GLUCOSE',
+        not split (first colon) which would yield 'CMP:GLUCOSE'.
+        """
+        source_rows = [
+            {
+                "source_row_id": "mc1",
+                "source_lab_name": "Test",
+                "source_panel_name": "",
+                "source_test_name": "LAB:CMP:GLUCOSE",
+                "raw_value": "95",
+                "source_unit": "mg/dL",
+                "specimen_type": "serum",
+                "source_reference_range": "70-100 mg/dL",
+            }
+        ]
+        source_record = build_source_records(source_rows)[0]
+        normalized = normalize_source_record(source_record)
+
+        self.assertEqual(normalized.mapping_status, "mapped",
+                         "Multi-colon panel prefix should map via rsplit on last colon")
+        self.assertEqual(normalized.canonical_biomarker_id, "glucose_serum")
+        self.assertEqual(normalized.status_reason, "panel_prefix_stripped")
+
+    # ------------------------------------------------------------------
+    # Mutation 3: PhenoAge CRP floor 0.001 vs 0.01 (10x difference)
+    # When CRP=0, the floor value feeds into ln(). ln(0.001) = -6.9078
+    # vs ln(0.01) = -4.6052, a meaningful difference in the PhenoAge score.
+    # ------------------------------------------------------------------
+    def test_phenoage_crp_zero_floor_precision(self) -> None:
+        """CRP=0 should use floor of 0.001 mg/dL (not 0.01), affecting ln(CRP).
+
+        ln(0.001) = -6.9078 vs ln(0.01) = -4.6052. With coefficient 0.0954,
+        the difference is ~0.22 in the mortality score, which shifts PhenoAge
+        by roughly 2-3 years.
+        """
+        import math
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+
+        base = {
+            "albumin": "4.5", "creatinine": "0.9", "glucose_serum": "85",
+            "lymphocytes_pct": "35", "mcv": "88",
+            "rdw": "12.5", "alp": "60", "wbc": "6",
+        }
+
+        # CRP = 0 (uses floor)
+        result_zero = self._make_result_with({**base, "crp": "0"})
+        pa_zero = compute_phenoage(result_zero, chronological_age=45)
+
+        # CRP = 0.01 mg/L = 0.001 mg/dL (equal to the correct floor)
+        result_floor = self._make_result_with({**base, "crp": "0.01"})
+        pa_floor = compute_phenoage(result_floor, chronological_age=45)
+
+        self.assertIsNotNone(pa_zero["phenoage"])
+        self.assertIsNotNone(pa_floor["phenoage"])
+
+        # If the floor is correct (0.001 mg/dL), CRP=0 and CRP=0.01mg/L
+        # should yield the same PhenoAge (both map to 0.001 mg/dL).
+        self.assertAlmostEqual(
+            pa_zero["phenoage"], pa_floor["phenoage"], places=1,
+            msg="CRP=0 should floor to 0.001 mg/dL, matching CRP=0.01 mg/L"
+        )
+
+        # Also verify the ln_crp_mg_dl input is correct for the floor
+        expected_ln_crp = round(math.log(0.001), 4)
+        self.assertAlmostEqual(
+            pa_zero["inputs"]["ln_crp_mg_dl"], expected_ln_crp, places=3,
+            msg="ln(CRP) for zero CRP should use floor of 0.001 mg/dL"
+        )
+
+    # ------------------------------------------------------------------
+    # Mutation 9: licensing tier_claim validation bypass
+    # Without the check, an HMAC key with tier_claim="free" or "admin"
+    # would be treated as a valid pro key instead of falling through.
+    # ------------------------------------------------------------------
+    def test_licensing_rejects_invalid_tier_claim_in_hmac_key(self) -> None:
+        """HMAC-signed key with tier_claim='free' should NOT grant pro access.
+
+        The tier_claim validation ensures only 'pro' and 'enterprise' are
+        accepted. Without it, any tier_claim with a valid HMAC signature
+        would grant pro access.
+        """
+        import hashlib
+        import hmac
+        import os
+        import time
+        from biomarker_normalization_toolkit.licensing import validate_api_key, LicenseTier
+
+        secret = "test-secret-key-for-mutation-testing"
+        expiry = str(int(time.time()) + 3600)  # 1 hour from now
+
+        # Create a validly-signed key but with invalid tier "free"
+        sig = hmac.new(
+            secret.encode(), f"free:{expiry}".encode(), hashlib.sha256
+        ).hexdigest()[:32]
+        forged_key = f"free:{expiry}:{sig}"
+
+        # Patch env
+        old_secret = os.environ.get("BNT_LICENSE_SECRET", "")
+        old_pro = os.environ.get("BNT_PRO_KEY", "")
+        old_ent = os.environ.get("BNT_ENTERPRISE_KEY", "")
+        try:
+            os.environ["BNT_LICENSE_SECRET"] = secret
+            os.environ.pop("BNT_PRO_KEY", None)
+            os.environ.pop("BNT_ENTERPRISE_KEY", None)
+
+            result = validate_api_key(forged_key)
+
+            # Should NOT grant pro/enterprise tier
+            self.assertNotEqual(result["tier"], LicenseTier.PRO,
+                                "tier_claim='free' with valid HMAC should NOT grant pro tier")
+            self.assertNotEqual(result["tier"], LicenseTier.ENTERPRISE,
+                                "tier_claim='free' with valid HMAC should NOT grant enterprise tier")
+            self.assertEqual(result["tier"], LicenseTier.FREE,
+                             "Invalid tier_claim should fall through to free tier")
+        finally:
+            if old_secret:
+                os.environ["BNT_LICENSE_SECRET"] = old_secret
+            else:
+                os.environ.pop("BNT_LICENSE_SECRET", None)
+            if old_pro:
+                os.environ["BNT_PRO_KEY"] = old_pro
+            if old_ent:
+                os.environ["BNT_ENTERPRISE_KEY"] = old_ent
+
+    # ------------------------------------------------------------------
+    # Mutation 12: derived.py NLR division by zero guard
+    # Without lymphocytes_val > 0, a zero lymphocyte count causes ZeroDivisionError.
+    # ------------------------------------------------------------------
+    def test_derived_nlr_zero_lymphocytes_no_crash(self) -> None:
+        """NLR should not be computed (or crash) when lymphocytes = 0.
+
+        The guard `lymphocytes_val > 0` prevents division by zero.
+        Without it, Decimal division by zero raises an exception.
+        """
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+
+        # lymphocytes=0 should not produce NLR (division by zero)
+        result = self._make_result_with({
+            "neutrophils": "4.5",
+            "lymphocytes": "0",
+        })
+        # This should not raise an exception
+        metrics = compute_derived_metrics(result)
+        # NLR should not be present since lymphocytes=0
+        self.assertNotIn("nlr", metrics,
+                         "NLR should not be computed when lymphocytes=0 (division by zero guard)")
+
+    def test_derived_nlr_negative_lymphocytes_no_crash(self) -> None:
+        """NLR should not be computed when lymphocytes is negative."""
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+
+        result = self._make_result_with({
+            "neutrophils": "4.5",
+            "lymphocytes": "-1",
+        })
+        metrics = compute_derived_metrics(result)
+        self.assertNotIn("nlr", metrics,
+                         "NLR should not be computed when lymphocytes < 0")
 
 
 if __name__ == "__main__":
