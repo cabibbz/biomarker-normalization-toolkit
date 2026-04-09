@@ -8,7 +8,7 @@ This project values deterministic behavior, explicit ambiguity handling, and con
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate
 pip install -e ".[all,dev]"
 ```
 
@@ -16,9 +16,11 @@ On Windows PowerShell:
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 pip install -e ".[all,dev]"
 ```
+
+That install includes the test stack plus local packaging tools used by the validation and release docs.
 
 ## Typical Workflow
 
