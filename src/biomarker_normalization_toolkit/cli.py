@@ -13,6 +13,14 @@ from biomarker_normalization_toolkit.normalizer import normalize_rows
 logger = logging.getLogger("bnt.cli")
 
 
+def _module_available(module_name: str) -> bool:
+    try:
+        __import__(module_name)
+    except ImportError:
+        return False
+    return True
+
+
 def _user_friendly_error(exc: Exception) -> str:
     """Strip filesystem paths and module names from exception messages."""
     msg = str(exc)
@@ -45,7 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     normalize.add_argument(
         "--input",
         required=True,
-        help="Path to input file (CSV, FHIR JSON, HL7, C-CDA XML, or Excel; auto-detected).",
+        help="Path to input file (CSV, FHIR JSON, HL7, C-CDA XML, or Excel with openpyxl installed; auto-detected).",
     )
     normalize.add_argument(
         "--output-dir",
@@ -144,7 +152,7 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument(
         "--input",
         required=True,
-        help="Path to input file (CSV, FHIR JSON, HL7, C-CDA XML, or Excel).",
+        help="Path to input file (CSV, FHIR JSON, HL7, C-CDA XML, or Excel with openpyxl installed).",
     )
     analyze.add_argument(
         "--aliases",
@@ -163,10 +171,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 def command_status() -> int:
     from biomarker_normalization_toolkit import __version__
+    excel_status = "available" if _module_available("openpyxl") else "optional via [excel]"
+    fuzzy_status = "available" if _module_available("rapidfuzz") else "optional via [fuzzy]"
+    rest_status = "available" if _module_available("fastapi") and _module_available("uvicorn") else "optional via [rest]"
     print(f"Biomarker Normalization Toolkit v{__version__}")
     print(f"Biomarkers: {len(BIOMARKER_CATALOG)}")
-    print(f"Input formats: CSV, FHIR R4 JSON, HL7 v2.x, C-CDA XML, Excel")
+    print(f"Input formats: CSV, FHIR R4 JSON, HL7 v2.x, C-CDA XML, Excel ({excel_status})")
     print(f"Output formats: JSON, CSV, FHIR Bundle, Markdown summary")
+    print(f"Optional extras: fuzzy matching ({fuzzy_status}), REST server ({rest_status})")
     print("Deployment: self-hosted, open-source (CLI, Docker, pip)")
     print("Scope: normalization only - no diagnosis, no hosted PHI")
     return 0

@@ -37,6 +37,7 @@ Lab data is inconsistent across vendors, EHR exports, FHIR feeds, HL7 messages, 
 - 297 biomarkers across metabolic, lipid, renal, liver, thyroid, CBC, coagulation, electrolytes, vitamins, minerals, cardiac, urinalysis, body fluid, drug monitoring, immunology, neuro/CSF, blood gas, and specialty panels
 - Multi-format ingest: CSV, FHIR R4 JSON, HL7 v2.x, C-CDA XML, and Excel
 - Output formats: JSON, CSV, Markdown summary, optional FHIR bundle
+- Optional extras: `.[excel]` for Excel ingest, `.[fuzzy]` for typo-tolerant matching, `.[rest]` for the built-in API server, or `.[all]` for the full local surface
 
 The repo currently validates a 600+ test suite locally and in CI across Windows, macOS, and Linux.
 
@@ -46,6 +47,12 @@ The repo currently validates a 600+ test suite locally and in CI across Windows,
 pip install biomarker-normalization-toolkit
 bnt status
 bnt demo --output-dir demo_out
+```
+
+For the full local feature surface:
+
+```bash
+pip install "biomarker-normalization-toolkit[all]"
 ```
 
 The examples below use your own input paths. For tracked sample files and runnable
