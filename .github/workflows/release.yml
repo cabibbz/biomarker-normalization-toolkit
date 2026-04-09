@@ -75,14 +75,8 @@ jobs:
           python -m pip install --no-cache-dir -e ".[all]"
           python -m pip install pytest httpx python-multipart hypothesis
 
-      - name: Run normalization tests
-        run: pytest tests/test_normalization.py -v
-
-      - name: Run property-based tests
-        run: pytest tests/test_properties.py -v
-
-      - name: Run API tests
-        run: pytest tests/test_api.py -v
+      - name: Run full test suite
+        run: pytest -q
 
       - name: Verify CLI
         run: |
