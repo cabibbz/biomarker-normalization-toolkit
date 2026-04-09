@@ -13,7 +13,7 @@ Quick start::
         print(record.canonical_biomarker_name, record.normalized_value, record.normalized_unit)
 
     # Normalize a file (CSV, FHIR, HL7, C-CDA, or Excel)
-    result = normalize_file("labs.csv")
+    result = normalize_file("path/to/input.csv")
 """
 
 from biomarker_normalization_toolkit.io_utils import read_input
