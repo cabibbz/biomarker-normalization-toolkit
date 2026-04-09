@@ -8,6 +8,7 @@ The public repository validates behavior in several ways:
 
 - targeted unit tests for alias resolution, specimen handling, unit conversion, and parser behavior
 - tracked interop fixtures for CSV, FHIR, HL7, and C-CDA ingest
+- Excel ingest tests that generate a workbook at runtime instead of committing a binary spreadsheet fixture
 - API tests for the public HTTP contract and checked-in OpenAPI output
 - property-based tests for normalization invariants
 - CLI smoke checks for the packaged command-line interface
@@ -26,6 +27,8 @@ The supported public fixture surface is:
 - `src/biomarker_normalization_toolkit/data/`
 
 Those files are the reproducible test inputs for the open-source project.
+
+Excel is the one exception to the text-fixture rule: the test suite generates a minimal workbook at runtime so the repository does not need to ship a tracked binary `.xlsx` file.
 
 ## External Validation Context
 

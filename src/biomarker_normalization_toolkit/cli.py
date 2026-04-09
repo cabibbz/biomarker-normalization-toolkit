@@ -40,12 +40,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     normalize = subparsers.add_parser(
         "normalize",
-        help="Normalize a CSV or FHIR JSON file into canonical output.",
+        help="Normalize a supported lab file into canonical output.",
     )
     normalize.add_argument(
         "--input",
         required=True,
-        help="Path to input file (CSV or FHIR JSON, auto-detected).",
+        help="Path to input file (CSV, FHIR JSON, HL7, C-CDA XML, or Excel; auto-detected).",
     )
     normalize.add_argument(
         "--output-dir",
@@ -144,7 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument(
         "--input",
         required=True,
-        help="Path to input file (CSV or FHIR JSON).",
+        help="Path to input file (CSV, FHIR JSON, HL7, C-CDA XML, or Excel).",
     )
     analyze.add_argument(
         "--aliases",
