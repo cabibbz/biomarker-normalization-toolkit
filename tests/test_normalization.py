@@ -1026,6 +1026,8 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(normalize_unit("m[IU]/L"), "mIU/L")
         self.assertEqual(normalize_unit("m[IU]/mL"), "mIU/mL")
         self.assertEqual(normalize_unit("[IU]/mL"), "IU/mL")
+        self.assertEqual(normalize_unit("k[IU]/L"), "IU/mL")
+        self.assertEqual(normalize_unit("kU/L"), "IU/mL")
 
     def test_miu_ml_not_conflated_with_miu_l(self) -> None:
         """Regression: mIU/mL and mIU/L differ by 1000x. They must not be synonyms."""

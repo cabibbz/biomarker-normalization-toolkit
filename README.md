@@ -26,7 +26,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ## Coverage
 
-282 biomarkers across preventive health, inpatient, longevity, and specialty panels:
+297 biomarkers across preventive health, inpatient, longevity, and specialty panels:
 
 | Panel | Biomarkers |
 |-------|-----------|
@@ -75,7 +75,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ```bash
 pip install biomarker-normalization-toolkit
-bnt status       # Shows 282 biomarkers, supported formats
+bnt status       # Shows 297 biomarkers, supported formats
 bnt catalog      # Lists all biomarkers with LOINC codes
 bnt demo --output-dir demo_out  # Run on bundled sample data
 ```
