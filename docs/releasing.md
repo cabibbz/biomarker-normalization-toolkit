@@ -25,7 +25,7 @@ python scripts/export_openapi.py
 python -m build
 python scripts/check_distribution_contents.py
 python -m twine check dist/*
-python scripts/smoke_installed_package.py
+python scripts/smoke_installed_package.py --check-cli --expect-rest-missing
 python scripts/smoke_installed_package.py --serve --port 8010
 ```
 
@@ -37,8 +37,8 @@ The release workflows also validate:
 - public-fixture sanity check
 - checked-in OpenAPI drift
 - distribution content checks for wheel and sdist artifacts
-- wheel install smoke
-- source-distribution install smoke
+- wheel install smoke, including installed CLI behavior and missing-`[rest]` guidance
+- source-distribution install smoke, including installed CLI behavior and missing-`[rest]` guidance
 - packaged REST server startup
 
 Do not cut a release if any of those validations are failing locally or in CI.

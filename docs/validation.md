@@ -55,7 +55,7 @@ For packaging or CLI changes, also verify:
 ```bash
 bnt status
 bnt analyze --input src/biomarker_normalization_toolkit/data/v0_sample.csv
-python scripts/smoke_installed_package.py
+python scripts/smoke_installed_package.py --check-cli --expect-rest-missing
 python scripts/smoke_installed_package.py --serve --port 8010
 ```
 

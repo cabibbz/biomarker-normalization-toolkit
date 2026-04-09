@@ -111,7 +111,7 @@ jobs:
           . .venv-wheel/bin/activate
           pip install dist/*.whl
           bnt status
-          python scripts/smoke_installed_package.py
+          python scripts/smoke_installed_package.py --check-cli --expect-rest-missing
 
       - name: Smoke-test source distribution
         run: |
@@ -119,7 +119,7 @@ jobs:
           . .venv-sdist/bin/activate
           pip install dist/*.tar.gz
           bnt status
-          python scripts/smoke_installed_package.py
+          python scripts/smoke_installed_package.py --check-cli --expect-rest-missing
 
       - name: Smoke-test packaged REST server
         run: |
