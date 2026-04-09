@@ -1,5 +1,7 @@
 # REST API Examples
 
+These commands assume you are running them from the repository root so the tracked fixture paths resolve as written.
+
 Start the server:
 
 ```bash

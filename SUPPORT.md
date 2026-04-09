@@ -7,7 +7,8 @@ Use GitHub issues for:
 - bug reports
 - feature requests
 - documentation problems
-- questions about expected behavior
+
+If you have a question about expected behavior, open the closest matching issue template and include a minimal reproduction or example payload so maintainers can answer it concretely.
 
 ## Security Issues
 
