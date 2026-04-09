@@ -48,6 +48,9 @@ bnt status
 bnt demo --output-dir demo_out
 ```
 
+The examples below use your own input paths. For tracked sample files and runnable
+repo examples, see `examples/` and `fixtures/` in the repository.
+
 ### Python API
 
 ```python
@@ -67,26 +70,26 @@ result = normalize([
 for record in result.records:
     print(record.canonical_biomarker_name, record.normalized_value, record.normalized_unit)
 
-result = normalize_file("fixtures/input/v0_sample.csv", fuzzy_threshold=0.85)
+result = normalize_file("path/to/input.csv", fuzzy_threshold=0.85)
 ```
 
 ### CLI
 
 ```bash
 # Normalize a single file
-bnt normalize --input fixtures/input/v0_sample.csv --output-dir out
+bnt normalize --input path/to/input.csv --output-dir out
 
 # Emit FHIR
-bnt normalize --input fixtures/input/v0_sample.csv --output-dir out --emit-fhir
+bnt normalize --input path/to/input.csv --output-dir out --emit-fhir
 
 # Analyze coverage gaps
-bnt analyze --input fixtures/input/v0_sample.csv
+bnt analyze --input path/to/input.csv
 
 # Batch-process a directory of supported files
 bnt batch --input-dir /data/labs --output-dir /data/normalized --emit-fhir
 
 # Load custom aliases
-bnt normalize --input fixtures/input/v0_sample.csv --output-dir out --aliases examples/custom_aliases/custom_aliases.json
+bnt normalize --input path/to/input.csv --output-dir out --aliases path/to/custom_aliases.json
 
 # Explore the built-in catalog
 bnt catalog
@@ -124,7 +127,7 @@ curl -X POST "http://localhost:8000/normalize?emit_fhir=true" \
   -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
 
 # Upload a source file
-curl -X POST http://localhost:8000/normalize/upload -F "file=@fixtures/input/v0_sample.csv"
+curl -X POST http://localhost:8000/normalize/upload -F "file=@path/to/input.csv"
 
 # Analyze coverage from JSON rows
 curl -X POST http://localhost:8000/analyze \
