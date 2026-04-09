@@ -3,7 +3,7 @@
 ## 0.3.0 (Unreleased)
 
 ### Added
-- **297 biomarker catalog entries** across metabolic, lipid, renal, liver, thyroid, CBC, coagulation, electrolytes, vitamins, minerals, cardiac, urinalysis, body fluid, specialty, and immunology surfaces
+- **297 biomarker catalog entries** across metabolic, lipid, renal, liver, thyroid, CBC, coagulation, electrolytes, vitamins, minerals, cardiac, urinalysis, body fluid, drug monitoring, immunology, neuro/CSF, blood gas, and specialty panels
 - **PhenoAge biological age** (Levine 2018) from 9 standard biomarkers
 - **Derived metrics** including HOMA-IR, TG/HDL, ApoB/ApoA1, NLR, AIP, De Ritis, FIB-4, TyG, UIBC, PLR, and SII
 - **Optional optimal-range evaluation layer** for curated research-oriented summaries
