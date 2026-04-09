@@ -91,8 +91,10 @@ class NextWaveScopeExpansionTests(unittest.TestCase):
         result = normalize_rows(rows)
         by_id = {record.source_row_id: record for record in result.records}
 
-        self.assertEqual(by_id["uwbc"].mapping_status, "unmapped")
-        self.assertEqual(by_id["uwbc"].status_reason, "unknown_alias")
+        self.assertEqual(by_id["uwbc"].mapping_status, "mapped")
+        self.assertEqual(by_id["uwbc"].canonical_biomarker_id, "urine_wbc")
+        self.assertEqual(by_id["uwbc"].normalized_unit, "#/uL")
+        self.assertEqual(by_id["uwbc"].status_reason, "mapped_by_alias_and_implicit_unit")
 
         self.assertEqual(by_id["kbad"].mapping_status, "review_needed")
         self.assertEqual(by_id["kbad"].status_reason, "unsupported_unit_for_biomarker")

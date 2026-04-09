@@ -58,6 +58,9 @@ _CONTEXTUAL_ALIAS_OVERRIDES = (
 _IMPLICIT_UNIT_BIOMARKERS = frozenset({
     "esr",
     "pdw",
+    "urine_wbc",
+    "wbc_csf",
+    "wbc_body_fluid",
 })
 
 

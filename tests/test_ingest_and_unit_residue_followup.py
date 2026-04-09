@@ -55,6 +55,30 @@ class IngestAndUnitResidueFollowupTests(unittest.TestCase):
                 "raw_value": "8",
                 "source_unit": "",
             },
+            {
+                "source_row_id": "uwbc-blank",
+                "source_test_name": "WBC's in urine",
+                "raw_value": "12",
+                "source_unit": "",
+            },
+            {
+                "source_row_id": "csf-wbc-blank",
+                "source_test_name": "WBC's in cerebrospinal fluid",
+                "raw_value": "4",
+                "source_unit": "",
+            },
+            {
+                "source_row_id": "bf-wbc-blank",
+                "source_test_name": "WBC's in body fluid",
+                "raw_value": "250",
+                "source_unit": "",
+            },
+            {
+                "source_row_id": "wbc-generic",
+                "source_test_name": "WBC",
+                "raw_value": "7.2",
+                "source_unit": "",
+            },
         ]
 
         result = normalize_rows(rows)
@@ -76,6 +100,25 @@ class IngestAndUnitResidueFollowupTests(unittest.TestCase):
         self.assertEqual(by_id["hgb"].mapping_status, "review_needed")
         self.assertEqual(by_id["hgb"].canonical_biomarker_id, "hemoglobin")
         self.assertEqual(by_id["hgb"].status_reason, "unsupported_unit_for_biomarker")
+
+        self.assertEqual(by_id["uwbc-blank"].mapping_status, "mapped")
+        self.assertEqual(by_id["uwbc-blank"].canonical_biomarker_id, "urine_wbc")
+        self.assertEqual(by_id["uwbc-blank"].normalized_unit, "#/uL")
+        self.assertEqual(by_id["uwbc-blank"].status_reason, "mapped_by_alias_and_implicit_unit")
+
+        self.assertEqual(by_id["csf-wbc-blank"].mapping_status, "mapped")
+        self.assertEqual(by_id["csf-wbc-blank"].canonical_biomarker_id, "wbc_csf")
+        self.assertEqual(by_id["csf-wbc-blank"].normalized_unit, "#/uL")
+        self.assertEqual(by_id["csf-wbc-blank"].status_reason, "mapped_by_alias_and_implicit_unit")
+
+        self.assertEqual(by_id["bf-wbc-blank"].mapping_status, "mapped")
+        self.assertEqual(by_id["bf-wbc-blank"].canonical_biomarker_id, "wbc_body_fluid")
+        self.assertEqual(by_id["bf-wbc-blank"].normalized_unit, "#/uL")
+        self.assertEqual(by_id["bf-wbc-blank"].status_reason, "mapped_by_alias_and_implicit_unit")
+
+        self.assertEqual(by_id["wbc-generic"].mapping_status, "review_needed")
+        self.assertEqual(by_id["wbc-generic"].canonical_biomarker_id, "")
+        self.assertEqual(by_id["wbc-generic"].status_reason, "ambiguous_alias_requires_specimen")
 
 
 if __name__ == "__main__":

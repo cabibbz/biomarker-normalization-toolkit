@@ -152,6 +152,12 @@ class BodyFluidFollowupTests(unittest.TestCase):
                 "source_reference_range": "0-5 #/uL",
             },
             {
+                "source_row_id": "wbc-csf",
+                "source_test_name": "WBC's in cerebrospinal fluid",
+                "raw_value": "14",
+                "source_unit": "",
+            },
+            {
                 "source_row_id": "poly-csf",
                 "source_test_name": "Polys",
                 "raw_value": "1",
@@ -171,6 +177,12 @@ class BodyFluidFollowupTests(unittest.TestCase):
                 "raw_value": "12",
                 "source_unit": "%",
                 "specimen_type": "Cerebrospinal Fluid",
+            },
+            {
+                "source_row_id": "wbc-bf",
+                "source_test_name": "WBC's in body fluid",
+                "raw_value": "184",
+                "source_unit": "",
             },
         ]
 
@@ -196,9 +208,15 @@ class BodyFluidFollowupTests(unittest.TestCase):
         self.assertEqual(by_id["eos-bf"].canonical_biomarker_id, "eosinophils_body_fluid_pct")
         self.assertEqual(by_id["monos-bf"].canonical_biomarker_id, "monocytes_macrophages_body_fluid_pct")
         self.assertEqual(by_id["macro-bf"].canonical_biomarker_id, "macrophages_body_fluid_pct")
+        self.assertEqual(by_id["wbc-bf"].canonical_biomarker_id, "wbc_body_fluid")
+        self.assertEqual(by_id["wbc-bf"].normalized_unit, "#/uL")
+        self.assertEqual(by_id["wbc-bf"].status_reason, "mapped_by_alias_and_implicit_unit")
 
         self.assertEqual(by_id["tnc-csf"].canonical_biomarker_id, "total_nucleated_cells_csf")
         self.assertEqual(by_id["tnc-csf"].normalized_reference_range, "0-5 #/uL")
+        self.assertEqual(by_id["wbc-csf"].canonical_biomarker_id, "wbc_csf")
+        self.assertEqual(by_id["wbc-csf"].normalized_unit, "#/uL")
+        self.assertEqual(by_id["wbc-csf"].status_reason, "mapped_by_alias_and_implicit_unit")
         self.assertEqual(by_id["poly-csf"].canonical_biomarker_id, "neutrophils_csf_pct")
         self.assertEqual(by_id["mono-csf"].canonical_biomarker_id, "monocytes_csf_pct")
         self.assertEqual(by_id["macro-csf"].canonical_biomarker_id, "macrophages_csf_pct")
@@ -225,7 +243,9 @@ class BodyFluidFollowupTests(unittest.TestCase):
         self.assertEqual(BIOMARKER_CATALOG["eosinophils_body_fluid_pct"].loinc, "26452-3")
         self.assertEqual(BIOMARKER_CATALOG["monocytes_macrophages_body_fluid_pct"].loinc, "30437-8")
         self.assertEqual(BIOMARKER_CATALOG["macrophages_body_fluid_pct"].loinc, "30427-9")
+        self.assertEqual(BIOMARKER_CATALOG["wbc_body_fluid"].loinc, "26466-3")
 
+        self.assertEqual(BIOMARKER_CATALOG["wbc_csf"].loinc, "26465-5")
         self.assertEqual(BIOMARKER_CATALOG["total_nucleated_cells_csf"].loinc, "58906-9")
         self.assertEqual(BIOMARKER_CATALOG["neutrophils_csf_pct"].loinc, "26512-4")
         self.assertEqual(BIOMARKER_CATALOG["monocytes_csf_pct"].loinc, "26486-1")
