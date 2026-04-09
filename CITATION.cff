@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this toolkit in research or software infrastructure, please cite it using this metadata."
+title: "Biomarker Normalization Toolkit"
+version: "0.3.0"
+date-released: 2026-04-09
+license: "Apache-2.0"
+repository-code: "https://github.com/cabibbz/biomarker-normalization-toolkit"
+url: "https://github.com/cabibbz/biomarker-normalization-toolkit"
+authors:
+  - family-names: "cabibbz"

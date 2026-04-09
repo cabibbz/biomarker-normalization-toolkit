@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Biomarker Normalization Toolkit",
-    "description": "Normalize messy lab data into canonical machine-readable output. 297 biomarkers, PhenoAge biological age, optimal longevity ranges, derived metabolic metrics, longitudinal tracking.",
-    "version": "0.2.1"
+    "description": "Normalize messy lab data into canonical machine-readable output. 297 biomarkers, PhenoAge biological age, optimal biomarker ranges, derived metabolic metrics, longitudinal tracking.",
+    "version": "0.3.0"
   },
   "paths": {
     "/health": {
@@ -228,22 +228,6 @@
               "default": 0.0,
               "title": "Fuzzy Threshold"
             }
-          },
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
           }
         ],
         "requestBody": {
@@ -302,22 +286,6 @@
               "default": 0.0,
               "title": "Fuzzy Threshold"
             }
-          },
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
           }
         ],
         "requestBody": {
@@ -356,33 +324,15 @@
       "post": {
         "summary": "Analyze",
         "operationId": "analyze_analyze_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/NormalizeRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -410,33 +360,15 @@
       "post": {
         "summary": "Analyze Upload",
         "operationId": "analyze_upload_analyze_upload_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_analyze_upload_analyze_upload_post"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -465,33 +397,15 @@
         "summary": "Phenoage Endpoint",
         "description": "Compute PhenoAge biological age. Requires 9 biomarkers + chronological_age.",
         "operationId": "phenoage_endpoint_phenoage_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PhenoAgeRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -518,35 +432,17 @@
     "/optimal-ranges": {
       "post": {
         "summary": "Optimal Ranges Endpoint",
-        "description": "Evaluate biomarker values against longevity-optimal ranges.",
+        "description": "Evaluate biomarker values against optimal biomarker ranges.",
         "operationId": "optimal_ranges_endpoint_optimal_ranges_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/NormalizeRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -575,33 +471,15 @@
         "summary": "Compare Endpoint",
         "description": "Compare before/after lab results for longitudinal tracking.",
         "operationId": "compare_endpoint_compare_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CompareRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -652,22 +530,6 @@
               "default": 0.0,
               "title": "Fuzzy Threshold"
             }
-          },
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
           }
         ],
         "requestBody": {
@@ -676,6 +538,67 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/NormalizeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/normalize/upload": {
+      "post": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Normalize Upload V1",
+        "operationId": "normalize_upload_v1_v1_normalize_upload_post",
+        "parameters": [
+          {
+            "name": "emit_fhir",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Emit Fhir"
+            }
+          },
+          {
+            "name": "fuzzy_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 0.0,
+              "title": "Fuzzy Threshold"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_normalize_upload_v1_v1_normalize_upload_post"
               }
             }
           }
@@ -709,33 +632,54 @@
         ],
         "summary": "Analyze V1",
         "operationId": "analyze_v1_v1_analyze_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/NormalizeRequest"
               }
             }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
+        }
+      }
+    },
+    "/v1/analyze/upload": {
+      "post": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Analyze Upload V1",
+        "operationId": "analyze_upload_v1_v1_analyze_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_analyze_upload_v1_v1_analyze_upload_post"
+              }
+            }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -766,33 +710,15 @@
         ],
         "summary": "Phenoage V1",
         "operationId": "phenoage_v1_v1_phenoage_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PhenoAgeRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -823,33 +749,15 @@
         ],
         "summary": "Optimal Ranges V1",
         "operationId": "optimal_ranges_v1_v1_optimal_ranges_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/NormalizeRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -880,33 +788,15 @@
         ],
         "summary": "Compare V1",
         "operationId": "compare_v1_v1_compare_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CompareRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1138,140 +1028,6 @@
           }
         }
       }
-    },
-    "/v1/normalize/upload": {
-      "post": {
-        "tags": [
-          "v1"
-        ],
-        "summary": "Normalize Upload V1",
-        "operationId": "normalize_upload_v1_v1_normalize_upload_post",
-        "parameters": [
-          {
-            "name": "emit_fhir",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false,
-              "title": "Emit Fhir"
-            }
-          },
-          {
-            "name": "fuzzy_threshold",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "default": 0.0,
-              "title": "Fuzzy Threshold"
-            }
-          },
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_normalize_upload_v1_v1_normalize_upload_post"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/analyze/upload": {
-      "post": {
-        "tags": [
-          "v1"
-        ],
-        "summary": "Analyze Upload V1",
-        "operationId": "analyze_upload_v1_v1_analyze_upload_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_analyze_upload_v1_v1_analyze_upload_post"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -1407,7 +1163,7 @@
               }
             ],
             "title": "Chronological Age",
-            "description": "Patient age for PhenoAge (Pro tier)"
+            "description": "Patient age for PhenoAge"
           },
           "sex": {
             "anyOf": [

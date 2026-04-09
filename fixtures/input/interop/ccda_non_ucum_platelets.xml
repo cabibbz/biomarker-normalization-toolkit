@@ -1,0 +1,37 @@
+<section>
+  <templateId root="2.16.840.1.113883.10.20.22.2.3.1"/>
+  <code code="30954-2" codeSystem="2.16.840.1.113883.6.1" displayName="Relevant diagnostic tests and/or laboratory data"/>
+  <title>Results</title>
+  <entry>
+    <organizer classCode="BATTERY" moodCode="EVN">
+      <component>
+        <observation classCode="OBS" moodCode="EVN">
+          <code code="26515-7" displayName="Platelets [#/volume] in Blood" codeSystem="2.16.840.1.113883.6.1"/>
+          <statusCode code="completed"/>
+          <value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PQ" nullFlavor="OTH">
+            <translation value="152" nullFlavor="OTH">
+              <originalText>THOUS/MCL</originalText>
+            </translation>
+          </value>
+          <interpretationCode code="N" codeSystem="2.16.840.1.113883.5.83" displayName="Normal"/>
+          <referenceRange>
+            <observationRange>
+              <value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="IVL_PQ">
+                <low nullFlavor="OTH">
+                  <translation value="150" nullFlavor="OTH">
+                    <originalText>THOUS/MCL</originalText>
+                  </translation>
+                </low>
+                <high nullFlavor="OTH">
+                  <translation value="400" nullFlavor="OTH">
+                    <originalText>THOUS/MCL</originalText>
+                  </translation>
+                </high>
+              </value>
+            </observationRange>
+          </referenceRange>
+        </observation>
+      </component>
+    </organizer>
+  </entry>
+</section>

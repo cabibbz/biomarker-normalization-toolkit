@@ -2498,7 +2498,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("Cadmium", "Cd", "Cadmium, Blood",
                  "Cadmium [Mass/volume] in Blood"),
     ),
-    # --- Wave 12: Advanced longevity (Tier 1 from market research) ---
+    # --- Wave 12: Advanced longevity coverage ---
     "ldl_particle_number": BiomarkerDefinition(
         biomarker_id="ldl_particle_number",
         canonical_name="LDL Particle Number",

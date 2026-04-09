@@ -31,22 +31,12 @@ def build_parser() -> argparse.ArgumentParser:
     from biomarker_normalization_toolkit import __version__
     parser = argparse.ArgumentParser(
         prog="bnt",
-        description="Biomarker Normalization Toolkit — normalize lab data into canonical output.",
+        description="Biomarker Normalization Toolkit - normalize lab data into canonical output.",
     )
     parser.add_argument("--version", action="version", version=f"bnt {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("status", help="Show current project direction and repo status.")
-
-    checkpoint = subparsers.add_parser(
-        "where-left-off",
-        help=argparse.SUPPRESS,
-    )
-    checkpoint.add_argument(
-        "--path",
-        default="project_memory/current_context.md",
-        help="Path to the current context file.",
-    )
 
     normalize = subparsers.add_parser(
         "normalize",
@@ -177,18 +167,8 @@ def command_status() -> int:
     print(f"Biomarkers: {len(BIOMARKER_CATALOG)}")
     print(f"Input formats: CSV, FHIR R4 JSON, HL7 v2.x, C-CDA XML, Excel")
     print(f"Output formats: JSON, CSV, FHIR Bundle, Markdown summary")
-    print(f"Deployment: customer-run (CLI, Docker, pip)")
+    print("Deployment: self-hosted, open-source (CLI, Docker, pip)")
     print("Scope: normalization only - no diagnosis, no hosted PHI")
-    return 0
-
-
-def command_where_left_off(path: str) -> int:
-    context_path = Path(path)
-    if not context_path.exists():
-        print(f"No context file found at: {context_path}")
-        return 1
-
-    print(context_path.read_text(encoding="utf-8"))
     return 0
 
 
@@ -447,8 +427,6 @@ def main() -> int:
 
     if args.command == "status":
         return command_status()
-    if args.command == "where-left-off":
-        return command_where_left_off(args.path)
     if args.command == "normalize":
         return command_normalize(args.input, args.output_dir, args.emit_fhir, args.aliases, args.fuzzy_threshold)
     if args.command == "demo":

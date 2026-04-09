@@ -4,13 +4,34 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "biomarker-normalization-toolkit"
-version = "0.2.1"
-description = "Customer-run toolkit that normalizes messy lab data into canonical machine-readable output."
+version = "0.3.0"
+description = "Open-source toolkit that normalizes messy lab data into canonical machine-readable output."
 readme = "README.md"
-license = "BUSL-1.1"
+authors = [{ name = "cabibbz" }]
+maintainers = [{ name = "cabibbz" }]
+license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = ["defusedxml>=0.7"]
+keywords = ["biomarkers", "lab-data", "fhir", "hl7", "loinc", "healthcare", "normalization"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Healthcare Industry",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/cabibbz/biomarker-normalization-toolkit"
+Repository = "https://github.com/cabibbz/biomarker-normalization-toolkit.git"
+Issues = "https://github.com/cabibbz/biomarker-normalization-toolkit/issues"
+Documentation = "https://github.com/cabibbz/biomarker-normalization-toolkit/tree/main/docs"
+Changelog = "https://github.com/cabibbz/biomarker-normalization-toolkit/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 excel = ["openpyxl>=3.1"]

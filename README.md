@@ -1,83 +1,51 @@
 # Biomarker Normalization Toolkit
 
-Customer-run toolkit that normalizes messy lab data from any vendor into clean, canonical, machine-readable output.
+[![CI](https://github.com/cabibbz/biomarker-normalization-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/cabibbz/biomarker-normalization-toolkit/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in Blood"` — all different names for the same test from different labs — and maps them to a single canonical biomarker with a standard LOINC code and normalized unit.
+Open-source toolkit for normalizing messy lab data into canonical, machine-readable output.
+
+It takes test names like `GLU`, `Fasting Glucose`, and `Glucose [Mass/volume] in Blood` and maps them to a single canonical biomarker with a standard LOINC code, normalized unit, and preserved provenance.
+
+## Why It Exists
+
+Lab data is inconsistent across vendors, EHR exports, FHIR feeds, HL7 messages, spreadsheets, and ad hoc CSVs. This toolkit gives application teams a deterministic normalization layer they can run inside their own environment.
 
 ## What It Does
 
-- Maps vendor-specific test names to canonical biomarkers via deterministic alias matching
-- Converts units (mmol/L to mg/dL, umol/L to mg/dL, g/L to g/dL, etc.)
-- Normalizes reference ranges
-- Assigns LOINC codes
-- Preserves full provenance (original values always kept alongside normalized output)
-- Flags ambiguous or unknown tests as `review_needed` / `unmapped` — never guesses
-- Optional fuzzy matching for typos/misspellings (with medical safety guards)
-- Physiological plausibility checks (warns on likely data entry errors)
-- LOINC code lookup (resolves test names that are LOINC codes)
-- Structured-code fallback (uses embedded LOINC codes from FHIR/HL7/C-CDA/Excel rows when display text is localized or ambiguous)
-- Smart unit redirect (e.g., "Neutrophils" with % unit auto-redirects to percentage biomarker)
+- Deterministic alias-based biomarker mapping
+- Unit normalization across common SI and conventional units
+- Reference-range normalization
+- LOINC assignment where supported
+- Full provenance preservation
+- Safe ambiguity handling with `review_needed` and `unmapped`
+- Optional fuzzy matching for typo-tolerant lookup
+- Structured-code fallback for embedded LOINC values
+- FHIR R4 Observation bundle export
+- Coverage analysis for onboarding new data sources
+- Derived metrics, PhenoAge, longitudinal comparison, and an optional experimental optimal-range layer
 
-## What It Does NOT Do
+## What It Does Not Do
 
-- No diagnosis, treatment advice, or clinical recommendations
-- No hosted PHI — runs entirely in the customer's environment
-- No consumer-facing product
+- Diagnosis
+- Treatment recommendations
+- Patient-specific clinical decision support
+- Hosted PHI workflows
 
 ## Coverage
 
-297 biomarkers across preventive health, inpatient, longevity, and specialty panels:
+- 297 biomarkers across metabolic, lipid, renal, liver, thyroid, CBC, coagulation, electrolytes, vitamins, minerals, cardiac, urinalysis, body fluid, drug monitoring, immunology, neuro/CSF, blood gas, and specialty panels
+- Multi-format ingest: CSV, FHIR R4 JSON, HL7 v2.x, C-CDA XML, and Excel
+- Output formats: JSON, CSV, Markdown summary, optional FHIR bundle
 
-| Panel | Biomarkers |
-|-------|-----------|
-| Metabolic | Glucose, HbA1c, BUN, Calcium, Ionized Calcium, Phosphate, Uric Acid, Insulin, Homocysteine, Ammonia |
-| Lipid | Total Cholesterol, LDL, HDL, Triglycerides, ApoB, Lp(a), Non-HDL Cholesterol, Chol/HDL Ratio |
-| Renal | Creatinine (serum + urine), eGFR, BUN/Creatinine Ratio, Osmolality, Urine Albumin, ACR |
-| Liver | ALT, AST, ALP, GGT, Total/Direct/Indirect Bilirubin, Albumin, Prealbumin, A/G Ratio, LDH, Globulin, Amylase, Lipase |
-| Thyroid | TSH, Free T4, T3 Total, T4 Total |
-| Hormones | DHEA-S, Estradiol, LH, FSH, Testosterone (total/free/bioavailable), SHBG, Cortisol, PTH |
-| Inflammation | hs-CRP, CRP, ESR, Procalcitonin |
-| CBC | WBC, RBC, Hemoglobin, Hematocrit, Platelets, MCV, MCH, MCHC, RDW, RDW-SD, MPV, PDW, Reticulocytes |
-| WBC Differential | Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, Atypical Lymphocytes, Metamyelocytes, Myelocytes, Promyelocytes, Other Cells, Blasts (absolute + percentage where applicable) |
-| ICU Hematology | Bands, Immature Granulocytes, Nucleated RBC |
-| Coagulation | PT, INR, PTT, PTT Ratio, Fibrinogen, D-Dimer |
-| Cardiac | Troponin T, Troponin I, BNP, NT-proBNP, CK, CK-MB, CK-MB Index, Myoglobin |
-| Electrolytes | Sodium, Potassium, Chloride, Bicarbonate |
-| Vitamins | D (25-OH), B12, Folate |
-| Minerals | Iron, Ferritin, TIBC, Transferrin, Transferrin Saturation, Magnesium |
-| Immunology | IgA, IgG, IgM, Complement C3, C4, Haptoglobin, CD3/CD4/CD8 Absolute Counts, CD3%, CD4%, CD8%, CD4/CD8 Ratio |
-| Neuro / CSF | CSF Glucose, CSF Protein, CSF RBC, CSF Total Nucleated Cells, CSF Neutrophils %, CSF Monocytes %, CSF Macrophages % |
-| Blood Gas | pH, pO2, pCO2, Base Excess, Base Deficit, Oxygen Saturation, Oxyhemoglobin, Carboxyhemoglobin, Methemoglobin, Oxygen Content, Alveolar-Arterial Gradient, Lactate |
-| Drug Monitoring / Toxicology | Vancomycin, Vancomycin Trough, Digoxin, Tacrolimus, Lithium, Gentamicin, Carbamazepine, Theophylline, Salicylates, Ethanol, Phenytoin, Acetaminophen |
-| Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin, Blood, Nitrite, Leukocyte Esterase, Urobilinogen, RBC, WBC, Epithelial Cells, Hyaline Casts, Granular Casts, Glucose/Protein/Ketones/Bilirubin Presence |
-| Cancer Screening | PSA |
-| Urine Chemistry | Sodium, Potassium, Chloride, BUN, Albumin, Total Protein, Protein/Creatinine Ratio, 24h Total Protein, Osmolality, Creatinine |
-| Body Fluid | Ascites Albumin/Glucose/Total Protein/RBC/Total Nucleated Cells plus Neutrophils/Lymphocytes/Monocytes/Eosinophils/Mesothelial Cells/Monocytes+Macrophages %, Pleural Albumin/Glucose/Total Protein/RBC/Total Nucleated Cells plus Neutrophils/Lymphocytes/Eosinophils/Monocytes+Macrophages %, Generic Body Fluid Neutrophils/Lymphocytes/Eosinophils/Macrophages/Monocytes+Macrophages % |
-
-**95.8% combined mapping rate** tested against 124K real-world lab events from MIMIC-IV (94.8%) and Synthea (99.0%). 100% on simulated Quest/LabCorp longevity panel data.
-
-## Input Formats
-
-- **CSV** with columns: `source_row_id`, `source_test_name`, `raw_value`, `source_unit`, `specimen_type`, `source_reference_range`
-- **FHIR R4 JSON** — Bundle or individual Observation resources (auto-detected)
-- **HL7 v2.x** — ORU^R01 messages with OBX segments (auto-detected by `.hl7` extension)
-- **C-CDA XML** — Clinical Document Architecture lab results sections (auto-detected by `.xml` extension)
-- **Excel** — `.xlsx` files with flexible header matching (auto-detected)
-
-## Output Formats
-
-- Normalized **JSON** with full provenance
-- Normalized **CSV**
-- Optional **FHIR R4 Observation Bundle**
-- Human-readable **Markdown summary**
+The repo currently validates a 600+ test suite locally and in CI across Windows, macOS, and Linux.
 
 ## Quick Start
 
 ```bash
 pip install biomarker-normalization-toolkit
-bnt status       # Shows 297 biomarkers, supported formats
-bnt catalog      # Lists all biomarkers with LOINC codes
-bnt demo --output-dir demo_out  # Run on bundled sample data
+bnt status
+bnt demo --output-dir demo_out
 ```
 
 ### Python API
@@ -85,90 +53,64 @@ bnt demo --output-dir demo_out  # Run on bundled sample data
 ```python
 from biomarker_normalization_toolkit import normalize, normalize_file
 
-# Normalize a list of rows
 result = normalize([
-    {"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL",
-     "specimen_type": "serum", "source_row_id": "1", "source_reference_range": "70-99 mg/dL"},
+    {
+        "source_test_name": "Glucose",
+        "raw_value": "100",
+        "source_unit": "mg/dL",
+        "specimen_type": "serum",
+        "source_row_id": "1",
+        "source_reference_range": "70-99 mg/dL",
+    }
 ])
+
 for record in result.records:
     print(record.canonical_biomarker_name, record.normalized_value, record.normalized_unit)
 
-# Normalize a file (CSV, FHIR, HL7, C-CDA, or Excel — auto-detected)
-result = normalize_file("labs.csv")
-
-# Enable fuzzy matching for typo tolerance
 result = normalize_file("labs.csv", fuzzy_threshold=0.85)
 ```
 
-## Usage
+### CLI
 
 ```bash
-# Normalize a CSV file
+# Normalize a single file
 bnt normalize --input labs.csv --output-dir out
 
-# Normalize a FHIR Bundle
-bnt normalize --input fhir_bundle.json --output-dir out
-
-# Normalize an HL7 v2.x ORU message
-bnt normalize --input lab_results.hl7 --output-dir out
-
-# Normalize a C-CDA XML document
-bnt normalize --input lab_results.xml --output-dir out
-
-# Normalize an Excel spreadsheet
-bnt normalize --input lab_results.xlsx --output-dir out
-
-# Batch-process a directory of mixed-format files
-bnt batch --input-dir /data/labs --output-dir /data/normalized --emit-fhir
-
-# Use custom aliases for vendor-specific test names
-bnt normalize --input labs.csv --output-dir out --aliases custom_aliases.json
-
-# Normalize with FHIR output
+# Emit FHIR
 bnt normalize --input labs.csv --output-dir out --emit-fhir
 
-# Enable fuzzy matching (recommended: 0.85 threshold)
-bnt normalize --input labs.csv --output-dir out --fuzzy-threshold 0.85
-
-# Show all supported biomarkers
-bnt catalog
-bnt catalog --format json
-
-# Analyze coverage gaps in a file
+# Analyze coverage gaps
 bnt analyze --input labs.csv
 
-# Run bundled demo
-bnt demo --output-dir demo_out
+# Batch-process a directory of supported files
+bnt batch --input-dir /data/labs --output-dir /data/normalized --emit-fhir
+
+# Load custom aliases
+bnt normalize --input labs.csv --output-dir out --aliases custom_aliases.json
+
+# Explore the built-in catalog
+bnt catalog
+bnt catalog --format json
 ```
 
-## REST API
+### REST API
 
 ```bash
 pip install biomarker-normalization-toolkit[rest]
 bnt serve --port 8000
 ```
 
-### Authentication and Rate Limiting
-
-All endpoints accept an optional `X-API-Key` header. Without a key, requests run in free tier (limited biomarkers, no PhenoAge/optimal ranges). Pro tier keys unlock all features. Invalid keys receive a `401` response.
-
-Rate limiting is enforced per API key (default: 60 requests/minute). Exceeding the limit returns `429` with a `Retry-After` header. Every response includes `X-RateLimit-Remaining` and `X-Request-Duration-Ms` headers.
-
-### Endpoints
+The built-in API is full-access. There is no feature gating in the open-source distribution.
 
 ```bash
-# Health check
+# Health
 curl localhost:8000/health
 
-# Prometheus-compatible metrics (JSON by default, text/plain for Prometheus)
-curl localhost:8000/metrics
-curl -H "Accept: text/plain" localhost:8000/metrics
-
-# List all biomarkers
+# Catalog
 curl localhost:8000/catalog
 curl "localhost:8000/catalog?search=glucose"
 
-# Look up a test name to find matching biomarkers
+# Lookup
 curl "localhost:8000/lookup?test_name=GLU&specimen=serum"
 
 # Normalize JSON rows
@@ -179,79 +121,85 @@ curl -X POST localhost:8000/normalize \
 # Normalize with FHIR output
 curl -X POST "localhost:8000/normalize?emit_fhir=true" \
   -H "Content-Type: application/json" \
-  -d '{"rows": [...]}'
+  -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
 
-# Upload a file (CSV, FHIR, HL7, C-CDA, Excel)
+# Upload a source file
 curl -X POST localhost:8000/normalize/upload -F "file=@labs.csv"
 
-# Coverage analysis from JSON rows
+# Analyze coverage from JSON rows
 curl -X POST localhost:8000/analyze \
   -H "Content-Type: application/json" \
   -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
 
-# Coverage analysis from file upload
-curl -X POST localhost:8000/analyze/upload -F "file=@labs.csv"
-
-# Compute PhenoAge biological age (Pro tier, requires 9 biomarkers)
+# Compute PhenoAge
 curl -X POST localhost:8000/phenoage \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: YOUR_PRO_KEY" \
-  -d '{"chronological_age": 45, "rows": [{"source_test_name": "Albumin", "raw_value": "4.2", "source_unit": "g/dL", "specimen_type": "serum", "source_row_id": "1"}, ...]}'
+  -d '{"chronological_age": 45, "rows": [{"source_test_name": "Albumin", "raw_value": "4.2", "source_unit": "g/dL", "specimen_type": "serum", "source_row_id": "1"}, {"source_test_name": "Creatinine", "raw_value": "0.9", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "2"}]}'
 
-# Evaluate biomarker values against longevity-optimal ranges (Pro tier)
+# Evaluate optimal ranges
 curl -X POST localhost:8000/optimal-ranges \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: YOUR_PRO_KEY" \
   -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "88", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
 
-# Longitudinal before/after comparison (Pro tier)
+# Compare two result sets
 curl -X POST localhost:8000/compare \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: YOUR_PRO_KEY" \
-  -d '{"before": {"rows": [...]}, "after": {"rows": [...]}, "days_between": 90}'
-
-# Interactive API docs
-open http://localhost:8000/docs
+  -d '{"before": {"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "b1"}]}, "after": {"rows": [{"source_test_name": "Glucose", "raw_value": "92", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "a1"}]}, "days_between": 90}'
 ```
 
-All endpoints are also available under the `/v1/` prefix (e.g., `/v1/normalize`, `/v1/phenoage`).
+All endpoints are also available under `/v1/`.
+
+## Input Schema
+
+The core row format is:
+
+```json
+{
+  "source_row_id": "1",
+  "source_test_name": "Glucose",
+  "raw_value": "100",
+  "source_unit": "mg/dL",
+  "specimen_type": "serum",
+  "source_reference_range": "70-99 mg/dL"
+}
+```
+
+Optional fields such as `source_lab_name` and `source_panel_name` are preserved when present.
+
+## Output Schema
+
+Each normalized record contains fields including:
+
+- `canonical_biomarker_id`
+- `canonical_biomarker_name`
+- `loinc`
+- `mapping_status`
+- `match_confidence`
+- `normalized_value`
+- `normalized_unit`
+- `provenance`
+
+The toolkit never overwrites the original source values.
 
 ## Docker
 
 ```bash
 docker build -t bnt .
-
-# Run API server
 docker run -p 8000:8000 bnt serve --host 0.0.0.0
-
-# Normalize a local file
-docker run -v /path/to/data:/data bnt normalize --input /data/labs.csv --output-dir /data/out
-
-# Batch process a directory
-docker run -v /path/to/data:/data bnt batch --input-dir /data/labs --output-dir /data/normalized --emit-fhir
 ```
 
-## Output Schema
+## Examples
 
-Each normalized record contains:
+Runnable examples live under `examples/`:
 
-| Field | Description |
-|-------|-------------|
-| `source_test_name` | Original test name from vendor |
-| `canonical_biomarker_id` | Standardized ID (e.g., `glucose_serum`) |
-| `canonical_biomarker_name` | Human-readable name (e.g., `Glucose`) |
-| `loinc` | LOINC code |
-| `mapping_status` | `mapped`, `review_needed`, or `unmapped` |
-| `match_confidence` | `high` (exact), `medium` (fuzzy), `low`, or `none` |
-| `status_reason` | Why the row was mapped/flagged |
-| `raw_value` | Original value |
-| `normalized_value` | Converted value in canonical unit |
-| `normalized_unit` | Canonical unit |
-| `provenance` | Full source traceability |
+- `examples/python_sdk/basic_normalize.py`
+- `examples/fhir_ingest/normalize_bundle.py`
+- `examples/rest_api/curl_examples.md`
+- `examples/custom_aliases/use_custom_aliases.py`
 
 ## Custom Aliases
 
-When your lab uses test names not in the built-in catalog, create a JSON alias file:
+When your source system uses vendor-specific naming, create a JSON alias file:
 
 ```json
 {
@@ -261,17 +209,50 @@ When your lab uses test names not in the built-in catalog, create a JSON alias f
 }
 ```
 
-Then pass it with `--aliases`:
+Then pass it with `--aliases`.
 
-```bash
-bnt normalize --input labs.csv --output-dir out --aliases my_aliases.json
-```
+## Safety Notes
 
-Use `bnt analyze --input labs.csv` to find which test names are unmapped and need aliases.
+- This is a normalization and data-quality tool, not a medical device.
+- Ambiguous mappings are surfaced explicitly instead of guessed.
+- Optimal-range output is curated and opinionated; treat it as experimental until reviewed for your use case.
+- Review [DISCLAIMER.md](DISCLAIMER.md) before clinical or research use.
+- Review [docs/compliance-guide.md](docs/compliance-guide.md) for deployment guidance in regulated environments.
+- Review [docs/evidence.md](docs/evidence.md) and [docs/validation.md](docs/validation.md) before relying on research-oriented outputs.
 
-## Performance
+## Project Docs
 
-- **37,000 rows/sec** on standard hardware (without fuzzy matching)
-- **33,000 rows/sec** with fuzzy matching enabled
-- Tested on 124K real-world lab events (MIMIC-IV + Synthea)
-- Zero false-positive plausibility warnings across 124K rows
+- [docs/architecture.md](docs/architecture.md)
+- [docs/platform_scope.md](docs/platform_scope.md)
+- [docs/compliance-guide.md](docs/compliance-guide.md)
+- [docs/evidence.md](docs/evidence.md)
+- [docs/external-datasets.md](docs/external-datasets.md)
+- [docs/canonical_row_schema.md](docs/canonical_row_schema.md)
+- [docs/gold_dataset_plan.md](docs/gold_dataset_plan.md)
+- [docs/oss-cutover.md](docs/oss-cutover.md)
+- [docs/releasing.md](docs/releasing.md)
+- [docs/validation.md](docs/validation.md)
+- [docs/roadmap.md](docs/roadmap.md)
+- [examples/README.md](examples/README.md)
+
+## Contributing
+
+Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+Good first contributions:
+
+- new aliases for real-world vendor names
+- additional unit synonyms
+- new biomarker mappings with tests
+- parser edge cases across FHIR, HL7, C-CDA, and Excel
+- documentation improvements and integration examples
+
+For support routing and vulnerability reporting, see [SUPPORT.md](SUPPORT.md) and [SECURITY.md](SECURITY.md).
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE).
+
+## Citation
+
+If you use this project in research or developer infrastructure, see [CITATION.cff](CITATION.cff).

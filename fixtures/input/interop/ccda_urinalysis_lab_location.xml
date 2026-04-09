@@ -1,0 +1,37 @@
+<component>
+  <section>
+    <templateId root="2.16.840.1.113883.10.20.22.2.3" extension="2015-08-01"/>
+    <templateId root="2.16.840.1.113883.10.20.22.2.3"/>
+    <code code="30954-2" codeSystem="2.16.840.1.113883.6.1"/>
+    <title>Results</title>
+    <entry>
+      <organizer classCode="BATTERY" moodCode="EVN">
+        <code code="24357-6" codeSystem="2.16.840.1.113883.6.1"/>
+        <statusCode code="completed"/>
+        <performer typeCode="PRF">
+          <assignedEntity>
+            <representedOrganization>
+              <name>Value Labs</name>
+            </representedOrganization>
+          </assignedEntity>
+        </performer>
+        <component>
+          <observation classCode="OBS" moodCode="EVN">
+            <code code="5811-5" codeSystem="2.16.840.1.113883.6.1" displayName="Specific gravity of Urine by Test strip"/>
+            <statusCode code="completed"/>
+            <effectiveTime value="20150622"/>
+            <value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PQ" value="1.015" unit="1"/>
+            <referenceRange>
+              <observationRange>
+                <value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="IVL_PQ">
+                  <low value="1.005" unit="1"/>
+                  <high value="1.030" unit="1"/>
+                </value>
+              </observationRange>
+            </referenceRange>
+          </observation>
+        </component>
+      </organizer>
+    </entry>
+  </section>
+</component>

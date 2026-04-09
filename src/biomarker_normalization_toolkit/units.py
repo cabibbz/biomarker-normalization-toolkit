@@ -628,7 +628,13 @@ def normalize_unit(value: str | None) -> str:
     key = _RE_SLASH_SPACES.sub("/", key)
     # Fold common Unicode/mojibake variants from lab exports into the ASCII forms
     # already covered by UNIT_SYNONYMS.
-    key = key.replace("âµ", "u").replace("î¼", "u").replace("µ", "u").replace("μ", "u")
+    key = (
+        key.replace("\u00c3\u00a2\u00c2\u00b5", "u")
+        .replace("\u00c3\u00ae\u00c2\u00bc", "u")
+        .replace("\u00c2\u00b5", "u")
+        .replace("\u00b5", "u")
+        .replace("\u03bc", "u")
+    )
     key = _RE_SUPERSCRIPT_POWER.sub(lambda m: "10^" + m.group(1).translate(_SUPERSCRIPT_DIGITS), key)
     return UNIT_SYNONYMS.get(key, stripped)
 

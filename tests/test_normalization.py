@@ -22,6 +22,24 @@ from biomarker_normalization_toolkit.units import CONVERSION_TO_NORMALIZED, conv
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "fixtures"
+INTEROP_FIXTURES = FIXTURES / "input" / "interop"
+
+
+def _write_excel_interop_fixture(path: Path) -> None:
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Lab Results"
+    ws.append(("Accession Number", "Test", "Result", "Units", "Reference Range", "Lab", "Specimen"))
+    ws.append(("A001", "Glucose", "95", "mg/dL", "70-99 mg/dL", "Quest", "Serum"))
+    ws.append(("A002", "HbA1c", "5.4", "%", "4.0-5.6 %", "Quest", "Whole Blood"))
+    ws.append(("A003", "Total Cholesterol", "210", "mg/dL", "0-200 mg/dL", "Labcorp", "Serum"))
+    ws.append(("A004", "TSH", "2.1", "mIU/L", "0.4-4.0 mIU/L", "Labcorp", "Serum"))
+    ws.append(("A005", "Hemoglobin", "14.2", "g/dL", "12.0-17.5 g/dL", "Quest", "Whole Blood"))
+    ws.append(("A006", "Unknown Marker", "99", "mg/dL", "", "Quest", "Serum"))
+    wb.save(path)
+    wb.close()
 
 
 def _reset_api_test_state() -> None:
@@ -593,22 +611,18 @@ class NormalizationTests(unittest.TestCase):
     # --- FHIR ingest ---
 
     def test_fhir_single_observation_ingest(self) -> None:
-        fhir_path = ROOT / "sample data" / "fhir-examples" / "observation-example-f001-glucose.json"
-        if not fhir_path.exists():
-            self.skipTest("FHIR example file not available")
+        fhir_path = INTEROP_FIXTURES / "fhir_observation_glucose.json"
         rows = read_fhir_input(fhir_path)
         self.assertEqual(len(rows), 1)
         self.assertIn("Glucose", rows[0]["source_test_name"])
         self.assertEqual(rows[0]["raw_value"], "6.3")
 
     def test_fhir_bundle_ingest(self) -> None:
-        fhir_path = ROOT / "sample data" / "fhir-examples" / "hapi_lab_observations.json"
-        if not fhir_path.exists():
-            self.skipTest("HAPI FHIR bundle not available")
+        fhir_path = INTEROP_FIXTURES / "fhir_bundle_minimal.json"
         rows = read_fhir_input(fhir_path)
-        self.assertGreater(len(rows), 0)
+        self.assertEqual(len(rows), 2)
         result = normalize_rows(rows)
-        self.assertGreater(result.summary["mapped"], 0)
+        self.assertEqual(result.summary["mapped"], 2)
 
     def test_read_input_auto_detects_csv(self) -> None:
         csv_path = FIXTURES / "input" / "v0_sample.csv"
@@ -616,36 +630,28 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(len(rows), 6)
 
     def test_read_input_auto_detects_json(self) -> None:
-        fhir_path = ROOT / "sample data" / "fhir-examples" / "observation-example-f001-glucose.json"
-        if not fhir_path.exists():
-            self.skipTest("FHIR example file not available")
+        fhir_path = INTEROP_FIXTURES / "fhir_observation_glucose.json"
         rows = read_input(fhir_path)
         self.assertEqual(len(rows), 1)
 
     # --- HL7v2 ingest ---
 
     def test_hl7_cbc_ingest(self) -> None:
-        hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_cbc.hl7"
-        if not hl7_path.exists():
-            self.skipTest("HL7 CBC sample not available")
+        hl7_path = INTEROP_FIXTURES / "hl7_oru_cbc.hl7"
         rows = read_hl7_input(hl7_path)
         self.assertEqual(len(rows), 14)
         result = normalize_rows(rows)
         self.assertGreater(result.summary["mapped"], 0)
 
     def test_hl7_cmp_ingest(self) -> None:
-        hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_cmp.hl7"
-        if not hl7_path.exists():
-            self.skipTest("HL7 CMP sample not available")
+        hl7_path = INTEROP_FIXTURES / "hl7_oru_cmp.hl7"
         rows = read_hl7_input(hl7_path)
         self.assertEqual(len(rows), 16)
         result = normalize_rows(rows)
         self.assertGreaterEqual(result.summary["mapped"], 13)
 
     def test_hl7_sn_inequality_parsing(self) -> None:
-        hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_edge_cases.hl7"
-        if not hl7_path.exists():
-            self.skipTest("HL7 edge cases sample not available")
+        hl7_path = INTEROP_FIXTURES / "hl7_oru_edge_cases.hl7"
         rows = read_hl7_input(hl7_path)
         # Find the glucose row with SN value <^10
         glucose_rows = [r for r in rows if "Glucose" in r["source_test_name"] and r["raw_value"] == "<10"]
@@ -653,9 +659,7 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(glucose_rows[0]["raw_value"], "<10")
 
     def test_hl7_qualitative_values_preserved(self) -> None:
-        hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_edge_cases.hl7"
-        if not hl7_path.exists():
-            self.skipTest("HL7 edge cases sample not available")
+        hl7_path = INTEROP_FIXTURES / "hl7_oru_edge_cases.hl7"
         rows = read_hl7_input(hl7_path)
         by_name = {r["source_test_name"]: r["raw_value"] for r in rows}
         protein_key = [k for k in by_name if "Protein [Presence]" in k]
@@ -668,17 +672,13 @@ class NormalizationTests(unittest.TestCase):
     # --- C-CDA ingest ---
 
     def test_ccda_result_with_lab_location(self) -> None:
-        ccda_path = ROOT / "sample data" / "ccda-examples" / "Result with lab location(C-CDAR2.1).xml"
-        if not ccda_path.exists():
-            self.skipTest("C-CDA example not available")
+        ccda_path = INTEROP_FIXTURES / "ccda_urinalysis_lab_location.xml"
         rows = read_ccda_input(ccda_path)
         self.assertGreater(len(rows), 0)
         self.assertEqual(rows[0]["raw_value"], "1.015")
 
     def test_ccda_non_ucum_units(self) -> None:
-        ccda_path = ROOT / "sample data" / "ccda-examples" / "Results Unit Non-UCUM(C-CDA2.1).xml"
-        if not ccda_path.exists():
-            self.skipTest("C-CDA example not available")
+        ccda_path = INTEROP_FIXTURES / "ccda_non_ucum_platelets.xml"
         rows = read_ccda_input(ccda_path)
         self.assertGreater(len(rows), 0)
         self.assertEqual(rows[0]["raw_value"], "152")
@@ -686,33 +686,29 @@ class NormalizationTests(unittest.TestCase):
     # --- Excel ingest ---
 
     def test_excel_ingest_with_flexible_headers(self) -> None:
-        xlsx_path = ROOT / "sample data" / "test_lab_results.xlsx"
-        if not xlsx_path.exists():
-            self.skipTest("Excel test file not available")
-        rows = read_excel_input(xlsx_path)
-        self.assertEqual(len(rows), 10)
-        result = normalize_rows(rows)
-        self.assertEqual(result.summary["mapped"], 9)
-        self.assertEqual(result.summary["unmapped"], 1)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            xlsx_path = Path(temp_dir) / "test_lab_results.xlsx"
+            _write_excel_interop_fixture(xlsx_path)
+            rows = read_excel_input(xlsx_path)
+            self.assertEqual(len(rows), 6)
+            result = normalize_rows(rows)
+            self.assertEqual(result.summary["mapped"], 5)
+            self.assertEqual(result.summary["unmapped"], 1)
 
     def test_read_input_auto_detects_xlsx(self) -> None:
-        xlsx_path = ROOT / "sample data" / "test_lab_results.xlsx"
-        if not xlsx_path.exists():
-            self.skipTest("Excel test file not available")
-        rows = read_input(xlsx_path)
-        self.assertEqual(len(rows), 10)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            xlsx_path = Path(temp_dir) / "test_lab_results.xlsx"
+            _write_excel_interop_fixture(xlsx_path)
+            rows = read_input(xlsx_path)
+            self.assertEqual(len(rows), 6)
 
     def test_read_input_auto_detects_xml(self) -> None:
-        ccda_path = ROOT / "sample data" / "ccda-examples" / "Result with lab location(C-CDAR2.1).xml"
-        if not ccda_path.exists():
-            self.skipTest("C-CDA example not available")
+        ccda_path = INTEROP_FIXTURES / "ccda_urinalysis_lab_location.xml"
         rows = read_input(ccda_path)
         self.assertGreater(len(rows), 0)
 
     def test_read_input_auto_detects_hl7(self) -> None:
-        hl7_path = ROOT / "sample data" / "hl7-examples" / "sample_oru_cbc.hl7"
-        if not hl7_path.exists():
-            self.skipTest("HL7 sample not available")
+        hl7_path = INTEROP_FIXTURES / "hl7_oru_cbc.hl7"
         rows = read_input(hl7_path)
         self.assertEqual(len(rows), 14)
 
@@ -720,9 +716,7 @@ class NormalizationTests(unittest.TestCase):
 
     def test_custom_alias_loading(self) -> None:
         from biomarker_normalization_toolkit.catalog import load_custom_aliases
-        alias_path = ROOT / "sample data" / "test_aliases.json"
-        if not alias_path.exists():
-            self.skipTest("Test aliases file not available")
+        alias_path = INTEROP_FIXTURES / "custom_aliases.json"
         added = load_custom_aliases(alias_path)
         self.assertGreater(added, 0)
         # Verify "Blood Sugar" now maps to glucose
@@ -7467,61 +7461,6 @@ class MutationCoverageTests(unittest.TestCase):
             pa_zero["inputs"]["ln_crp_mg_dl"], expected_ln_crp, places=3,
             msg="ln(CRP) for zero CRP should use floor of 0.001 mg/dL"
         )
-
-    # ------------------------------------------------------------------
-    # Mutation 9: licensing tier_claim validation bypass
-    # Without the check, an HMAC key with tier_claim="free" or "admin"
-    # would be treated as a valid pro key instead of falling through.
-    # ------------------------------------------------------------------
-    def test_licensing_rejects_invalid_tier_claim_in_hmac_key(self) -> None:
-        """HMAC-signed key with tier_claim='free' should NOT grant pro access.
-
-        The tier_claim validation ensures only 'pro' and 'enterprise' are
-        accepted. Without it, any tier_claim with a valid HMAC signature
-        would grant pro access.
-        """
-        import hashlib
-        import hmac
-        import os
-        import time
-        from biomarker_normalization_toolkit.licensing import validate_api_key, LicenseTier
-
-        secret = "test-secret-key-for-mutation-testing"
-        expiry = str(int(time.time()) + 3600)  # 1 hour from now
-
-        # Create a validly-signed key but with invalid tier "free"
-        sig = hmac.new(
-            secret.encode(), f"free:{expiry}".encode(), hashlib.sha256
-        ).hexdigest()[:32]
-        forged_key = f"free:{expiry}:{sig}"
-
-        # Patch env
-        old_secret = os.environ.get("BNT_LICENSE_SECRET", "")
-        old_pro = os.environ.get("BNT_PRO_KEY", "")
-        old_ent = os.environ.get("BNT_ENTERPRISE_KEY", "")
-        try:
-            os.environ["BNT_LICENSE_SECRET"] = secret
-            os.environ.pop("BNT_PRO_KEY", None)
-            os.environ.pop("BNT_ENTERPRISE_KEY", None)
-
-            result = validate_api_key(forged_key)
-
-            # Should NOT grant pro/enterprise tier
-            self.assertNotEqual(result["tier"], LicenseTier.PRO,
-                                "tier_claim='free' with valid HMAC should NOT grant pro tier")
-            self.assertNotEqual(result["tier"], LicenseTier.ENTERPRISE,
-                                "tier_claim='free' with valid HMAC should NOT grant enterprise tier")
-            self.assertEqual(result["tier"], LicenseTier.FREE,
-                             "Invalid tier_claim should fall through to free tier")
-        finally:
-            if old_secret:
-                os.environ["BNT_LICENSE_SECRET"] = old_secret
-            else:
-                os.environ.pop("BNT_LICENSE_SECRET", None)
-            if old_pro:
-                os.environ["BNT_PRO_KEY"] = old_pro
-            if old_ent:
-                os.environ["BNT_ENTERPRISE_KEY"] = old_ent
 
     # ------------------------------------------------------------------
     # Mutation 12: derived.py NLR division by zero guard

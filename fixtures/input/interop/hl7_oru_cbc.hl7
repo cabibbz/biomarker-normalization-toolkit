@@ -1,0 +1,19 @@
+MSH|^~\&|LAB|QUEST|EMR|HOSPITAL|20240115120000||ORU^R01|MSG00001|P|2.5.1
+PID|1||12345^^^HOSP^MR||DOE^JOHN^A||19800115|M|||123 MAIN ST^^ANYTOWN^NY^10001
+PV1|1|O|||||1234^SMITH^JANE^^^^MD
+ORC|RE||ORD12345|||||||1234^SMITH^JANE^^^^MD
+OBR|1||ORD12345|58410-2^CBC W Auto Differential panel - Blood^LN|||20240115080000||||||||||1234^SMITH^JANE^^^^MD||||||20240115120000|||F
+OBX|1|NM|6690-2^Leukocytes [#/volume] in Blood by Automated count^LN||7.2|10*3/uL|4.5-11.0||||F|||20240115120000
+OBX|2|NM|789-8^Erythrocytes [#/volume] in Blood by Automated count^LN||4.85|10*6/uL|4.50-5.90||||F|||20240115120000
+OBX|3|NM|718-7^Hemoglobin [Mass/volume] in Blood^LN||14.2|g/dL|12.0-17.5||||F|||20240115120000
+OBX|4|NM|4544-3^Hematocrit [Volume Fraction] of Blood by Automated count^LN||42.1|%|36.0-54.0||||F|||20240115120000
+OBX|5|NM|787-2^MCV [Entitic volume] by Automated count^LN||86.8|fL|80.0-100.0||||F|||20240115120000
+OBX|6|NM|785-6^MCH [Entitic mass] by Automated count^LN||29.3|pg|27.0-31.0||||F|||20240115120000
+OBX|7|NM|786-4^MCHC [Mass/volume] by Automated count^LN||33.7|g/dL|32.0-36.0||||F|||20240115120000
+OBX|8|NM|788-0^Erythrocyte distribution width [Ratio] by Automated count^LN||13.1|%|11.5-14.5||||F|||20240115120000
+OBX|9|NM|777-3^Platelets [#/volume] in Blood by Automated count^LN||245|10*3/uL|150-400||||F|||20240115120000
+OBX|10|NM|770-8^Neutrophils/100 leukocytes in Blood by Automated count^LN||62.5|%|40.0-82.0||||F|||20240115120000
+OBX|11|NM|736-9^Lymphocytes/100 leukocytes in Blood by Automated count^LN||28.1|%|11.0-47.0||||F|||20240115120000
+OBX|12|NM|5905-5^Monocytes/100 leukocytes in Blood by Automated count^LN||6.2|%|4.0-15.0||||F|||20240115120000
+OBX|13|NM|713-8^Eosinophils/100 leukocytes in Blood by Automated count^LN||2.5|%|0.0-8.0||||F|||20240115120000
+OBX|14|NM|706-2^Basophils/100 leukocytes in Blood by Automated count^LN||0.7|%|0.0-2.0||||F|||20240115120000

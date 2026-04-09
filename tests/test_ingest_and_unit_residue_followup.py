@@ -6,14 +6,13 @@ from biomarker_normalization_toolkit.normalizer import normalize_rows
 
 
 ROOT = Path(__file__).resolve().parents[1]
+FIXTURES = ROOT / "fixtures"
+INTEROP_FIXTURES = FIXTURES / "input" / "interop"
 
 
 class IngestAndUnitResidueFollowupTests(unittest.TestCase):
     def test_ccda_translation_original_text_units_flow_through(self) -> None:
-        ccda_path = ROOT / "sample data" / "ccda-examples" / "Results Unit Non-UCUM(C-CDA2.1).xml"
-        if not ccda_path.exists():
-            self.skipTest("C-CDA example not available")
-
+        ccda_path = INTEROP_FIXTURES / "ccda_non_ucum_platelets.xml"
         rows = read_ccda_input(ccda_path)
 
         self.assertEqual(rows[0]["source_test_name"], "Platelets [#/volume] in Blood")

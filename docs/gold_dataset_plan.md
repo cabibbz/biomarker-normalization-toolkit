@@ -1,10 +1,10 @@
-# Gold Dataset Plan
+# Fixture Coverage Plan
 
-Date: 2026-04-06
+This document describes the public fixture roadmap for expanding parser and normalization coverage. It is intended to help contributors add realistic test data in small, reviewable waves.
 
 ## Goal
 
-The first gold dataset should prove that the normalization engine can safely handle:
+The first fixture set should prove that the normalization engine can safely handle:
 
 - direct alias matches
 - specimen-disambiguated matches
@@ -13,7 +13,7 @@ The first gold dataset should prove that the normalization engine can safely han
 - ambiguous aliases
 - unknown aliases
 
-## v0 Biomarker Set
+## Initial Biomarker Set
 
 Start with:
 
@@ -22,7 +22,7 @@ Start with:
 - hemoglobin A1c
 - total cholesterol
 
-## v0 Alias Coverage
+## Initial Alias Coverage
 
 Examples that should be covered in early fixtures:
 

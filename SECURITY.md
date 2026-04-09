@@ -2,113 +2,87 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.2.x   | Yes                |
-| 0.1.x   | Security fixes only|
-| < 0.1   | No                 |
+| Version | Supported |
+| ------- | --------- |
+| 0.3.x   | Yes       |
+| 0.2.x   | Best effort |
+| < 0.2   | No        |
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in the Biomarker Normalization Toolkit, please report it responsibly.
+Do not open a public GitHub issue for sensitive security problems.
 
-**Email:** security@longevb2b.com
+Preferred path:
 
-Include the following in your report:
+1. Use GitHub private vulnerability reporting for the repository, if enabled.
+2. If private reporting is not enabled, follow the maintainer contact path in [SUPPORT.md](SUPPORT.md).
 
-- Description of the vulnerability
-- Steps to reproduce
-- Affected version(s)
-- Potential impact assessment
-- Any suggested remediation (optional)
+Include:
 
-**Do not** open a public GitHub issue for security vulnerabilities.
-
-### Response Timeline
-
-| Stage | Target |
-|-------|--------|
-| Acknowledgment | Within 2 business days |
-| Initial assessment | Within 5 business days |
-| Fix for critical issues | Within 14 days |
-| Fix for non-critical issues | Next scheduled release |
-| Public disclosure | After fix is released |
-
-We will coordinate disclosure timing with you and credit reporters unless anonymity is requested.
+- a description of the issue
+- affected versions
+- steps to reproduce
+- impact assessment
+- any suggested remediation
 
 ## Scope
 
 ### In Scope
 
-- The `biomarker_normalization_toolkit` Python package and its dependencies
-- The REST API (`api.py`) and all exposed endpoints
-- The Docker image and container configuration
-- API key validation and license gating logic
-- File upload handling and temporary file management
-- Input parsing (CSV, FHIR, HL7, C-CDA, Excel)
+- the `biomarker_normalization_toolkit` Python package
+- REST API endpoints and middleware
+- file upload handling and temporary-file cleanup
+- input parsing for CSV, FHIR, HL7, C-CDA, and Excel
+- Docker packaging and container defaults in this repository
 
 ### Out of Scope
 
-- Customer infrastructure, network configuration, or deployment environment
-- Third-party dependencies with their own security policies (report upstream)
-- Denial of service via expected rate limiting behavior
-- Issues requiring physical access to the host system
-- Social engineering attacks
+- downstream deployment infrastructure
+- third-party dependency vulnerabilities that should be reported upstream
+- expected rate limiting behavior
+- physical host compromise
+- social engineering
 
-## Security Features
+## Security Posture
 
-### API Security
+### API and Runtime
 
-- **API key authentication** via `X-API-Key` header with HMAC-signed key validation using constant-time comparison (`hmac.compare_digest`)
-- **Rate limiting** per API key (configurable via `BNT_RATE_LIMIT`, default 60 requests/minute) with sliding window enforcement
-- **Request body size limits** enforced at 50 MB for both JSON payloads and file uploads, checked against both `Content-Length` header and actual body size
-- **CORS** restricted by default (no origins allowed unless explicitly configured via `BNT_CORS_ORIGINS`)
-- **File type allowlisting** for uploads (`.csv`, `.json`, `.hl7`, `.oru`, `.xml`, `.xlsx`, `.xls` only)
-- **Row count limits** enforced per tier to prevent resource exhaustion
-- **Global exception handler** that returns generic error messages, preventing internal stack trace leakage to clients
-- **Request ID tracking** via `X-Request-Id` response header for audit correlation
-
-### Container Security
-
-- **Multi-stage Docker build** to minimize image size and exclude build tooling
-- **Non-root user** (`bnt`) for container runtime
-- **Minimal base image** (`python:3.12-slim`)
-- **Health check** endpoint for orchestrator integration
-- **No secrets baked into the image** -- all credentials passed via environment variables at runtime
+- configurable in-memory rate limiting
+- request body size limits
+- upload allowlist by file extension
+- generic error responses with request IDs
+- restricted CORS by default unless explicitly configured
 
 ### Data Handling
 
-- **No telemetry or phone-home** -- the toolkit makes zero outbound network calls
-- **No data persistence** -- lab data is processed in memory and returned; nothing is stored
-- **Temporary files cleaned up** immediately after processing file uploads (explicit `unlink` in `finally` block)
-- **Full provenance** preserved so customers can audit normalization decisions
-- **No PHI in logs** -- structured logging captures request metadata (endpoint, status, latency) without recording patient data
+- no telemetry or phone-home behavior
+- no persistent application database
+- uploaded temp files deleted immediately after processing
+- source provenance preserved in normalized output
+- no request or response bodies logged by default
 
-### Input Validation
+### Container
 
-- Pydantic model validation on all request bodies
-- Row count validation before processing
-- File extension validation before parsing
-- Path traversal prevention via `Path.name` extraction on filenames
-- Input coercion to string types to prevent injection via non-string values
+- non-root runtime in the provided Dockerfile
+- minimal base image
+- health endpoint for orchestration
+
+## Recommended Deployment Controls
+
+- terminate TLS upstream
+- run the API on private networks where possible
+- forward logs to a central logging system
+- keep `/tmp` on encrypted or memory-backed storage
+- scan dependencies regularly with tools such as `pip-audit`, Dependabot, or Snyk
+- pin and review deployment-specific authn/authz in the surrounding system
 
 ## Security Configuration
 
-Operators deploying BNT should review these environment variables:
+Operators should review:
 
-| Variable | Purpose | Recommendation |
-|----------|---------|----------------|
-| `BNT_CORS_ORIGINS` | Allowed CORS origins (comma-separated) | Set to specific origins; never use `*` |
-| `BNT_RATE_LIMIT` | Requests per minute per API key | Default 60; adjust based on expected load |
-| `BNT_LICENSE_SECRET` | HMAC secret for signed API keys | Use 32+ character random string; rotate periodically |
-| `BNT_PRO_KEY` | Static Pro tier API key | Use high-entropy value; prefer HMAC keys instead |
-| `BNT_ENTERPRISE_KEY` | Static Enterprise tier API key | Use high-entropy value; prefer HMAC keys instead |
+| Variable | Purpose |
+| -------- | ------- |
+| `BNT_CORS_ORIGINS` | Allowed CORS origins |
+| `BNT_RATE_LIMIT` | Requests per minute per client |
 
-## Dependency Management
-
-We monitor dependencies for known vulnerabilities. The toolkit has a minimal dependency footprint:
-
-- **Runtime:** FastAPI, Uvicorn, Pydantic, openpyxl, python-multipart
-- **Optional:** python-json-logger (structured logging), rapidfuzz (fuzzy matching)
-
-We recommend customers run their own dependency scanning (e.g., `pip-audit`, Snyk, Dependabot) as part of their deployment pipeline.
+This project intentionally does not ship built-in feature gates or license-key enforcement.

@@ -1,0 +1,21 @@
+MSH|^~\&|LAB|HOSPITAL|EMR|CLINIC|20240310090000||ORU^R01|MSG00003|P|2.5.1
+PID|1||99999^^^HOSP^MR||TEST^PATIENT||19900101|M
+OBR|1||ORD99999|24356-8^Urinalysis panel^LN|||20240310070000||||||||||||||20240310090000|||F
+OBX|1|NM|5811-5^Specific gravity of Urine by Test strip^LN||1.025||1.005-1.030||||F
+OBX|2|NM|5803-2^pH of Urine by Test strip^LN||6.0||5.0-8.0||||F
+OBX|3|ST|5804-0^Protein [Presence] in Urine by Test strip^LN||Trace||Negative||||A|||20240310090000
+OBX|4|ST|5770-3^Bilirubin [Presence] in Urine by Test strip^LN||Negative||Negative||||N|||20240310090000
+OBX|5|ST|2514-8^Ketones [Presence] in Urine by Test strip^LN||1+||Negative||||A|||20240310090000
+OBX|6|SN|49789-2^Glucose [Mass/volume] in Urine by Test strip^LN||<^10|mg/dL|Negative||||F
+OBR|2||ORD99998|24331-1^Lipid Panel^LN|||20240310070000||||||||||||||20240310090000|||F
+OBX|7|NM|2093-3^Cholesterol [Mass/volume] in Serum or Plasma^LN||225|mg/dL|0-200|H|||F
+OBX|8|NM|2571-8^Triglycerides [Mass/volume] in Serum or Plasma^LN||450|mg/dL|0-149|HH|||F
+NTE|1|L|CRITICAL VALUE - Provider notified at 0915 by J. Smith, RN
+OBX|9|NM|2085-9^Cholesterol in HDL [Mass/volume] in Serum or Plasma^LN||38|mg/dL|40-999|L|||F
+OBX|10|ST|13457-7^Cholesterol in LDL [Mass/volume] in Serum or Plasma by calculation^LN||UNABLE TO CALCULATE||0-129||||F
+NTE|1|L|LDL Cholesterol cannot be calculated when Triglycerides exceed 400 mg/dL
+OBX|11|NM|9830-1^Cholesterol.total/Cholesterol in HDL [Mass Ratio] in Serum or Plasma^LN||5.9||0.0-5.0|H|||F
+OBR|3||ORD99997|4548-4^Hemoglobin A1c panel^LN|||20240310070000||||||||||||||20240310090000|||C
+OBX|12|NM|4548-4^Hemoglobin A1c/Hemoglobin.total in Blood^LN||6.8|%|4.0-5.6|H|||C
+NTE|1|L|Previous result of 7.2% was incorrect due to instrument error. This is the corrected value.
+OBX|13|NM|59261-8^Hemoglobin A1c/Hemoglobin.total in Blood by IFCC protocol^LN||51|mmol/mol|20-42|H|||C

@@ -1,10 +1,8 @@
 # Platform Scope
 
-Date: 2026-04-06
+## Project Boundary
 
-## Product Boundary
-
-The platform starts as a customer-run biomarker normalization toolkit.
+The project is an open-source biomarker normalization toolkit.
 
 It is responsible for:
 
@@ -25,24 +23,23 @@ It is not responsible for:
 - clinic operations
 - lab ordering
 
-## Product Shapes In Scope
+## Project Shapes In Scope
 
 - CLI
 - Docker image
 - embeddable SDK
-- productized mapping service around the toolkit
+- self-hosted API service built from the toolkit
 
-## Customers In Scope
+## Users In Scope
 
 - digital health startups
 - longevity platforms
 - remote care companies
 - biomarker-driven applications
-- teams with messy lab data but no desire to build a full normalization layer
+- teams with messy lab data that do not want to build a normalization layer from scratch
 
 ## Outputs In Scope
 
 - normalized CSV
 - machine-readable JSON
 - optional FHIR Observation JSON
-

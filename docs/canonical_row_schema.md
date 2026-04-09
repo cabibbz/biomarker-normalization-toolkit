@@ -1,8 +1,6 @@
 # Canonical Row Schema
 
-Date: 2026-04-06
-
-This schema is locked for `v0` of the normalization pipeline.
+This document describes the stable row-level contract used by the normalization pipeline.
 
 ## Input CSV Columns
 
@@ -51,7 +49,7 @@ Each normalized record must contain:
 ### Mapping fields
 
 - `mapping_status` is one of `mapped`, `review_needed`, `unmapped`
-- `match_confidence` is one of `high`, `none`
+- `match_confidence` is one of `high`, `medium`, `low`, `none`
 - `status_reason` explains why the row is mapped, ambiguous, or unmapped
 - `mapping_rule` records the deterministic rule used when a row maps
 
@@ -89,4 +87,4 @@ The output summary must contain:
 - `mapped`
 - `review_needed`
 - `unmapped`
-
+- `confidence_breakdown`
