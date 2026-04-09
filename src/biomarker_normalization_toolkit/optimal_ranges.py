@@ -1,11 +1,12 @@
 """Optimal longevity ranges for biomarkers.
 
 Standard lab reference ranges represent the 2.5th-97.5th percentile of the
-general population (including sick people). Optimal longevity ranges are
-evidence-based targets associated with healthspan and reduced all-cause mortality.
+general population (including sick people). The ranges in this module are a
+curated, opinionated layer for healthspan-oriented review rather than a clinical
+consensus standard.
 
-Sources: Peter Attia (Outlive), Function Health, InsideTracker, published
-meta-analyses on biomarker-mortality associations.
+The notes in this module reference mixed sources and maintainer judgment.
+Review and override them for your own clinical, research, or product context.
 """
 
 from __future__ import annotations

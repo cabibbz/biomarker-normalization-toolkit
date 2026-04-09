@@ -1,7 +1,8 @@
 """Derived metrics calculator for longevity and clinical biomarkers.
 
-Computes clinically meaningful ratios and indices from normalized biomarker values.
-All formulas are published, peer-reviewed, and widely used in clinical practice.
+Computes deterministic ratios and indices from normalized biomarker values.
+These formulas are implemented transparently in code, but downstream users
+should review their suitability for the clinical or research context.
 """
 
 from __future__ import annotations
