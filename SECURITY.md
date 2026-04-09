@@ -14,8 +14,8 @@ Do not open a public GitHub issue for sensitive security problems.
 
 Preferred path:
 
-1. Use GitHub private vulnerability reporting for the repository, if enabled.
-2. If private reporting is not enabled, follow the maintainer contact path in [SUPPORT.md](SUPPORT.md).
+1. Use GitHub private vulnerability reporting for the repository.
+2. If private reporting is unavailable, follow the maintainer contact path in [SUPPORT.md](SUPPORT.md).
 
 Include:
 

@@ -104,45 +104,45 @@ The built-in API is full-access. There is no feature gating in the open-source d
 
 ```bash
 # Health
-curl localhost:8000/health
+curl http://localhost:8000/health
 
 # Catalog
-curl localhost:8000/catalog
-curl "localhost:8000/catalog?search=glucose"
+curl http://localhost:8000/catalog
+curl "http://localhost:8000/catalog?search=glucose"
 
 # Lookup
-curl "localhost:8000/lookup?test_name=GLU&specimen=serum"
+curl "http://localhost:8000/lookup?test_name=GLU&specimen=serum"
 
 # Normalize JSON rows
-curl -X POST localhost:8000/normalize \
+curl -X POST http://localhost:8000/normalize \
   -H "Content-Type: application/json" \
   -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1", "source_reference_range": "70-99 mg/dL"}]}'
 
 # Normalize with FHIR output
-curl -X POST "localhost:8000/normalize?emit_fhir=true" \
+curl -X POST "http://localhost:8000/normalize?emit_fhir=true" \
   -H "Content-Type: application/json" \
   -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
 
 # Upload a source file
-curl -X POST localhost:8000/normalize/upload -F "file=@labs.csv"
+curl -X POST http://localhost:8000/normalize/upload -F "file=@labs.csv"
 
 # Analyze coverage from JSON rows
-curl -X POST localhost:8000/analyze \
+curl -X POST http://localhost:8000/analyze \
   -H "Content-Type: application/json" \
   -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
 
 # Compute PhenoAge
-curl -X POST localhost:8000/phenoage \
+curl -X POST http://localhost:8000/phenoage \
   -H "Content-Type: application/json" \
   -d '{"chronological_age": 45, "rows": [{"source_test_name": "Albumin", "raw_value": "4.2", "source_unit": "g/dL", "specimen_type": "serum", "source_row_id": "1"}, {"source_test_name": "Creatinine", "raw_value": "0.9", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "2"}]}'
 
 # Evaluate optimal ranges
-curl -X POST localhost:8000/optimal-ranges \
+curl -X POST http://localhost:8000/optimal-ranges \
   -H "Content-Type: application/json" \
   -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "88", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
 
 # Compare two result sets
-curl -X POST localhost:8000/compare \
+curl -X POST http://localhost:8000/compare \
   -H "Content-Type: application/json" \
   -d '{"before": {"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "b1"}]}, "after": {"rows": [{"source_test_name": "Glucose", "raw_value": "92", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "a1"}]}, "days_between": 90}'
 ```

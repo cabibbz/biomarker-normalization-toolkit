@@ -10,13 +10,13 @@ bnt serve --port 8000
 Health check:
 
 ```bash
-curl localhost:8000/health
+curl http://localhost:8000/health
 ```
 
 Normalize rows:
 
 ```bash
-curl -X POST localhost:8000/normalize \
+curl -X POST http://localhost:8000/normalize \
   -H "Content-Type: application/json" \
   -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
 ```
@@ -24,5 +24,5 @@ curl -X POST localhost:8000/normalize \
 Upload a tracked CSV fixture:
 
 ```bash
-curl -X POST localhost:8000/normalize/upload -F "file=@fixtures/input/v0_sample.csv"
+curl -X POST http://localhost:8000/normalize/upload -F "file=@fixtures/input/v0_sample.csv"
 ```
