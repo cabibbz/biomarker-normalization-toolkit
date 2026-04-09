@@ -864,6 +864,12 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(normalize_specimen("24 Hour Urine"), "urine")
         self.assertEqual(normalize_specimen("Timed Urine"), "urine")
 
+    def test_body_fluid_variants_normalize(self) -> None:
+        from biomarker_normalization_toolkit.catalog import normalize_specimen
+        self.assertEqual(normalize_specimen("Ascitic Fluid"), "ascites")
+        self.assertEqual(normalize_specimen("Pleural Fluid"), "pleural")
+        self.assertEqual(normalize_specimen("Thoracentesis Fluid"), "pleural")
+
     def test_venous_blood_specimen_maps_glucose(self) -> None:
         rows = [{"source_row_id": "vb1", "source_test_name": "Glucose", "raw_value": "100",
                  "source_unit": "mg/dL", "specimen_type": "Venous Blood",
@@ -5871,7 +5877,7 @@ class ThreadSafetyTests(unittest.TestCase):
 class CatalogIntegrityTests(unittest.TestCase):
     """Verify internal consistency of all biomarker definitions in the catalog."""
 
-    _VALID_SPECIMENS = frozenset({"serum", "plasma", "whole_blood", "urine", "cerebrospinal fluid"})
+    _VALID_SPECIMENS = frozenset({"serum", "plasma", "whole_blood", "urine", "cerebrospinal fluid", "ascites", "pleural"})
     _LOINC_RE = re.compile(r"^\d+-\d$")
     _SNAKE_CASE_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 

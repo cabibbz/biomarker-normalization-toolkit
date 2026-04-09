@@ -30,12 +30,12 @@ def normalize_key(value: str) -> str:
 
 
 def normalize_specimen(specimen: str | None) -> str | None:
-    """Normalize specimen type to canonical form (serum, plasma, whole_blood, urine).
+    """Normalize specimen type to canonical form for supported specimen families.
 
-    Unknown specimens (e.g., "CSF", "ascites") are returned as-is (lowercased).
-    This causes them to fail specimen filtering in the normalizer, producing
-    status="review_needed" with reason="no_candidate_for_specimen". This is the
-    intended fail-closed behavior for non-blood/non-urine specimens.
+    Unknown specimens are returned as-is (lowercased). This causes them to fail
+    specimen filtering in the normalizer, producing status="review_needed" with
+    reason="no_candidate_for_specimen". This is the intended fail-closed
+    behavior for unsupported specimen types.
     """
     if specimen is None:
         return None
@@ -67,6 +67,12 @@ def normalize_specimen(specimen: str | None) -> str | None:
         "cerebral spinal fluid": "cerebrospinal fluid",
         "cerebrospinal fluid": "cerebrospinal fluid",
         "spinal fluid": "cerebrospinal fluid",
+        "ascites": "ascites",
+        "ascitic fluid": "ascites",
+        "peritoneal fluid": "ascites",
+        "pleural": "pleural",
+        "pleural fluid": "pleural",
+        "thoracentesis fluid": "pleural",
     }
     return mapping.get(specimen_key, specimen_key or None)
 
@@ -75,6 +81,9 @@ _BLOOD = frozenset({"serum", "plasma", "whole_blood"})
 _WHOLE_BLOOD = frozenset({"whole_blood"})
 _URINE = frozenset({"urine"})
 _CSF = frozenset({"cerebrospinal fluid"})
+_SERUM_PLASMA = frozenset({"serum", "plasma"})
+_ASCITES = frozenset({"ascites"})
+_PLEURAL = frozenset({"pleural"})
 
 BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
     "glucose_serum": BiomarkerDefinition(
@@ -168,6 +177,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
                  "Cholesterol, LDL, Calculated",
                  "Cholesterol, LDL, Measured",
                  "Low Density Lipoprotein Cholesterol", "LDL Chol Calc (NIH)",
+                 "Colesterol LDL",
                  "Cholesterol in LDL [Mass/volume] in Serum or Plasma",
                  "Cholesterol in LDL [Mass/volume] in Serum or Plasma by Direct assay",
                  "Cholesterol in LDL [Mass/volume] in Serum or Plasma by calculation"),
@@ -190,8 +200,10 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mg/dL",
         allowed_specimens=_BLOOD,
         aliases=("Triglycerides", "Triglyceride", "TG", "TRIG", "Triglyc",
+                 "Triglicéridos", "Trigliceridos",
                  "Triglycerides [Mass/volume] in Serum or Plasma",
-                 "Triglyceride [Mass/volume] in Serum or Plasma"),
+                 "Triglyceride [Mass/volume] in Serum or Plasma",
+                 "Triglyceride [Mass/volume] in Serum or Plasma --fasting"),
     ),
     "creatinine": BiomarkerDefinition(
         biomarker_id="creatinine",
@@ -203,6 +215,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
                  "Creatinina [Volume] no soro ou plasma",
                  "Creatinina sérica",
                  "Creatinina",
+                 "Creatinine, Whole Blood",
                  "Serum Creatinine", "Creatinine SerPl",
                  "Creatinine [Mass/volume] in Blood", "Creatinine [Mass/volume] in Serum or Plasma"),
     ),
@@ -222,6 +235,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="U/L",
         allowed_specimens=_BLOOD,
         aliases=("ALT", "SGPT", "Alanine Aminotransferase", "ALT/SGPT",
+                 "ALT (TGP)",
                  "Alanine Aminotransferase (ALT)",
                  "Alanine aminotransferase [Enzymatic activity/volume] in Serum or Plasma"),
     ),
@@ -232,6 +246,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="U/L",
         allowed_specimens=_BLOOD,
         aliases=("AST", "SGOT", "Aspartate Aminotransferase", "AST/SGOT",
+                 "AST (TGO)",
                  "Asparate Aminotransferase (AST)",
                  "Aspartate aminotransferase [Enzymatic activity/volume] in Serum or Plasma"),
     ),
@@ -262,6 +277,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_BLOOD,
         aliases=("Albumin", "Alb", "Serum Albumin", "Albumin, Blood",
                  "Albumin, Serum",
+                 "Albumin [Mass/volume] in Serum",
                  "Albumin [Mass/volume] in Serum or Plasma"),
     ),
     # --- Wave 2: Thyroid ---
@@ -303,6 +319,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         normalized_unit="mg/L",
         allowed_specimens=_BLOOD,
         aliases=("hs-CRP", "hsCRP", "High Sensitivity CRP", "High Sensitivity C-Reactive Protein",
+                 "CRP-hs",
                  "C-Reactive Protein, High Sensitivity",
                  "C-Reactive Protein, Cardiac", "C-Reactive Protein, Quant"),
     ),
@@ -720,6 +737,42 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("Tacrolimus", "Tacrolimus-FK506", "FK506", "tacroFK",
                  "Tacrolimus [Mass/volume] in Blood"),
+    ),
+    "lithium": BiomarkerDefinition(
+        biomarker_id="lithium",
+        canonical_name="Lithium",
+        loinc="14334-7",
+        normalized_unit="mmol/L",
+        allowed_specimens=_SERUM_PLASMA,
+        aliases=("Lithium", "Lithium Level",
+                 "Lithium [Moles/volume] in Serum or Plasma"),
+    ),
+    "gentamicin": BiomarkerDefinition(
+        biomarker_id="gentamicin",
+        canonical_name="Gentamicin",
+        loinc="35668-3",
+        normalized_unit="ug/mL",
+        allowed_specimens=_SERUM_PLASMA,
+        aliases=("Gentamicin", "Gentamicin Level", "Gentamicin - random",
+                 "Gentamicin [Mass/volume] in Serum or Plasma"),
+    ),
+    "carbamazepine": BiomarkerDefinition(
+        biomarker_id="carbamazepine",
+        canonical_name="Carbamazepine",
+        loinc="3432-2",
+        normalized_unit="ug/mL",
+        allowed_specimens=_BLOOD,
+        aliases=("Carbamazepine", "Tegretol",
+                 "carBAMazepine [Mass/volume] in Serum or Plasma"),
+    ),
+    "theophylline": BiomarkerDefinition(
+        biomarker_id="theophylline",
+        canonical_name="Theophylline",
+        loinc="4049-3",
+        normalized_unit="ug/mL",
+        allowed_specimens=_BLOOD,
+        aliases=("Theophylline", "Theophylline Level",
+                 "Theophylline [Mass/volume] in Serum or Plasma"),
     ),
     "salicylates": BiomarkerDefinition(
         biomarker_id="salicylates",
@@ -1177,6 +1230,18 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
             "CD3 cells (Bld) [#/Vol]",
         ),
     ),
+    "cd3_pct": BiomarkerDefinition(
+        biomarker_id="cd3_pct",
+        canonical_name="CD3 Cells, Percent",
+        loinc="8124-0",
+        normalized_unit="%",
+        allowed_specimens=_WHOLE_BLOOD,
+        aliases=(
+            "CD3 Cells, Percent",
+            "CD3 cells/cells in Blood",
+            "CD3 cells/Cells (Bld)",
+        ),
+    ),
     "cd4_absolute": BiomarkerDefinition(
         biomarker_id="cd4_absolute",
         canonical_name="Absolute CD4 Count",
@@ -1258,6 +1323,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=(
             "Protein - CSF",
             "CSF Protein",
+            "Total Protein, CSF",
             "Protein (CSF) [Mass/Vol]",
             "Protein [Mass/volume] in Cerebral spinal fluid",
         ),
@@ -1280,6 +1346,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         aliases=("eGFR", "GFR", "Estimated GFR", "Estimated Glomerular Filtration Rate",
                  "eGFR-MDRD", "eGFR-CKD-EPI",
                  "eGFR Non-Afr American", "eGFR African American", "GFR CKD-EPI",
+                 "TFG / eGFR",
                  "Glomerular filtration rate/1.73 sq M.predicted",
                  "Glomerular filtration rate [Volume Rate/Area] in Serum or Plasma by Creatinine-based formula (MDRD)/1.73 sq M"),
     ),
@@ -1597,6 +1664,15 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
                  "Erythrocytes [#/area] in Urine sediment by Microscopy high power field",
                  "Erythrocytes [#/volume] in Urine by Automated count"),
     ),
+    "rbc_ascites": BiomarkerDefinition(
+        biomarker_id="rbc_ascites",
+        canonical_name="RBC, Ascites",
+        loinc="26457-2",
+        normalized_unit="#/uL",
+        allowed_specimens=_ASCITES,
+        aliases=("RBC, Ascites", "Ascites RBC",
+                 "Erythrocytes [#/volume] in Peritoneal fluid"),
+    ),
     "urine_wbc": BiomarkerDefinition(
         biomarker_id="urine_wbc",
         canonical_name="Urine WBC",
@@ -1681,6 +1757,7 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_WHOLE_BLOOD,
         aliases=("ESR", "Sed Rate", "Sedimentation Rate", "Erythrocyte Sedimentation Rate",
                  "ESR Westergren", "Westergren ESR",
+                 "ESR (Erythrocyte Sed Rate)",
                  "Erythrocyte sedimentation rate by Westergren method"),
     ),
     "osmolality_serum": BiomarkerDefinition(
@@ -1709,7 +1786,89 @@ BIOMARKER_CATALOG: dict[str, BiomarkerDefinition] = {
         allowed_specimens=_URINE,
         aliases=("Albumin/Creatinine, Urine", "Albumin/Creatinine Ratio", "ACR",
                  "Urine Albumin/Creatinine Ratio", "Microalbumin/Creatinine",
+                 "Microalbuminuria (orina)",
                  "Microalbumin/Creatinine [Mass Ratio] in Urine"),
+    ),
+    "protein_creatinine_ratio": BiomarkerDefinition(
+        biomarker_id="protein_creatinine_ratio",
+        canonical_name="Protein/Creatinine Ratio, Urine",
+        loinc="2890-2",
+        normalized_unit="ratio",
+        allowed_specimens=_URINE,
+        aliases=("Protein/Creatinine Ratio", "Urine Protein/Creatinine Ratio",
+                 "Protein/Creatinine [Mass Ratio] in Urine"),
+    ),
+    "albumin_ascites": BiomarkerDefinition(
+        biomarker_id="albumin_ascites",
+        canonical_name="Albumin, Ascites",
+        loinc="1749-1",
+        normalized_unit="g/dL",
+        allowed_specimens=_ASCITES,
+        aliases=("Albumin, Ascites", "Ascites Albumin",
+                 "Albumin [Mass/volume] in Peritoneal fluid"),
+    ),
+    "glucose_ascites": BiomarkerDefinition(
+        biomarker_id="glucose_ascites",
+        canonical_name="Glucose, Ascites",
+        loinc="2347-3",
+        normalized_unit="mg/dL",
+        allowed_specimens=_ASCITES,
+        aliases=("Glucose, Ascites", "Ascites Glucose",
+                 "Glucose [Mass/volume] in Peritoneal fluid"),
+    ),
+    "total_protein_ascites": BiomarkerDefinition(
+        biomarker_id="total_protein_ascites",
+        canonical_name="Total Protein, Ascites",
+        loinc="2883-7",
+        normalized_unit="g/dL",
+        allowed_specimens=_ASCITES,
+        aliases=("Total Protein, Ascites", "Ascites Total Protein",
+                 "Protein [Mass/volume] in Peritoneal fluid"),
+    ),
+    "rbc_csf": BiomarkerDefinition(
+        biomarker_id="rbc_csf",
+        canonical_name="RBC, CSF",
+        loinc="26454-9",
+        normalized_unit="#/uL",
+        allowed_specimens=_CSF,
+        aliases=("RBC, CSF", "CSF RBC",
+                 "Erythrocytes [#/volume] in Cerebral spinal fluid"),
+    ),
+    "rbc_pleural": BiomarkerDefinition(
+        biomarker_id="rbc_pleural",
+        canonical_name="RBC, Pleural",
+        loinc="26456-4",
+        normalized_unit="#/uL",
+        allowed_specimens=_PLEURAL,
+        aliases=("RBC, Pleural", "Pleural RBC",
+                 "Erythrocytes [#/volume] in Pleural fluid"),
+    ),
+    "albumin_pleural": BiomarkerDefinition(
+        biomarker_id="albumin_pleural",
+        canonical_name="Albumin, Pleural",
+        loinc="1748-3",
+        normalized_unit="g/dL",
+        allowed_specimens=_PLEURAL,
+        aliases=("Albumin, Pleural", "Pleural Albumin",
+                 "Albumin [Mass/volume] in Pleural fluid"),
+    ),
+    "glucose_pleural": BiomarkerDefinition(
+        biomarker_id="glucose_pleural",
+        canonical_name="Glucose, Pleural",
+        loinc="2346-5",
+        normalized_unit="mg/dL",
+        allowed_specimens=_PLEURAL,
+        aliases=("Glucose, Pleural", "Pleural Glucose",
+                 "Glucose [Mass/volume] in Pleural fluid"),
+    ),
+    "total_protein_pleural": BiomarkerDefinition(
+        biomarker_id="total_protein_pleural",
+        canonical_name="Total Protein, Pleural",
+        loinc="2882-9",
+        normalized_unit="g/dL",
+        allowed_specimens=_PLEURAL,
+        aliases=("Total Protein, Pleural", "Pleural Total Protein",
+                 "Protein [Mass/volume] in Pleural fluid"),
     ),
     "total_protein_urine": BiomarkerDefinition(
         biomarker_id="total_protein_urine",
