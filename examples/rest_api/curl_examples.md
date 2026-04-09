@@ -26,3 +26,11 @@ Upload a tracked CSV fixture:
 ```bash
 curl -X POST http://localhost:8000/normalize/upload -F "file=@fixtures/input/v0_sample.csv"
 ```
+
+Compute PhenoAge with the full required biomarker set:
+
+```bash
+curl -X POST http://localhost:8000/phenoage \
+  -H "Content-Type: application/json" \
+  -d '{"chronological_age": 45, "rows": [{"source_test_name": "Albumin", "raw_value": "4.5", "source_unit": "g/dL", "specimen_type": "serum", "source_row_id": "pa1"}, {"source_test_name": "Creatinine", "raw_value": "0.9", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "pa2"}, {"source_test_name": "Glucose", "raw_value": "90", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "pa3"}, {"source_test_name": "hs-CRP", "raw_value": "0.5", "source_unit": "mg/L", "specimen_type": "serum", "source_row_id": "pa4"}, {"source_test_name": "Lymphocytes Percent", "raw_value": "30", "source_unit": "%", "specimen_type": "whole blood", "source_row_id": "pa5"}, {"source_test_name": "MCV", "raw_value": "88", "source_unit": "fL", "specimen_type": "whole blood", "source_row_id": "pa6"}, {"source_test_name": "RDW", "raw_value": "12.5", "source_unit": "%", "specimen_type": "whole blood", "source_row_id": "pa7"}, {"source_test_name": "ALP", "raw_value": "55", "source_unit": "U/L", "specimen_type": "serum", "source_row_id": "pa8"}, {"source_test_name": "WBC", "raw_value": "5.5", "source_unit": "K/uL", "specimen_type": "whole blood", "source_row_id": "pa9"}]}'
+```
