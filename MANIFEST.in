@@ -10,6 +10,6 @@ include SECURITY.md
 include SUPPORT.md
 
 recursive-include docs *.md *.json
-recursive-include examples *
-recursive-include fixtures *
+recursive-include examples *.md *.py *.json
+recursive-include fixtures *.csv *.json *.hl7 *.xml
 recursive-include scripts *.py

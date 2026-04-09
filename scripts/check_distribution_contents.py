@@ -55,9 +55,17 @@ def _check_sdist(dist_dir: Path, version: str) -> None:
     with tarfile.open(sdist_path, "r:gz") as tf:
         names = set(tf.getnames())
 
+    forbidden = sorted(
+        name
+        for name in names
+        if "__pycache__" in name or name.endswith((".pyc", ".pyo", ".pyd"))
+    )
+
     missing = sorted(required - names)
     if missing:
         raise SystemExit("sdist is missing required files:\n" + "\n".join(missing))
+    if forbidden:
+        raise SystemExit("sdist contains unexpected compiled artifacts:\n" + "\n".join(forbidden))
 
 
 def _check_wheel(dist_dir: Path, version: str) -> None:
@@ -78,9 +86,17 @@ def _check_wheel(dist_dir: Path, version: str) -> None:
     with zipfile.ZipFile(wheel_path) as zf:
         names = set(zf.namelist())
 
+    forbidden = sorted(
+        name
+        for name in names
+        if "__pycache__" in name or name.endswith((".pyc", ".pyo", ".pyd"))
+    )
+
     missing = sorted(required - names)
     if missing:
         raise SystemExit("wheel is missing required files:\n" + "\n".join(missing))
+    if forbidden:
+        raise SystemExit("wheel contains unexpected compiled artifacts:\n" + "\n".join(forbidden))
 
 
 def main() -> int:

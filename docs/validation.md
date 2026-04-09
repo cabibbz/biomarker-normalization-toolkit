@@ -59,3 +59,10 @@ python scripts/smoke_installed_package.py --serve --port 8010
 For distribution-grade validation, prefer clean-environment installs instead of relying only on editable mode.
 
 The repository includes `scripts/check_distribution_contents.py` to verify that the wheel and sdist carry the expected public files.
+
+If you ship the Docker path as part of a release, validate it separately in an environment where Docker is available:
+
+```bash
+docker build -t bnt .
+docker run --rm -p 8000:8000 bnt
+```

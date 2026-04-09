@@ -185,7 +185,7 @@ The toolkit never overwrites the original source values.
 
 ```bash
 docker build -t bnt .
-docker run -p 8000:8000 bnt serve --host 0.0.0.0
+docker run --rm -p 8000:8000 bnt
 ```
 
 ## Examples
