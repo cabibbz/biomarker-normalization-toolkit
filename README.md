@@ -26,7 +26,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ## Coverage
 
-259 biomarkers across preventive health, inpatient, longevity, and specialty panels:
+280 biomarkers across preventive health, inpatient, longevity, and specialty panels:
 
 | Panel | Biomarkers |
 |-------|-----------|
@@ -46,13 +46,13 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 | Vitamins | D (25-OH), B12, Folate |
 | Minerals | Iron, Ferritin, TIBC, Transferrin, Transferrin Saturation, Magnesium |
 | Immunology | IgA, IgG, IgM, Complement C3, C4, Haptoglobin, CD3/CD4/CD8 Absolute Counts, CD3%, CD4%, CD8%, CD4/CD8 Ratio |
-| Neuro / CSF | CSF Glucose, CSF Protein, CSF RBC |
+| Neuro / CSF | CSF Glucose, CSF Protein, CSF RBC, CSF Total Nucleated Cells, CSF Neutrophils %, CSF Monocytes %, CSF Macrophages % |
 | Blood Gas | pH, pO2, pCO2, Base Excess, Base Deficit, Oxygen Saturation, Oxyhemoglobin, Carboxyhemoglobin, Methemoglobin, Oxygen Content, Alveolar-Arterial Gradient, Lactate |
 | Drug Monitoring / Toxicology | Vancomycin, Vancomycin Trough, Digoxin, Tacrolimus, Lithium, Gentamicin, Carbamazepine, Theophylline, Salicylates, Ethanol, Phenytoin, Acetaminophen |
 | Urinalysis | Specific Gravity, pH, Protein, Ketones, Bilirubin, Blood, Nitrite, Leukocyte Esterase, Urobilinogen, RBC, WBC, Epithelial Cells, Hyaline Casts, Granular Casts, Glucose/Protein/Ketones/Bilirubin Presence |
 | Cancer Screening | PSA |
 | Urine Chemistry | Sodium, Potassium, Chloride, BUN, Albumin, Total Protein, Protein/Creatinine Ratio, 24h Total Protein, Osmolality, Creatinine |
-| Body Fluid | Ascites Albumin/Glucose/Total Protein/RBC, Pleural Albumin/Glucose/Total Protein/RBC, CSF RBC |
+| Body Fluid | Ascites Albumin/Glucose/Total Protein/RBC/Total Nucleated Cells plus Neutrophils/Lymphocytes/Monocytes/Eosinophils/Mesothelial Cells/Monocytes+Macrophages %, Pleural Albumin/Glucose/Total Protein/RBC/Total Nucleated Cells plus Neutrophils/Lymphocytes/Eosinophils/Monocytes+Macrophages %, Generic Body Fluid Neutrophils/Lymphocytes/Eosinophils/Macrophages/Monocytes+Macrophages % |
 
 **95.8% combined mapping rate** tested against 124K real-world lab events from MIMIC-IV (94.8%) and Synthea (99.0%). 100% on simulated Quest/LabCorp longevity panel data.
 
@@ -75,7 +75,7 @@ Takes test names like `"GLU"`, `"Fasting Glucose"`, `"Glucose [Mass/volume] in B
 
 ```bash
 pip install biomarker-normalization-toolkit
-bnt status       # Shows 259 biomarkers, supported formats
+bnt status       # Shows 280 biomarkers, supported formats
 bnt catalog      # Lists all biomarkers with LOINC codes
 bnt demo --output-dir demo_out  # Run on bundled sample data
 ```

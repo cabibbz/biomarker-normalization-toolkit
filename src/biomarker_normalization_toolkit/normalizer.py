@@ -186,6 +186,38 @@ def _disambiguate_ambiguous_alias_by_reference_range(
     return None
 
 
+def _default_blank_specimen_candidate(
+    candidate_ids: list[str], source: SourceRecord
+) -> str | None:
+    """Preserve whole-blood differential defaults when specimen is absent.
+
+    Body-fluid differential aliases intentionally reuse common labels such as
+    "Lymphocytes" and "Monocytes", but historical behavior maps blank-specimen
+    percentage rows for these labels to the whole-blood differential family.
+    Keep that fallback narrow to percent-based rows with a single whole-blood
+    candidate among the ambiguous set.
+    """
+    if source.specimen_type or normalize_unit(source.source_unit) != "%":
+        return None
+    whole_blood_base_candidates: set[str] = set()
+    whole_blood_pct_candidates: set[str] = set()
+    for candidate_id in candidate_ids:
+        candidate = BIOMARKER_CATALOG[candidate_id]
+        if candidate.allowed_specimens == frozenset({"whole_blood"}) and candidate.normalized_unit == "%":
+            whole_blood_pct_candidates.add(candidate_id)
+        for sibling_id in _SIBLING_MAP.get(candidate_id, []):
+            sibling = BIOMARKER_CATALOG.get(sibling_id)
+            if sibling and sibling.allowed_specimens == frozenset({"whole_blood"}) and sibling.normalized_unit == "%":
+                whole_blood_pct_candidates.add(sibling_id)
+                if candidate.allowed_specimens == frozenset({"whole_blood"}):
+                    whole_blood_base_candidates.add(candidate_id)
+    if len(whole_blood_base_candidates) == 1:
+        return next(iter(whole_blood_base_candidates))
+    if len(whole_blood_pct_candidates) == 1:
+        return next(iter(whole_blood_pct_candidates))
+    return None
+
+
 def _convert_range(range_value: RangeValue | None, biomarker_id: str) -> RangeValue | None:
     if range_value is None:
         return None
@@ -292,8 +324,12 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
             reference_range_disambiguated = True
             reference_range_signal = format_range(source_range)
         else:
-            reason = "fuzzy_match_ambiguous_requires_specimen" if fuzzy_result else "ambiguous_alias_requires_specimen"
-            return _build_record(source, status="review_needed", reason=reason)
+            default_candidate = _default_blank_specimen_candidate(specimen_filtered, source)
+            if default_candidate is not None:
+                unit_filtered = [default_candidate]
+            else:
+                reason = "fuzzy_match_ambiguous_requires_specimen" if fuzzy_result else "ambiguous_alias_requires_specimen"
+                return _build_record(source, status="review_needed", reason=reason)
 
     if len(unit_filtered) > 1:
         return _build_record(source, status="review_needed", reason="ambiguous_alias_after_specimen_filter")
@@ -394,6 +430,12 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
             f"alias:{source.alias_key}|biomarker:{candidate.biomarker_id}"
             f"|reference_range:{reference_range_signal}"
         )
+    elif sibling_redirected:
+        # Biomarker identity changed via unit-based sibling redirect
+        confidence = "medium"
+        status = "mapped"
+        reason = "sibling_unit_redirect"
+        mapping_rule = f"alias:{source.alias_key}|original:{original_biomarker_id}|redirected:{candidate.biomarker_id}|unit:{source.source_unit}"
     elif unit_disambiguated:
         confidence = "high"
         status = "mapped"
@@ -401,12 +443,6 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
         mapping_rule = f"alias:{source.alias_key}|biomarker:{candidate.biomarker_id}|unit:{source.source_unit}"
         if source.specimen_type:
             mapping_rule += f"|specimen:{source.specimen_type}"
-    elif sibling_redirected:
-        # Biomarker identity changed via unit-based sibling redirect
-        confidence = "medium"
-        status = "mapped"
-        reason = "sibling_unit_redirect"
-        mapping_rule = f"alias:{source.alias_key}|original:{original_biomarker_id}|redirected:{candidate.biomarker_id}|unit:{source.source_unit}"
     else:
         confidence = "high"
         status = "mapped"
