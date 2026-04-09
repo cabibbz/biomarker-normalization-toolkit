@@ -341,7 +341,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "rdw_sd": {"fL": Decimal("1")},
     "mpv": {"fL": Decimal("1")},
     "pdw": {"fL": Decimal("1")},
-    # NOTE: mL/min and mL/min/1.73m2 are treated as equivalent — most labs
+    # NOTE: mL/min and mL/min/1.73m2 are treated as equivalent - most labs
     # report eGFR already BSA-adjusted, and the distinction is rarely preserved
     # in source data.  Accept both to avoid unnecessary review_needed rows.
     "egfr": {"mL/min/1.73m2": Decimal("1"), "mL/min": Decimal("1")},
@@ -451,7 +451,7 @@ CONVERSION_TO_NORMALIZED: dict[str, dict[str, Decimal]] = {
     "shbg": {"nmol/L": Decimal("1")},
     "free_testosterone": {"pg/mL": Decimal("1")},
     "bioavailable_testosterone": {"ng/dL": Decimal("1")},
-    # Urinalysis (qualitative — semi-quantitative or presence-based)
+    # Urinalysis (qualitative - semi-quantitative or presence-based)
     "urine_blood": {"": Decimal("1")},
     "urine_nitrite": {"": Decimal("1")},
     "urine_leukocyte_esterase": {"": Decimal("1")},
@@ -706,7 +706,7 @@ def parse_decimal(value: str | None, *, locale: str = "us") -> Decimal | None:
     # 3 trailing digits AND no other commas, we assume thousands separator (US convention).
     # Set locale="eu" to treat all single-comma values as European decimals.
     if _RE_EURO_COMMA.match(stripped):
-        return None  # Ambiguous European decimal — reject rather than corrupt
+        return None  # Ambiguous European decimal - reject rather than corrupt
     # Parse clinical lab "x 10^N" notation (e.g., "15.5 x 10^3", "250 x10^6",
     # "1.5 X10E3"). Must be handled before standard scientific notation.
     m_x10 = _RE_X10_NOTATION.match(stripped)

@@ -1044,7 +1044,7 @@ class NormalizationTests(unittest.TestCase):
                  "source_unit": "mIU/L", "specimen_type": "", "source_reference_range": "0.4-4.0 mIU/L"}]
         result = normalize_rows(rows, input_file="round_trip.csv")
         bundle = build_bundle(result)
-        # The FHIR bundle uses UCUM code m[IU]/L — simulate re-ingest
+        # The FHIR bundle uses UCUM code m[IU]/L; simulate re-ingest.
         obs = bundle["entry"][0]["resource"]
         ucum_unit = obs["valueQuantity"]["code"]  # should be "m[IU]/L"
         reimport_rows = [{
@@ -1314,7 +1314,7 @@ class NormalizationTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        # Filename should be sanitized — no path traversal in output
+        # Filename should be sanitized with no path traversal in output.
         self.assertEqual(data["input_file"], "passwd.csv")
 
 
@@ -2518,7 +2518,7 @@ class NormalizationTests(unittest.TestCase):
         self.assertEqual(normalized.status_reason, "panel_prefix_stripped")
 
 
-    # --- Longitudinal "improved" direction (non-optimal → optimal) ---
+    # --- Longitudinal "improved" direction (non-optimal -> optimal) ---
 
     def test_longitudinal_improved_direction(self) -> None:
         """A value transitioning from outside optimal to inside optimal should be 'improved'."""
@@ -2677,7 +2677,7 @@ class NormalizationTests(unittest.TestCase):
 
 
     # ===================================================================
-    # GOLDEN / SNAPSHOT TESTS — pin exact outputs to catch regressions
+    # GOLDEN / SNAPSHOT TESTS - pin exact outputs to catch regressions
     # ===================================================================
 
     def test_golden_glucose_mmol_conversion(self) -> None:
@@ -6023,7 +6023,7 @@ class CatalogIntegrityTests(unittest.TestCase):
 class NumericPrecisionTests(unittest.TestCase):
     """Boundary conditions, decimal precision, and format edge cases."""
 
-    # ── parse_decimal edge cases ──────────────────────────────────────
+    # -- parse_decimal edge cases -------------------------------------
 
     def test_parse_decimal_plain_integer(self) -> None:
         from biomarker_normalization_toolkit.units import parse_decimal
@@ -6113,7 +6113,7 @@ class NumericPrecisionTests(unittest.TestCase):
         from biomarker_normalization_toolkit.units import parse_decimal
         self.assertEqual(parse_decimal(" 100 "), Decimal("100"))
 
-    # ── format_decimal edge cases ─────────────────────────────────────
+    # -- format_decimal edge cases ------------------------------------
 
     def test_format_decimal_normal(self) -> None:
         from biomarker_normalization_toolkit.units import format_decimal
@@ -6151,7 +6151,7 @@ class NumericPrecisionTests(unittest.TestCase):
         from biomarker_normalization_toolkit.units import format_decimal
         self.assertEqual(format_decimal(None), "")
 
-    # ── parse_reference_range edge cases ──────────────────────────────
+    # -- parse_reference_range edge cases ------------------------------
 
     def test_range_standard(self) -> None:
         result = parse_reference_range("70-99 mg/dL", "mg/dL")
@@ -6805,13 +6805,13 @@ class UnicodeTests(unittest.TestCase):
     # ---- 1. Micro sign (U+00B5) in unit ----
     def test_micro_sign_in_unit(self) -> None:
         """U+00B5 MICRO SIGN (\u00b5mol/L) must normalize to umol/L."""
-        result = normalize_unit("\u00b5mol/L")  # µmol/L
+        result = normalize_unit("\u00b5mol/L")  # micro sign
         self.assertEqual(result, "umol/L")
 
     # ---- 2. Greek mu (U+03BC) in unit ----
     def test_greek_mu_in_unit(self) -> None:
         """U+03BC GREEK SMALL LETTER MU (\u03bcmol/L) must normalize to umol/L."""
-        result = normalize_unit("\u03bcmol/L")  # μmol/L
+        result = normalize_unit("\u03bcmol/L")  # Greek mu
         self.assertEqual(result, "umol/L")
 
     # ---- 3. Superscript digit in unit ----
@@ -6839,11 +6839,11 @@ class UnicodeTests(unittest.TestCase):
 
     # ---- 6. Fullwidth digits in value ----
     def test_fullwidth_digits_in_value(self) -> None:
-        """\uff11\uff10\uff10 (fullwidth digits) — parse_decimal must not crash.
+        """\uff11\uff10\uff10 (fullwidth digits) - parse_decimal must not crash.
 
         Python's Decimal() constructor accepts fullwidth Unicode digits, so
         parse_decimal successfully returns Decimal('100').  This is acceptable
-        behavior — the key requirement is no crash or exception.
+        behavior - the key requirement is no crash or exception.
         """
         result = parse_decimal("\uff11\uff10\uff10")  # fullwidth "100"
         # Python's Decimal accepts fullwidth digits natively
@@ -6861,7 +6861,7 @@ class UnicodeTests(unittest.TestCase):
     def test_zero_width_joiner_in_value(self) -> None:
         """A zero-width joiner (U+200D) inside '1\\u200D00' must not crash parse_decimal."""
         result = parse_decimal("1\u200D00")
-        # Should return None (not a valid number) or somehow parse — either way, no crash
+        # Should return None (not a valid number) or somehow parse; either way, no crash.
         self.assertTrue(result is None or isinstance(result, Decimal))
 
     # ---- 9. Null byte in test name ----
@@ -6893,7 +6893,7 @@ class UnicodeTests(unittest.TestCase):
         # The key will be non-empty but won't match any alias
         from biomarker_normalization_toolkit.catalog import ALIAS_INDEX
         # It should not accidentally map to a real biomarker
-        # (If it does, that's fine too — the point is no crash)
+        # If it does, that is fine too; the point is no crash.
         self.assertIsInstance(ALIAS_INDEX.get(key), (type(None), object))
 
     # ---- 13. Mixed encoding: both micro signs map to the same canonical unit ----

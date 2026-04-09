@@ -8,8 +8,9 @@ Make sure the working tree reflects the intended release:
 
 1. Update `pyproject.toml` version if needed.
 2. Move the top changelog section in `CHANGELOG.md` into the correct release state.
-3. Regenerate `docs/openapi.json` if the API contract changed.
-4. Re-run the full validation set:
+3. Update `CITATION.cff` release metadata if you use it for published versions.
+4. Regenerate `docs/openapi.json` if the API contract changed.
+5. Re-run the full validation set:
 
 ```bash
 pytest -q
