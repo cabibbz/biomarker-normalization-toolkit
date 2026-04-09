@@ -200,7 +200,7 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
         json_path, csv_path = write_result(result, Path(output_dir))
         fhir_path = write_fhir_bundle(result, Path(output_dir)) if emit_fhir else None
         summary_path = write_summary_report(result, Path(output_dir))
-        # Derived metrics and optimal ranges
+        # Derived metrics and the curated optimal-range review layer
         from biomarker_normalization_toolkit.derived import compute_derived_metrics
         from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges, summarize_optimal
         derived = compute_derived_metrics(result)
@@ -223,7 +223,11 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
     if derived:
         print(f"Derived metrics: {len(derived)}")
     if optimal_evals:
-        print(f"Optimal range: {optimal_summary['optimal']}/{optimal_summary['total_evaluated']} biomarkers in optimal range ({optimal_summary['optimal_percentage']}%)")
+        print(
+            "Curated optimal-range review: "
+            f"{optimal_summary['optimal']}/{optimal_summary['total_evaluated']} "
+            f"biomarkers in range ({optimal_summary['optimal_percentage']}%)"
+        )
     print(f"JSON output: {json_path}")
     print(f"CSV output: {csv_path}")
     print(f"Summary output: {summary_path}")

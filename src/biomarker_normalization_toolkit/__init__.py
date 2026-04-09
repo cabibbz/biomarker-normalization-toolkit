@@ -70,6 +70,6 @@ def compute_phenoage(result: NormalizationResult, chronological_age: float) -> d
 
 
 def evaluate_optimal_ranges(result: NormalizationResult) -> list[dict]:
-    """Evaluate biomarkers against longevity-optimal ranges."""
+    """Evaluate biomarkers against the toolkit's curated optimal-range layer."""
     from biomarker_normalization_toolkit.optimal_ranges import evaluate_optimal_ranges as _evaluate
     return _evaluate(result)

@@ -340,13 +340,13 @@ def evaluate_optimal_ranges(
     result: NormalizationResult,
     sex: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Evaluate each mapped biomarker against longevity-optimal ranges.
+    """Evaluate mapped biomarkers against the toolkit's curated optimal ranges.
 
     Args:
         result: NormalizationResult with mapped records.
         sex: "male", "female", or None for unisex ranges.
 
-    Returns a list of evaluations, one per mapped biomarker that has an optimal range.
+    Returns a list of evaluations for mapped biomarkers that have a curated range.
     """
     # Build effective ranges: start with base, overlay sex-specific
     effective = dict(OPTIMAL_RANGES)
