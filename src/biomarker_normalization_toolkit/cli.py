@@ -8,7 +8,7 @@ import sys
 
 from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG, load_custom_aliases
 from biomarker_normalization_toolkit.io_utils import read_input, write_fhir_bundle, write_result, write_summary_report
-from biomarker_normalization_toolkit.normalizer import normalize_rows
+from biomarker_normalization_toolkit.normalizer import normalize_rows, validate_fuzzy_threshold
 
 logger = logging.getLogger("bnt.cli")
 
@@ -229,6 +229,7 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
         return 1
 
     try:
+        validate_fuzzy_threshold(fuzzy_threshold)
         rows = read_input(source_path)
         result = normalize_rows(rows, input_file=source_path.name, fuzzy_threshold=fuzzy_threshold)
         json_path, csv_path = write_result(result, Path(output_dir))
@@ -305,6 +306,7 @@ def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_thre
         return 1
 
     try:
+        validate_fuzzy_threshold(fuzzy_threshold)
         rows = read_input(source_path)
         result = normalize_rows(rows, input_file=source_path.name, fuzzy_threshold=fuzzy_threshold)
     except Exception as exc:
@@ -388,6 +390,11 @@ SUPPORTED_EXTENSIONS = {".csv", ".json", ".hl7", ".oru", ".xml", ".xlsx", ".xls"
 
 def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None, fuzzy_threshold: float = 0.0) -> int:
     if not _load_aliases(aliases_path):
+        return 1
+    try:
+        validate_fuzzy_threshold(fuzzy_threshold)
+    except Exception as exc:
+        print(f"Batch failed: {_user_friendly_error(exc)}", file=sys.stderr)
         return 1
 
     input_path = Path(input_dir)

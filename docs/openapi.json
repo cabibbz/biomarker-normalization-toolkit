@@ -225,6 +225,8 @@
             "required": false,
             "schema": {
               "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
               "default": 0.0,
               "title": "Fuzzy Threshold"
             }
@@ -283,6 +285,8 @@
             "required": false,
             "schema": {
               "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
               "default": 0.0,
               "title": "Fuzzy Threshold"
             }
@@ -527,6 +531,8 @@
             "required": false,
             "schema": {
               "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
               "default": 0.0,
               "title": "Fuzzy Threshold"
             }
@@ -588,6 +594,8 @@
             "required": false,
             "schema": {
               "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
               "default": 0.0,
               "title": "Fuzzy Threshold"
             }

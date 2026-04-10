@@ -436,6 +436,15 @@ class APITests(unittest.TestCase):
         self.assertEqual(data["summary"]["mapped"], 1)
         self.assertEqual(data["records"][0]["canonical_biomarker_id"], "glucose_serum")
 
+    def test_normalize_rejects_invalid_fuzzy_threshold(self) -> None:
+        response = client.post("/normalize?fuzzy_threshold=1.5", json={
+            "rows": [
+                {"source_test_name": "Glucos", "raw_value": "100", "source_unit": "mg/dL",
+                 "specimen_type": "serum", "source_row_id": "1", "source_reference_range": ""},
+            ],
+        })
+        self.assertEqual(response.status_code, 422)
+
     # ─── Rate limiting ────────────────────────────────────────
 
     def test_rate_limit_header_decreases(self) -> None:

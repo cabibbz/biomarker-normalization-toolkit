@@ -474,17 +474,29 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
 
 
 @app.post("/normalize")
-def normalize(body: NormalizeRequest, emit_fhir: bool = Query(False), fuzzy_threshold: float = Query(0.0)) -> JSONResponse:
+def normalize(
+    body: NormalizeRequest,
+    emit_fhir: bool = Query(False),
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0),
+) -> JSONResponse:
     return _handle_normalize(body.model_dump(), emit_fhir, fuzzy_threshold)
 
 
 @v1.post("/normalize")
-def normalize_v1(body: NormalizeRequest, emit_fhir: bool = Query(False), fuzzy_threshold: float = Query(0.0)) -> JSONResponse:
+def normalize_v1(
+    body: NormalizeRequest,
+    emit_fhir: bool = Query(False),
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0),
+) -> JSONResponse:
     return _handle_normalize(body.model_dump(), emit_fhir, fuzzy_threshold)
 
 
 @app.post("/normalize/upload")
-def normalize_upload(file: UploadFile = File(...), emit_fhir: bool = Query(False), fuzzy_threshold: float = Query(0.0)) -> JSONResponse:
+def normalize_upload(
+    file: UploadFile = File(...),
+    emit_fhir: bool = Query(False),
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0),
+) -> JSONResponse:
     rows, error = _read_upload(file)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
@@ -503,7 +515,11 @@ def normalize_upload(file: UploadFile = File(...), emit_fhir: bool = Query(False
 
 
 @v1.post("/normalize/upload")
-def normalize_upload_v1(file: UploadFile = File(...), emit_fhir: bool = Query(False), fuzzy_threshold: float = Query(0.0)) -> JSONResponse:
+def normalize_upload_v1(
+    file: UploadFile = File(...),
+    emit_fhir: bool = Query(False),
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0),
+) -> JSONResponse:
     return normalize_upload(file, emit_fhir, fuzzy_threshold)
 
 

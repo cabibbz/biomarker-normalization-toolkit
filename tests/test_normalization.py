@@ -1543,6 +1543,18 @@ class NormalizationTests(unittest.TestCase):
         # "Glc" vs "glucose" is well below 95%
         self.assertIn(result.records[0].mapping_status, ("unmapped", "review_needed"))
 
+    def test_fuzzy_threshold_negative_rejected(self) -> None:
+        rows = [{"source_row_id": "f3b", "source_test_name": "Glc", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        with self.assertRaisesRegex(ValueError, "fuzzy_threshold"):
+            normalize_rows(rows, fuzzy_threshold=-0.1)
+
+    def test_fuzzy_threshold_above_one_rejected(self) -> None:
+        rows = [{"source_row_id": "f3c", "source_test_name": "Glc", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
+        with self.assertRaisesRegex(ValueError, "fuzzy_threshold"):
+            normalize_rows(rows, fuzzy_threshold=1.1)
+
     def test_fuzzy_does_not_break_exact_matches(self) -> None:
         rows = [{"source_row_id": "f4", "source_test_name": "Glucose", "raw_value": "100",
                  "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": ""}]
@@ -5250,6 +5262,22 @@ class CLICommandTests(unittest.TestCase):
 
         self.assertEqual(rc, 1)
         self.assertIn("biomarker-normalization-toolkit[rest]", buf_err.getvalue())
+
+    def test_cli_normalize_invalid_fuzzy_threshold(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_normalize
+
+        input_path = str(FIXTURES / "input" / "v0_sample.csv")
+        output_dir = tempfile.mkdtemp()
+        try:
+            buf_err = io.StringIO()
+            with contextlib.redirect_stderr(buf_err):
+                rc = command_normalize(input_path, output_dir, emit_fhir=False, fuzzy_threshold=1.5)
+            self.assertEqual(rc, 1)
+            self.assertIn("fuzzy_threshold", buf_err.getvalue())
+        finally:
+            shutil.rmtree(output_dir, ignore_errors=True)
 
 
 class PlausibilityTests(unittest.TestCase):

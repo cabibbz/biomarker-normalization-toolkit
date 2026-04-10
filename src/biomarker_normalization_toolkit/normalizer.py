@@ -64,6 +64,12 @@ _IMPLICIT_UNIT_BIOMARKERS = frozenset({
 })
 
 
+def validate_fuzzy_threshold(fuzzy_threshold: float) -> float:
+    if not 0.0 <= fuzzy_threshold <= 1.0:
+        raise ValueError("fuzzy_threshold must be between 0.0 and 1.0")
+    return fuzzy_threshold
+
+
 def _str_field(row: dict, key: str) -> str:
     """Safely extract a string field from a row dict, coercing non-string values."""
     val = row.get(key, "")
@@ -485,6 +491,7 @@ def _detect_duplicate_row_ids(source_records: list[SourceRecord]) -> list[str]:
 
 
 def normalize_rows(rows: list[dict[str, str]], input_file: str = "", fuzzy_threshold: float = 0.0) -> NormalizationResult:
+    validate_fuzzy_threshold(fuzzy_threshold)
     source_records = build_source_records(rows)
     normalized_records = [normalize_source_record(record, fuzzy_threshold=fuzzy_threshold) for record in source_records]
 
