@@ -21,6 +21,27 @@ def _module_available(module_name: str) -> bool:
     return True
 
 
+def _rest_dependencies_available() -> bool:
+    return all(
+        _module_available(module_name)
+        for module_name in ("fastapi", "uvicorn", "pydantic", "python_multipart")
+    )
+
+
+def _load_rest_components() -> tuple[object | None, object | None, Exception | None]:
+    try:
+        import uvicorn
+    except Exception as exc:  # pragma: no cover - exercised via command wrappers
+        return None, None, exc
+
+    try:
+        from biomarker_normalization_toolkit.api import app
+    except Exception as exc:  # pragma: no cover - exercised via command wrappers
+        return None, None, exc
+
+    return uvicorn, app, None
+
+
 def _user_friendly_error(exc: Exception) -> str:
     """Strip filesystem paths and module names from exception messages."""
     msg = str(exc)
@@ -28,8 +49,9 @@ def _user_friendly_error(exc: Exception) -> str:
     # e.g. "No such file: /tmp/tmpABCD.csv" or "Error in C:\\Users\\..."
     import re
     # Remove absolute filesystem paths (Unix and Windows)
+    msg = re.sub(r'\\\\[^\s\\]+\\[^\s]+', '<file>', msg)
     msg = re.sub(r'[A-Za-z]:\\[\w\\.\-_ ]+', '<file>', msg)
-    msg = re.sub(r'/(?:tmp|home|usr|var|etc|opt|private)[\w/.\-_ ]*', '<file>', msg)
+    msg = re.sub(r'/(?:Users|tmp|home|usr|var|etc|opt|private|Volumes)[\w/.\-_ ]*', '<file>', msg)
     # Remove Python module references like "biomarker_normalization_toolkit.foo"
     msg = re.sub(r'biomarker_normalization_toolkit\.\w+', '<internal>', msg)
     return msg
@@ -173,7 +195,7 @@ def command_status() -> int:
     from biomarker_normalization_toolkit import __version__
     excel_status = "available" if _module_available("openpyxl") else "optional via [excel]"
     fuzzy_status = "available" if _module_available("rapidfuzz") else "optional via [fuzzy]"
-    rest_status = "available" if _module_available("fastapi") and _module_available("uvicorn") else "optional via [rest]"
+    rest_status = "available" if _rest_dependencies_available() else "optional via [rest]"
     print(f"Biomarker Normalization Toolkit v{__version__}")
     print(f"Biomarkers: {len(BIOMARKER_CATALOG)}")
     print(f"Input formats: CSV, FHIR R4 JSON, HL7 v2.x, C-CDA XML, Excel ({excel_status})")
@@ -415,12 +437,26 @@ def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path
 
 
 def command_serve(host: str, port: int) -> int:
-    try:
-        import uvicorn
-        from biomarker_normalization_toolkit.api import app
-    except ImportError:
+    if not _rest_dependencies_available():
         print(
-            "REST API dependencies not installed.\n"
+            "REST API dependencies not installed or incomplete.\n"
+            "Install with: pip install biomarker-normalization-toolkit[rest]",
+            file=sys.stderr,
+        )
+        return 1
+
+    uvicorn, app, exc = _load_rest_components()
+    if exc is not None:
+        logger.debug(
+            "REST API startup failed",
+            exc_info=(type(exc), exc, exc.__traceback__),
+        )
+        print(f"REST API startup failed: {_user_friendly_error(exc)}", file=sys.stderr)
+        return 1
+
+    if uvicorn is None or app is None:
+        print(
+            "REST API dependencies not installed or incomplete.\n"
             "Install with: pip install biomarker-normalization-toolkit[rest]",
             file=sys.stderr,
         )

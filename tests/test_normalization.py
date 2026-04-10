@@ -8,6 +8,7 @@ import tempfile
 import time
 import unittest
 import shutil
+from unittest import mock
 
 from decimal import Decimal
 
@@ -5080,6 +5081,22 @@ class CLICommandTests(unittest.TestCase):
         self.assertIn("Biomarker Normalization Toolkit", output)
         self.assertIn("Biomarkers:", output)
 
+    def test_cli_status_reports_rest_optional_when_dependencies_incomplete(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_status
+
+        with mock.patch(
+            "biomarker_normalization_toolkit.cli._rest_dependencies_available",
+            return_value=False,
+        ):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = command_status()
+
+        self.assertEqual(rc, 0)
+        self.assertIn("REST server (optional via [rest])", buf.getvalue())
+
     def test_cli_normalize_with_sample(self) -> None:
         import io
         import contextlib
@@ -5217,6 +5234,22 @@ class CLICommandTests(unittest.TestCase):
         self.assertIn("Biomarker ID", output)
         self.assertIn("LOINC", output)
         self.assertIn("Total:", output)
+
+    def test_cli_serve_incomplete_rest_dependencies_prints_guidance(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_serve
+
+        with mock.patch(
+            "biomarker_normalization_toolkit.cli._rest_dependencies_available",
+            return_value=False,
+        ):
+            buf_err = io.StringIO()
+            with contextlib.redirect_stderr(buf_err):
+                rc = command_serve("127.0.0.1", 8000)
+
+        self.assertEqual(rc, 1)
+        self.assertIn("biomarker-normalization-toolkit[rest]", buf_err.getvalue())
 
 
 class PlausibilityTests(unittest.TestCase):
@@ -5446,6 +5479,18 @@ class CLIErrorHandlingTests(unittest.TestCase):
         msg_home = _user_friendly_error(exc_home)
         self.assertNotIn("/home/", msg_home)
         self.assertIn("<file>", msg_home)
+
+        # macOS user path
+        exc_macos = FileNotFoundError("Cannot read /Users/alice/Documents/labs/input.csv")
+        msg_macos = _user_friendly_error(exc_macos)
+        self.assertNotIn("/Users/", msg_macos)
+        self.assertIn("<file>", msg_macos)
+
+        # UNC path
+        exc_unc = FileNotFoundError(r"Cannot read \\corp-fs\labs\input.xlsx")
+        msg_unc = _user_friendly_error(exc_unc)
+        self.assertNotIn(r"\\corp-fs\labs", msg_unc)
+        self.assertIn("<file>", msg_unc)
 
     def test_cli_user_friendly_error_strips_module_names(self) -> None:
         from biomarker_normalization_toolkit.cli import _user_friendly_error
