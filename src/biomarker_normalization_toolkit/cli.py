@@ -217,10 +217,10 @@ def _load_aliases(aliases_path: str | None) -> bool:
         return True
     alias_path = Path(aliases_path)
     if not alias_path.exists():
-        print(f"Alias file does not exist: {alias_path}", file=sys.stderr)
+        print(f"Alias file does not exist: {_display_text(alias_path)}", file=sys.stderr)
         return False
     added = load_custom_aliases(alias_path)
-    print(f"Loaded {added} custom aliases from {alias_path}")
+    print(f"Loaded {added} custom aliases from {_display_text(alias_path)}")
     return True
 
 
@@ -230,7 +230,7 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
 
     source_path = Path(input_path)
     if not source_path.exists():
-        print(f"Input file does not exist: {source_path}", file=sys.stderr)
+        print(f"Input file does not exist: {_display_text(source_path)}", file=sys.stderr)
         return 1
 
     try:
@@ -268,11 +268,11 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
             f"{optimal_summary['optimal']}/{optimal_summary['total_evaluated']} "
             f"biomarkers in range ({optimal_summary['optimal_percentage']}%)"
         )
-    print(f"JSON output: {json_path}")
-    print(f"CSV output: {csv_path}")
-    print(f"Summary output: {summary_path}")
+    print(f"JSON output: {_display_text(json_path)}")
+    print(f"CSV output: {_display_text(csv_path)}")
+    print(f"Summary output: {_display_text(summary_path)}")
     if fhir_path is not None:
-        print(f"FHIR output: {fhir_path}")
+        print(f"FHIR output: {_display_text(fhir_path)}")
     return 0
 
 
@@ -307,7 +307,7 @@ def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_thre
 
     source_path = Path(input_path)
     if not source_path.exists():
-        print(f"Input file does not exist: {source_path}", file=sys.stderr)
+        print(f"Input file does not exist: {_display_text(source_path)}", file=sys.stderr)
         return 1
 
     try:
@@ -325,7 +325,7 @@ def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_thre
     unmapped = result.summary["unmapped"]
     mapped_pct = mapped / total * 100 if total else 0
 
-    print(f"Coverage Analysis: {source_path.name}")
+    print(f"Coverage Analysis: {_display_text(source_path.name)}")
     print(f"{'=' * 60}")
     print(f"Total rows:     {total}")
     print(f"Mapped:         {mapped} ({mapped_pct:.1f}%)")
@@ -333,7 +333,7 @@ def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_thre
     print(f"Unmapped:       {unmapped}")
 
     for warning in result.warnings:
-        print(f"WARNING: {warning}", file=sys.stderr)
+        print(f"WARNING: {_display_text(warning)}", file=sys.stderr)
 
     # Mapped biomarker breakdown
     mapped_by_biomarker: dict[str, int] = {}
@@ -404,7 +404,7 @@ def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path
 
     input_path = Path(input_dir)
     if not input_path.is_dir():
-        print(f"Input directory does not exist: {input_path}", file=sys.stderr)
+        print(f"Input directory does not exist: {_display_text(input_path)}", file=sys.stderr)
         return 1
 
     files = sorted(
@@ -413,7 +413,7 @@ def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path
     )
 
     if not files:
-        print(f"No supported files found in {input_path}", file=sys.stderr)
+        print(f"No supported files found in {_display_text(input_path)}", file=sys.stderr)
         return 1
 
     out_base = Path(output_dir)
@@ -433,12 +433,18 @@ def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path
             total_mapped += result.summary["mapped"]
             total_rows += result.summary["total_rows"]
             pct = result.summary["mapped"] / result.summary["total_rows"] * 100 if result.summary["total_rows"] else 0
-            print(f"  {source_file.name}: {result.summary['mapped']}/{result.summary['total_rows']} mapped ({pct:.0f}%)")
+            print(
+                f"  {_display_text(source_file.name)}: "
+                f"{result.summary['mapped']}/{result.summary['total_rows']} mapped ({pct:.0f}%)"
+            )
         except Exception as exc:
             safe_msg = _user_friendly_error(exc)
             logger.debug("Batch error for %s", source_file.name, exc_info=True)
             errors.append(f"{source_file.name}: {safe_msg}")
-            print(f"  {source_file.name}: ERROR - {safe_msg}", file=sys.stderr)
+            print(
+                f"  {_display_text(source_file.name)}: ERROR - {_display_text(safe_msg)}",
+                file=sys.stderr,
+            )
 
     overall_pct = total_mapped / total_rows * 100 if total_rows else 0
     print(f"\nBatch complete: {len(files)} files, {total_rows} total rows, {total_mapped} mapped ({overall_pct:.1f}%)")
@@ -474,8 +480,8 @@ def command_serve(host: str, port: int) -> int:
         )
         return 1
 
-    print(f"Starting BNT API server on {host}:{port}")
-    print(f"Docs: http://{host}:{port}/docs")
+    print(f"Starting BNT API server on {_display_text(host)}:{port}")
+    print(f"Docs: http://{_display_text(host)}:{port}/docs")
     uvicorn.run(app, host=host, port=port)
     return 0
 

@@ -15,6 +15,7 @@ import traceback
 import uuid
 from collections import defaultdict
 from pathlib import Path
+from pathlib import PurePosixPath
 from typing import Annotated, Any
 
 from fastapi import APIRouter, FastAPI, File, Header, Query, Request, UploadFile
@@ -327,8 +328,15 @@ def _validate_upload_rows(rows: list[dict[str, str]]) -> str | None:
     return None
 
 
+def _sanitize_client_filename(value: object, default: str = "") -> str:
+    raw = str(value or default).replace("\\", "/")
+    filename = PurePosixPath(raw).name
+    filename = " ".join(filename.split())
+    return filename or default
+
+
 def _read_upload(file: UploadFile) -> tuple[list[dict[str, str]], str | None]:
-    filename = Path(file.filename or "upload.csv").name
+    filename = _sanitize_client_filename(file.filename, default="upload.csv")
     suffix = Path(filename).suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
         return [], f"Unsupported file type: {suffix}. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
@@ -463,7 +471,7 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
-    input_file = Path(str(body.get("input_file", ""))).name
+    input_file = _sanitize_client_filename(body.get("input_file", ""))
     result = normalize_rows(rows, input_file=input_file, fuzzy_threshold=fuzzy_threshold)
 
     response = result.to_json_dict(include_generated_at=True)
@@ -504,7 +512,7 @@ def normalize_upload(
     if row_error:
         return JSONResponse(status_code=400, content={"error": row_error})
 
-    safe_name = Path(file.filename or "").name
+    safe_name = _sanitize_client_filename(file.filename)
     result = normalize_rows(rows, input_file=safe_name, fuzzy_threshold=fuzzy_threshold)
 
     response = result.to_json_dict(include_generated_at=True)
@@ -559,7 +567,10 @@ def analyze(body: NormalizeRequest) -> JSONResponse:
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
-    result = normalize_rows(rows, input_file=Path(body.input_file).name if body.input_file else "")
+    result = normalize_rows(
+        rows,
+        input_file=_sanitize_client_filename(body.input_file) if body.input_file else "",
+    )
     response = _build_analysis(result)
     return _with_rows_processed(JSONResponse(content=response), len(rows))
 
@@ -578,7 +589,7 @@ def analyze_upload(file: UploadFile = File(...)) -> JSONResponse:
     if row_error:
         return JSONResponse(status_code=400, content={"error": row_error})
 
-    result = normalize_rows(rows, input_file=Path(file.filename or "").name)
+    result = normalize_rows(rows, input_file=_sanitize_client_filename(file.filename))
     response = _build_analysis(result)
     return _with_rows_processed(JSONResponse(content=response), len(rows))
 

@@ -5229,6 +5229,46 @@ class CLICommandTests(unittest.TestCase):
         finally:
             shutil.rmtree(output_dir, ignore_errors=True)
 
+    def test_cli_normalize_sanitizes_warning_output(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_normalize
+        from biomarker_normalization_toolkit.models import NormalizationResult
+
+        input_path = str(FIXTURES / "input" / "v0_sample.csv")
+        output_dir = tempfile.mkdtemp()
+        mocked_result = NormalizationResult(
+            input_file="sample.csv",
+            summary={"total_rows": 0, "mapped": 0, "review_needed": 0, "unmapped": 0},
+            records=[],
+            warnings=("Warn\n## injected",),
+        )
+        try:
+            buf_out = io.StringIO()
+            buf_err = io.StringIO()
+            with (
+                mock.patch("biomarker_normalization_toolkit.cli.read_input", return_value=[]),
+                mock.patch("biomarker_normalization_toolkit.cli.normalize_rows", return_value=mocked_result),
+                mock.patch(
+                    "biomarker_normalization_toolkit.cli.write_result",
+                    return_value=(Path(output_dir) / "out.json", Path(output_dir) / "out.csv"),
+                ),
+                mock.patch(
+                    "biomarker_normalization_toolkit.cli.write_summary_report",
+                    return_value=Path(output_dir) / "summary.md",
+                ),
+                contextlib.redirect_stdout(buf_out),
+                contextlib.redirect_stderr(buf_err),
+            ):
+                rc = command_normalize(input_path, output_dir, emit_fhir=False)
+
+            self.assertEqual(rc, 0)
+            err_lines = buf_err.getvalue().splitlines()
+            self.assertIn("WARNING: Warn ## injected", err_lines)
+            self.assertFalse(any(line.startswith("## injected") for line in err_lines))
+        finally:
+            shutil.rmtree(output_dir, ignore_errors=True)
+
     def test_cli_analyze_with_sample(self) -> None:
         import io
         import contextlib

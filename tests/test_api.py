@@ -136,6 +136,27 @@ class APITests(unittest.TestCase):
         data = response.json()
         self.assertGreater(data["summary"]["mapped"], 0)
 
+    def test_normalize_upload_sanitizes_windows_style_filename(self) -> None:
+        csv_path = FIXTURES / "input" / "v0_sample.csv"
+        with csv_path.open("rb") as f:
+            response = client.post(
+                "/normalize/upload",
+                files={"file": ("..\\..\\secret\\evil.csv", f, "text/csv")},
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["input_file"], "evil.csv")
+
+    def test_normalize_json_sanitizes_windows_style_input_file(self) -> None:
+        response = client.post("/normalize", json={
+            "rows": [
+                {"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL",
+                 "specimen_type": "serum", "source_row_id": "1", "source_reference_range": "70-99 mg/dL"},
+            ],
+            "input_file": "..\\..\\secret\\evil.csv",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["input_file"], "evil.csv")
+
     def test_analyze_json(self) -> None:
         response = client.post("/analyze", json={
             "rows": [
