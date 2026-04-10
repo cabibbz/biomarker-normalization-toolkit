@@ -2,11 +2,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+import re
 from typing import Any, Literal
 
 # Type-safe constants for mapping status and confidence
 MappingStatus = Literal["mapped", "review_needed", "unmapped"]
 MatchConfidence = Literal["high", "medium", "low", "none"]
+
+_PLAIN_NEGATIVE_NUMBER = re.compile(r"^-(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$")
+
+
+def _protect_csv_cell(value: object) -> str:
+    text = str(value)
+    stripped = text.lstrip(" \t\r")
+    if not stripped:
+        return text
+    if stripped[0] in "=+@":
+        return "'" + text
+    if stripped[0] == "-" and not _PLAIN_NEGATIVE_NUMBER.fullmatch(stripped):
+        return "'" + text
+    return text
 
 
 @dataclass(frozen=True)
@@ -85,27 +100,27 @@ class NormalizedRecord:
     def to_csv_row(self) -> dict[str, str]:
         return {
             "source_row_number": str(self.source_row_number),
-            "source_row_id": self.source_row_id,
-            "source_lab_name": self.source_lab_name,
-            "source_panel_name": self.source_panel_name,
-            "source_test_name": self.source_test_name,
-            "alias_key": self.alias_key,
-            "raw_value": self.raw_value,
-            "source_unit": self.source_unit,
-            "specimen_type": self.specimen_type,
-            "source_reference_range": self.source_reference_range,
-            "canonical_biomarker_id": self.canonical_biomarker_id,
-            "canonical_biomarker_name": self.canonical_biomarker_name,
-            "loinc": self.loinc,
-            "mapping_status": self.mapping_status,
-            "match_confidence": self.match_confidence,
-            "status_reason": self.status_reason,
-            "mapping_rule": self.mapping_rule,
-            "normalized_value": self.normalized_value,
-            "normalized_unit": self.normalized_unit,
-            "normalized_reference_range": self.normalized_reference_range,
-            "provenance_source_row_id": str(self.provenance.get("source_row_id", "")),
-            "provenance_alias_key": str(self.provenance.get("source_alias_key", "")),
+            "source_row_id": _protect_csv_cell(self.source_row_id),
+            "source_lab_name": _protect_csv_cell(self.source_lab_name),
+            "source_panel_name": _protect_csv_cell(self.source_panel_name),
+            "source_test_name": _protect_csv_cell(self.source_test_name),
+            "alias_key": _protect_csv_cell(self.alias_key),
+            "raw_value": _protect_csv_cell(self.raw_value),
+            "source_unit": _protect_csv_cell(self.source_unit),
+            "specimen_type": _protect_csv_cell(self.specimen_type),
+            "source_reference_range": _protect_csv_cell(self.source_reference_range),
+            "canonical_biomarker_id": _protect_csv_cell(self.canonical_biomarker_id),
+            "canonical_biomarker_name": _protect_csv_cell(self.canonical_biomarker_name),
+            "loinc": _protect_csv_cell(self.loinc),
+            "mapping_status": _protect_csv_cell(self.mapping_status),
+            "match_confidence": _protect_csv_cell(self.match_confidence),
+            "status_reason": _protect_csv_cell(self.status_reason),
+            "mapping_rule": _protect_csv_cell(self.mapping_rule),
+            "normalized_value": _protect_csv_cell(self.normalized_value),
+            "normalized_unit": _protect_csv_cell(self.normalized_unit),
+            "normalized_reference_range": _protect_csv_cell(self.normalized_reference_range),
+            "provenance_source_row_id": _protect_csv_cell(self.provenance.get("source_row_id", "")),
+            "provenance_alias_key": _protect_csv_cell(self.provenance.get("source_alias_key", "")),
         }
 
 

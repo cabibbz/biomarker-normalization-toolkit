@@ -5103,6 +5103,57 @@ class ReportingTests(unittest.TestCase):
         for i in range(5, 10):
             self.assertNotIn(f"Biomarker_{i}", report)
 
+    def test_summary_report_sanitizes_record_fields_for_markdown(self) -> None:
+        """Record fields with backticks/newlines should not create extra markdown structure."""
+        from biomarker_normalization_toolkit.reporting import build_summary_report
+
+        records = [
+            self._make_record(
+                status="mapped",
+                name="Bad`Name\n## injected",
+                canonical="Glucose``Here\n### boom",
+            ),
+            self._make_record(
+                status="review_needed",
+                name="Review`\n## row",
+                reason="needs`\n## attention",
+            ),
+            self._make_record(
+                status="unmapped",
+                name="Unknown``\n## marker",
+                reason="no`\n## alias",
+            ),
+        ]
+        result = self._make_result(records=records, input_file="bad`file\n## injected")
+
+        report = build_summary_report(result)
+        lines = report.splitlines()
+
+        self.assertEqual(sum(1 for line in lines if line.startswith("## ")), 5)
+        self.assertFalse(any(line.startswith("## injected") for line in lines))
+        self.assertFalse(any(line.startswith("### boom") for line in lines))
+        self.assertFalse(any(line.startswith("## attention") for line in lines))
+        self.assertFalse(any(line.startswith("## alias") for line in lines))
+        self.assertTrue(any(line.startswith("Input file: ") and "## injected" in line for line in lines))
+
+    def test_summary_report_sanitizes_warning_lines(self) -> None:
+        """Warnings with newlines should remain single bullet lines."""
+        from biomarker_normalization_toolkit.reporting import build_summary_report
+
+        result = self._make_result(
+            records=[self._make_record()],
+            warnings=("Warn`one\n## injected", "Second\twarning"),
+        )
+
+        report = build_summary_report(result)
+        lines = report.splitlines()
+        warning_header = lines.index("## Warnings")
+        warning_lines = lines[warning_header + 2:warning_header + 4]
+
+        self.assertEqual(warning_lines[0], "- Warn`one ## injected")
+        self.assertEqual(warning_lines[1], "- Second warning")
+        self.assertFalse(any(line.startswith("## injected") for line in lines))
+
 
 class CLICommandTests(unittest.TestCase):
     """Unit tests for CLI command functions (called directly, not via subprocess)."""
@@ -5194,6 +5245,32 @@ class CLICommandTests(unittest.TestCase):
         self.assertIn("Mapped:", output)
         # Should print a mapping percentage like "(XX.X%)"
         self.assertRegex(output, r"\d+\.\d+%")
+
+    def test_cli_analyze_sanitizes_multiline_test_names(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_analyze
+
+        csv_content = (
+            "source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+            "1,\"Bad\n##injected\",42,mg/dL,serum,\n"
+            "2,\"=Formula\",5,mg/dL,serum,\n"
+        )
+
+        with tempfile.TemporaryDirectory() as td:
+            input_path = Path(td) / "bad.csv"
+            input_path.write_text(csv_content, encoding="utf-8", newline="")
+
+            buf_out = io.StringIO()
+            buf_err = io.StringIO()
+            with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
+                rc = command_analyze(str(input_path))
+
+        self.assertEqual(rc, 0, f"stderr={buf_err.getvalue()!r}")
+        output_lines = buf_out.getvalue().splitlines()
+        self.assertFalse(any(line.startswith("##injected") for line in output_lines))
+        self.assertIn("      1  Bad ##injected", output_lines)
+        self.assertIn("      1  =Formula", output_lines)
 
     def test_cli_demo_creates_output(self) -> None:
         import io
@@ -5761,6 +5838,57 @@ class WriteReadRoundTripTests(unittest.TestCase):
                            "normalized_value", "normalized_unit", "mapping_status"):
                 self.assertIn(header, rows[0],
                               f"Missing header '{header}' in CSV output")
+
+    def test_write_result_csv_neutralizes_formula_like_cells(self) -> None:
+        """CSV export should neutralize spreadsheet-formula cells without changing plain negatives."""
+        import csv as csv_mod
+        from biomarker_normalization_toolkit.io_utils import write_result
+        from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord
+
+        record = NormalizedRecord(
+            source_row_number=1,
+            source_row_id="1",
+            source_lab_name="=LAB",
+            source_panel_name="+Panel",
+            source_test_name="@TEST",
+            alias_key="-Alias()",
+            raw_value="=2+5",
+            source_unit="mg/dL",
+            specimen_type="serum",
+            source_reference_range=" =1-2",
+            canonical_biomarker_id="glucose_serum",
+            canonical_biomarker_name="=GLU",
+            loinc="2345-7",
+            mapping_status="mapped",
+            match_confidence="high",
+            status_reason="",
+            mapping_rule="alias",
+            normalized_value="-1.5",
+            normalized_unit="mg/dL",
+            normalized_reference_range="70-99",
+            provenance={"source_row_id": "=1", "source_alias_key": "+alias"},
+        )
+        result = NormalizationResult(
+            input_file="formula.csv",
+            summary={"total_rows": 1, "mapped": 1, "review_needed": 0, "unmapped": 0},
+            records=[record],
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            _, csv_path = write_result(result, Path(tmp_dir))
+            with csv_path.open("r", encoding="utf-8") as handle:
+                row = next(csv_mod.DictReader(handle))
+
+        self.assertEqual(row["source_lab_name"], "'=LAB")
+        self.assertEqual(row["source_panel_name"], "'+Panel")
+        self.assertEqual(row["source_test_name"], "'@TEST")
+        self.assertEqual(row["alias_key"], "'-Alias()")
+        self.assertEqual(row["raw_value"], "'=2+5")
+        self.assertEqual(row["source_reference_range"], "' =1-2")
+        self.assertEqual(row["canonical_biomarker_name"], "'=GLU")
+        self.assertEqual(row["provenance_source_row_id"], "'=1")
+        self.assertEqual(row["provenance_alias_key"], "'+alias")
+        self.assertEqual(row["normalized_value"], "-1.5")
 
 
 class ThreadSafetyTests(unittest.TestCase):

@@ -57,6 +57,11 @@ def _user_friendly_error(exc: Exception) -> str:
     return msg
 
 
+def _display_text(value: object) -> str:
+    text = " ".join(str(value).split())
+    return "".join(ch if ch.isprintable() else "?" for ch in text)
+
+
 def build_parser() -> argparse.ArgumentParser:
     from biomarker_normalization_toolkit import __version__
     parser = argparse.ArgumentParser(
@@ -247,7 +252,7 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
         return 1
 
     for warning in result.warnings:
-        print(f"WARNING: {warning}", file=sys.stderr)
+        print(f"WARNING: {_display_text(warning)}", file=sys.stderr)
 
     print(f"Normalized {result.summary['total_rows']} rows.")
     print(
@@ -340,7 +345,7 @@ def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_thre
         print(f"\n{'Mapped Biomarkers':}")
         print(f"{'-' * 40}")
         for name, count in sorted(mapped_by_biomarker.items(), key=lambda x: -x[1]):
-            print(f"  {count:>5d}  {name}")
+            print(f"  {count:>5d}  {_display_text(name)}")
 
     # Unmapped test names
     unmapped_tests: dict[str, int] = {}
@@ -352,7 +357,7 @@ def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_thre
         print(f"\n{'Unmapped Test Names (top 20)':}")
         print(f"{'-' * 40}")
         for name, count in sorted(unmapped_tests.items(), key=lambda x: -x[1])[:20]:
-            print(f"  {count:>5d}  {name}")
+            print(f"  {count:>5d}  {_display_text(name)}")
         if len(unmapped_tests) > 20:
             print(f"  ... and {len(unmapped_tests) - 20} more unique test names")
 
@@ -367,7 +372,7 @@ def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_thre
         print(f"\n{'Review Needed (top 10)':}")
         print(f"{'-' * 40}")
         for key, count in sorted(review_reasons.items(), key=lambda x: -x[1])[:10]:
-            print(f"  {count:>5d}  {key}")
+            print(f"  {count:>5d}  {_display_text(key)}")
 
     # Unit coverage
     unsupported_units: dict[str, int] = {}
@@ -380,7 +385,7 @@ def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_thre
         print(f"\n{'Unsupported Units':}")
         print(f"{'-' * 40}")
         for key, count in sorted(unsupported_units.items(), key=lambda x: -x[1]):
-            print(f"  {count:>5d}  {key}")
+            print(f"  {count:>5d}  {_display_text(key)}")
 
     return 0
 
