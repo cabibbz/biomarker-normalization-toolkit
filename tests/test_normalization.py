@@ -6694,6 +6694,11 @@ class FHIRComplianceTests(unittest.TestCase):
         self.assertIn("code", vq)
         self.assertTrue(len(vq["code"]) > 0, "UCUM code is empty")
 
+    def test_observation_huge_numeric_value_uses_value_string(self) -> None:
+        obs = self._build_obs(normalized_value="1E+5000", normalized_unit="mg/dL")
+        self.assertNotIn("valueQuantity", obs)
+        self.assertEqual(obs["valueString"], "1E+5000")
+
     # ------------------------------------------------------------------
     # 6. Subject included when provided
     # ------------------------------------------------------------------

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import uuid
 from decimal import Decimal
 
@@ -66,6 +67,14 @@ def _ucum_code(display_unit: str) -> str:
     return UCUM_CODES.get(display_unit, display_unit)
 
 
+def _safe_fhir_float(value: Decimal | str) -> float | None:
+    try:
+        as_float = float(value)
+    except (OverflowError, ValueError, TypeError):
+        return None
+    return as_float if math.isfinite(as_float) else None
+
+
 def _build_reference_range(record: NormalizedRecord) -> list[dict]:
     parsed = parse_reference_range(record.normalized_reference_range, record.normalized_unit)
     if parsed is None:
@@ -74,29 +83,37 @@ def _build_reference_range(record: NormalizedRecord) -> list[dict]:
     rr: dict = {"text": record.normalized_reference_range}
     # Omit synthetic sentinel values from one-sided ranges
     if parsed.low != Decimal(0):
-        rr["low"] = {
-            "value": float(parsed.low),
-            "unit": parsed.unit,
-            "system": "http://unitsofmeasure.org",
-            "code": _ucum_code(parsed.unit),
-        }
+        low_value = _safe_fhir_float(parsed.low)
+        if low_value is not None:
+            rr["low"] = {
+                "value": low_value,
+                "unit": parsed.unit,
+                "system": "http://unitsofmeasure.org",
+                "code": _ucum_code(parsed.unit),
+            }
     if parsed.high != Decimal("99999"):
-        rr["high"] = {
-            "value": float(parsed.high),
-            "unit": parsed.unit,
-            "system": "http://unitsofmeasure.org",
-            "code": _ucum_code(parsed.unit),
-        }
+        high_value = _safe_fhir_float(parsed.high)
+        if high_value is not None:
+            rr["high"] = {
+                "value": high_value,
+                "unit": parsed.unit,
+                "system": "http://unitsofmeasure.org",
+                "code": _ucum_code(parsed.unit),
+            }
     return [rr]
 
 
-def _build_value_quantity(record: NormalizedRecord) -> dict:
-    vq: dict = {"value": float(record.normalized_value)}
+def _build_value_field(record: NormalizedRecord) -> dict:
+    safe_value = _safe_fhir_float(record.normalized_value)
+    if safe_value is None:
+        return {"valueString": record.normalized_value}
+
+    vq: dict = {"value": safe_value}
     if record.normalized_unit:
         vq["unit"] = record.normalized_unit
         vq["system"] = "http://unitsofmeasure.org"
         vq["code"] = _ucum_code(record.normalized_unit)
-    return vq
+    return {"valueQuantity": vq}
 
 
 def _observation_uuid(record: NormalizedRecord, input_file: str = "") -> str:
@@ -143,7 +160,7 @@ def build_observation(record: NormalizedRecord, input_file: str = "", effective_
             "text": record.canonical_biomarker_name,
         },
         **({"effectiveDateTime": effective_datetime} if effective_datetime else {}),
-        "valueQuantity": _build_value_quantity(record),
+        **_build_value_field(record),
         "note": [
             {
                 "text": (
