@@ -26,6 +26,16 @@ def _get_mapped_values(result: NormalizationResult) -> dict[str, Decimal]:
     return values
 
 
+def _safe_float(value: Decimal | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        as_float = float(value)
+    except (OverflowError, ValueError):
+        return None
+    return as_float if math.isfinite(as_float) else None
+
+
 def compare_results(
     before: NormalizationResult,
     after: NormalizationResult,
@@ -60,7 +70,7 @@ def compare_results(
         old = before_vals[bio_id]
         new = after_vals[bio_id]
         abs_delta = new - old
-        pct_delta: float | None = float(abs_delta / old * 100) if old != 0 else None
+        pct_delta_decimal: Decimal | None = (abs_delta / old * 100) if old != 0 else None
 
         # Determine direction relative to optimal ranges
         optimal = OPTIMAL_RANGES.get(bio_id)
@@ -80,8 +90,8 @@ def compare_results(
                 stable += 1
             else:
                 # Both outside optimal — check if moving toward optimal
-                old_dist = min(abs(float(old - opt_low)), abs(float(old - opt_high)))
-                new_dist = min(abs(float(new - opt_low)), abs(float(new - opt_high)))
+                old_dist = min(abs(old - opt_low), abs(old - opt_high))
+                new_dist = min(abs(new - opt_low), abs(new - opt_high))
                 if new_dist < old_dist:
                     direction = "improving"
                     improved += 1
@@ -100,13 +110,18 @@ def compare_results(
             "before": str(old),
             "after": str(new),
             "absolute_delta": str(abs_delta),
-            "percent_delta": round(pct_delta, 1) if pct_delta is not None else None,
+            "percent_delta": (
+                round(pct_delta, 1)
+                if (pct_delta := _safe_float(pct_delta_decimal)) is not None
+                else None
+            ),
             "direction": direction,
         }
 
         if safe_days_between and safe_days_between > 0:
-            velocity_per_month = float(abs_delta) / safe_days_between * 30
-            entry["velocity_per_month"] = round(velocity_per_month, 3)
+            velocity_decimal = abs_delta / Decimal(str(safe_days_between)) * Decimal("30")
+            if (velocity_per_month := _safe_float(velocity_decimal)) is not None:
+                entry["velocity_per_month"] = round(velocity_per_month, 3)
 
         deltas.append(entry)
 

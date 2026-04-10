@@ -7270,6 +7270,25 @@ class LongitudinalEdgeCaseTests(unittest.TestCase):
         # (100 - 0.01) / 0.01 * 100 = 999900.0
         self.assertGreater(delta["percent_delta"], 999000)
 
+    def test_longitudinal_huge_percent_delta_omits_non_finite_output(self) -> None:
+        """Extreme ratios should not leak inf/overflow in percent_delta."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result({"hscrp": "1e-5000"})
+        after = self._make_result({"hscrp": "1"})
+        result = compare_results(before, after)
+        delta = result["deltas"][0]
+        self.assertIsNone(delta["percent_delta"])
+
+    def test_longitudinal_huge_velocity_uses_decimal_direction_and_omits_inf(self) -> None:
+        """Huge values should still compare directionally without emitting infinite velocity."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result({"glucose_serum": "1e5000"})
+        after = self._make_result({"glucose_serum": "2e5000"})
+        result = compare_results(before, after, days_between=30)
+        delta = result["deltas"][0]
+        self.assertEqual(delta["direction"], "worsening")
+        self.assertNotIn("velocity_per_month", delta)
+
     def test_longitudinal_both_in_optimal_is_stable(self) -> None:
         """Both values within optimal range yields direction='stable'."""
         from biomarker_normalization_toolkit.longitudinal import compare_results
