@@ -36,6 +36,8 @@ def _find_duplicate_labels(labels: list[str]) -> list[str]:
 
 def _extract_loinc_code(coding: list[dict]) -> str:
     for code in coding:
+        if not isinstance(code, dict):
+            continue
         if (code.get("system", "") or "").strip() == "http://loinc.org" and code.get("code"):
             return str(code["code"]).strip()
     return ""
@@ -58,20 +60,32 @@ def read_input(path: Path) -> list[dict[str, str]]:
 def read_fhir_input(path: Path) -> list[dict[str, str]]:
     """Read a FHIR Bundle JSON and extract Observation resources into input rows."""
     data = json.loads(path.read_text(encoding="utf-8-sig"))
+    if not isinstance(data, dict):
+        raise ValueError("FHIR input must be a JSON object representing an Observation or Bundle.")
 
     if data.get("resourceType") == "Observation":
         entries = [{"resource": data}]
     elif data.get("resourceType") == "Bundle":
         entries = data.get("entry", [])
+        if not isinstance(entries, list):
+            raise ValueError("FHIR Bundle.entry must be an array.")
     else:
         raise ValueError(f"Unrecognized FHIR resourceType: {data.get('resourceType', 'none')}")
 
     def _index_specimen(resource: dict, index: dict[str, str], full_url: str = "") -> None:
+        if not isinstance(resource, dict):
+            return
         type_obj = resource.get("type", {})
+        if not isinstance(type_obj, dict):
+            return
         coding = type_obj.get("coding", [])
+        if not isinstance(coding, list):
+            coding = []
         specimen_display = (type_obj.get("text", "") or "").strip()
         if not specimen_display:
             for code in coding:
+                if not isinstance(code, dict):
+                    continue
                 specimen_display = (code.get("display", "") or code.get("code", "") or "").strip()
                 if specimen_display:
                     break
@@ -96,14 +110,23 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
     all_observations: list[dict] = []
     specimen_display_by_reference: dict[str, str] = {}
     for entry in entries:
+        if not isinstance(entry, dict):
+            continue
         resource = entry.get("resource", entry)
+        if not isinstance(resource, dict):
+            continue
         rt = resource.get("resourceType")
         full_url = str(entry.get("fullUrl", "")).strip()
         if rt == "Specimen":
             _index_specimen(resource, specimen_display_by_reference, full_url=full_url)
         elif rt == "Observation":
             all_observations.append(resource)
-        for contained in resource.get("contained", []):
+        contained_resources = resource.get("contained", [])
+        if not isinstance(contained_resources, list):
+            contained_resources = []
+        for contained in contained_resources:
+            if not isinstance(contained, dict):
+                continue
             contained_type = contained.get("resourceType")
             if contained_type == "Observation":
                 all_observations.append(contained)
@@ -114,11 +137,17 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
     for index, resource in enumerate(all_observations, start=1):
 
         code_obj = resource.get("code", {})
+        if not isinstance(code_obj, dict):
+            code_obj = {}
         coding = code_obj.get("coding", [])
+        if not isinstance(coding, list):
+            coding = []
         source_loinc = _extract_loinc_code(coding)
         test_name = (code_obj.get("text", "") or "").strip()
         if not test_name:
             for code in coding:
+                if not isinstance(code, dict):
+                    continue
                 test_name = (code.get("display", "") or "").strip()
                 if test_name:
                     break
@@ -134,6 +163,8 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
             continue
 
         vq = resource.get("valueQuantity", {})
+        if not isinstance(vq, dict):
+            vq = {}
         value = vq.get("value")
         unit = vq.get("unit", vq.get("code", "")) if vq else ""
 
@@ -157,8 +188,12 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
 
         ref_range = ""
         ref_ranges = resource.get("referenceRange", [])
+        if not isinstance(ref_ranges, list):
+            ref_ranges = []
         if ref_ranges:
             rr = ref_ranges[0]
+            if not isinstance(rr, dict):
+                rr = {}
             low = rr.get("low", {}).get("value")
             high = rr.get("high", {}).get("value")
             rr_unit = rr.get("low", rr.get("high", {})).get("unit", unit)
@@ -179,6 +214,8 @@ def read_fhir_input(path: Path) -> list[dict[str, str]]:
 
         specimen = ""
         spec_obj = resource.get("specimen", {})
+        if not isinstance(spec_obj, dict):
+            spec_obj = {}
         if spec_obj:
             specimen = (spec_obj.get("display", "") or "").strip()
             if not specimen:

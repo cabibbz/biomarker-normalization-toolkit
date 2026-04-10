@@ -3767,6 +3767,90 @@ class NormalizationTests(unittest.TestCase):
         finally:
             tmp.unlink(missing_ok=True)
 
+    def test_fhir_top_level_array_raises_value_error(self) -> None:
+        """FHIR input must be a JSON object, not an arbitrary array."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump([{"resourceType": "Observation"}], f)
+            tmp = Path(f.name)
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                read_fhir_input(tmp)
+            self.assertIn("json object", str(ctx.exception).lower())
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_malformed_bundle_entries_are_ignored_if_valid_observation_exists(self) -> None:
+        """Malformed Bundle entries should not crash parsing when valid observations are present."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [
+                "bad-entry",
+                {"resource": "bad-resource"},
+                {"resource": {
+                    "resourceType": "Observation",
+                    "id": "good1",
+                    "code": {"text": "Glucose"},
+                    "valueQuantity": {"value": 95, "unit": "mg/dL"},
+                }},
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_row_id"], "good1")
+            self.assertEqual(rows[0]["source_test_name"], "Glucose")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_reference_range_wrong_shape_is_ignored(self) -> None:
+        """Malformed referenceRange should not raise an internal exception."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation",
+                "id": "rr_bad",
+                "code": {"text": "Glucose"},
+                "valueQuantity": {"value": 95, "unit": "mg/dL"},
+                "referenceRange": "oops",
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_reference_range"], "")
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_fhir_non_dict_coding_entries_are_ignored(self) -> None:
+        """Malformed coding list members should not crash FHIR parsing."""
+        bundle = {
+            "resourceType": "Bundle",
+            "entry": [{"resource": {
+                "resourceType": "Observation",
+                "id": "coding_bad",
+                "code": {
+                    "text": "Glucose",
+                    "coding": ["bad-coding", {"system": "http://loinc.org", "code": "2345-7"}],
+                },
+                "valueQuantity": {"value": 95, "unit": "mg/dL"},
+            }}],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(bundle, f)
+            tmp = Path(f.name)
+        try:
+            rows = read_fhir_input(tmp)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source_loinc"], "2345-7")
+        finally:
+            tmp.unlink(missing_ok=True)
+
     def test_fhir_reference_range_both_sides(self) -> None:
         """FHIR referenceRange with low and high should produce 'low-high unit'."""
         bundle = {
