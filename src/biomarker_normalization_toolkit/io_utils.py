@@ -24,6 +24,16 @@ REQUIRED_INPUT_COLUMNS = (
 )
 
 
+def _find_duplicate_labels(labels: list[str]) -> list[str]:
+    seen: set[str] = set()
+    duplicates: list[str] = []
+    for label in labels:
+        if label in seen and label not in duplicates:
+            duplicates.append(label)
+        seen.add(label)
+    return duplicates
+
+
 def _extract_loinc_code(coding: list[dict]) -> str:
     for code in coding:
         if (code.get("system", "") or "").strip() == "http://loinc.org" and code.get("code"):
@@ -567,6 +577,13 @@ def read_excel_input(path: Path) -> list[dict[str, str]]:
                     col_map[idx] = canonical
                     break
 
+        duplicate_mapped = _find_duplicate_labels(list(col_map.values()))
+        if duplicate_mapped:
+            raise ValueError(
+                "Excel file has duplicate columns mapping to the same field: "
+                f"{', '.join(duplicate_mapped)}"
+            )
+
         # Verify required columns found
         mapped_cols = set(col_map.values())
         required = {"source_test_name", "raw_value"}
@@ -641,6 +658,10 @@ def read_input_csv(path: Path) -> list[dict[str, str]]:
         reader = csv.DictReader(handle, dialect=dialect) if dialect else csv.DictReader(handle)
         if reader.fieldnames is None:
             raise ValueError("Input CSV has no header row.")
+
+        duplicate_headers = _find_duplicate_labels([str(field) for field in reader.fieldnames])
+        if duplicate_headers:
+            raise ValueError(f"Input CSV has duplicate columns: {', '.join(duplicate_headers)}")
 
         missing = [column for column in REQUIRED_INPUT_COLUMNS if column not in reader.fieldnames]
         if missing:

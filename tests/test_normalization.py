@@ -696,6 +696,32 @@ class NormalizationTests(unittest.TestCase):
             self.assertEqual(result.summary["mapped"], 5)
             self.assertEqual(result.summary["unmapped"], 1)
 
+    def test_excel_duplicate_mapped_headers_raise(self) -> None:
+        try:
+            import openpyxl
+        except ImportError:
+            self.skipTest("openpyxl not installed")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            xlsx_path = Path(temp_dir) / "duplicate_headers.xlsx"
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.append([
+                "source_row_id",
+                "accession",
+                "source_test_name",
+                "raw_value",
+                "source_unit",
+                "specimen_type",
+                "source_reference_range",
+            ])
+            ws.append(["1", "2", "Glucose", "95", "mg/dL", "serum", "70-99 mg/dL"])
+            wb.save(xlsx_path)
+
+            with self.assertRaises(ValueError) as ctx:
+                read_excel_input(xlsx_path)
+            self.assertIn("duplicate columns mapping to the same field", str(ctx.exception).lower())
+
     def test_read_input_auto_detects_xlsx(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             xlsx_path = Path(temp_dir) / "test_lab_results.xlsx"
@@ -4579,6 +4605,22 @@ class NormalizationTests(unittest.TestCase):
         try:
             with self.assertRaises(ValueError):
                 read_input_csv(tmp)
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    def test_csv_duplicate_headers_raise(self) -> None:
+        """CSV duplicate headers should raise instead of silently overwriting earlier columns."""
+        csv_content = (
+            "source_row_id,source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+            "1,2,Glucose,95,mg/dL,serum,70-99 mg/dL\n"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8") as f:
+            f.write(csv_content)
+            tmp = Path(f.name)
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                read_input_csv(tmp)
+            self.assertIn("duplicate columns", str(ctx.exception).lower())
         finally:
             tmp.unlink(missing_ok=True)
 
