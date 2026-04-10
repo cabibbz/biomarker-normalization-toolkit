@@ -25,7 +25,9 @@ python scripts/export_openapi.py
 python -m build
 python scripts/check_distribution_contents.py
 python -m twine check dist/*
+# Run this in a clean base-install environment without the [rest] extra.
 python scripts/smoke_installed_package.py --check-cli --expect-rest-missing
+# Run this in a clean environment with the [rest] extra installed.
 python scripts/smoke_installed_package.py --serve --port 8010
 ```
 

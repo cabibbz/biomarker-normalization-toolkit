@@ -94,10 +94,40 @@ def _assert_basic_cli(expected_version: str | None) -> None:
 
 
 def _assert_rest_missing_guidance() -> None:
-    serve = _run_cli("serve", "--port", "8010")
-    combined = f"{serve.stdout}\n{serve.stderr}"
-    assert serve.returncode != 0, combined
-    assert "biomarker-normalization-toolkit[rest]" in combined, combined
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "biomarker_normalization_toolkit.cli", "serve", "--port", "0"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        try:
+            stdout, stderr = proc.communicate(timeout=3)
+        except subprocess.TimeoutExpired:
+            proc.terminate()
+            try:
+                stdout, stderr = proc.communicate(timeout=10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                stdout, stderr = proc.communicate(timeout=10)
+            combined = f"{stdout}\n{stderr}"
+            raise AssertionError(
+                "REST dependencies are available in this environment; "
+                "--expect-rest-missing must be run in a base install without the [rest] extra.\n"
+                f"{combined}"
+            )
+
+        combined = f"{stdout}\n{stderr}"
+        assert proc.returncode != 0, combined
+        assert "biomarker-normalization-toolkit[rest]" in combined, combined
+    finally:
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=10)
 
 
 def _fetch_json(url: str) -> dict:
