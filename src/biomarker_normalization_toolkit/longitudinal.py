@@ -7,6 +7,7 @@ representing the same patient at different time points.
 from __future__ import annotations
 
 from decimal import Decimal
+import math
 from typing import Any
 
 from biomarker_normalization_toolkit.models import NormalizationResult
@@ -40,6 +41,10 @@ def compare_results(
     Returns:
         Dict with per-biomarker deltas and summary.
     """
+    safe_days_between = days_between
+    if safe_days_between is not None and not math.isfinite(safe_days_between):
+        safe_days_between = None
+
     before_vals = _get_mapped_values(before)
     after_vals = _get_mapped_values(after)
 
@@ -99,8 +104,8 @@ def compare_results(
             "direction": direction,
         }
 
-        if days_between and days_between > 0:
-            velocity_per_month = float(abs_delta) / days_between * 30
+        if safe_days_between and safe_days_between > 0:
+            velocity_per_month = float(abs_delta) / safe_days_between * 30
             entry["velocity_per_month"] = round(velocity_per_month, 3)
 
         deltas.append(entry)
@@ -115,6 +120,6 @@ def compare_results(
         "stable": stable,
         "unknown": unknown,
         "improvement_rate": round(improved / total * 100, 1) if total else 0,
-        "days_between": days_between,
+        "days_between": safe_days_between,
         "deltas": deltas,
     }

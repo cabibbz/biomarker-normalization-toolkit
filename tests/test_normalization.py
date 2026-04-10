@@ -7206,6 +7206,26 @@ class LongitudinalEdgeCaseTests(unittest.TestCase):
         for delta in result["deltas"]:
             self.assertNotIn("velocity_per_month", delta)
 
+    def test_longitudinal_nan_days_between(self) -> None:
+        """Non-finite days_between should be sanitized instead of leaking NaN."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result({"glucose_serum": "90"})
+        after = self._make_result({"glucose_serum": "80"})
+        result = compare_results(before, after, days_between=float("nan"))
+        self.assertIsNone(result["days_between"])
+        for delta in result["deltas"]:
+            self.assertNotIn("velocity_per_month", delta)
+
+    def test_longitudinal_infinite_days_between(self) -> None:
+        """Non-finite days_between should be sanitized instead of leaking infinity."""
+        from biomarker_normalization_toolkit.longitudinal import compare_results
+        before = self._make_result({"glucose_serum": "90"})
+        after = self._make_result({"glucose_serum": "80"})
+        result = compare_results(before, after, days_between=float("inf"))
+        self.assertIsNone(result["days_between"])
+        for delta in result["deltas"]:
+            self.assertNotIn("velocity_per_month", delta)
+
     def test_longitudinal_large_percent_delta(self) -> None:
         """Very large percent_delta (old=0.01, new=100) computes without crash."""
         from biomarker_normalization_toolkit.longitudinal import compare_results
