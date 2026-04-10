@@ -274,6 +274,16 @@ class APITests(unittest.TestCase):
         response = client.post("/phenoage", json={"rows": [], "chronological_age": -1})
         self.assertEqual(response.status_code, 422)
 
+    def test_phenoage_rejects_infinite_age(self) -> None:
+        response = client.post("/phenoage", json={
+            "chronological_age": "inf",
+            "rows": [
+                {"source_test_name": "Albumin", "raw_value": "4.5", "source_unit": "g/dL",
+                 "specimen_type": "serum", "source_row_id": "pa1"},
+            ],
+        })
+        self.assertEqual(response.status_code, 422)
+
     def test_phenoage_computes_with_complete_payload(self) -> None:
         response = client.post("/phenoage", json={
             "chronological_age": 45,
@@ -409,6 +419,22 @@ class APITests(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 422)
 
+    def test_compare_rejects_infinite_days_between(self) -> None:
+        response = client.post("/compare", json={
+            "before": {"rows": [{
+                "source_test_name": "Glucose", "raw_value": "100",
+                "source_unit": "mg/dL", "specimen_type": "serum",
+                "source_row_id": "b1", "source_reference_range": "",
+            }]},
+            "after": {"rows": [{
+                "source_test_name": "Glucose", "raw_value": "90",
+                "source_unit": "mg/dL", "specimen_type": "serum",
+                "source_row_id": "a1", "source_reference_range": "",
+            }]},
+            "days_between": "inf",
+        })
+        self.assertEqual(response.status_code, 422)
+
     def test_compare_invalid_before(self) -> None:
         """Compare with empty before rows returns 400."""
         response = client.post("/compare", json={
@@ -440,6 +466,16 @@ class APITests(unittest.TestCase):
         response = client.post("/normalize?fuzzy_threshold=1.5", json={
             "rows": [
                 {"source_test_name": "Glucos", "raw_value": "100", "source_unit": "mg/dL",
+                 "specimen_type": "serum", "source_row_id": "1", "source_reference_range": ""},
+            ],
+        })
+        self.assertEqual(response.status_code, 422)
+
+    def test_normalize_rejects_infinite_chronological_age(self) -> None:
+        response = client.post("/normalize", json={
+            "chronological_age": "inf",
+            "rows": [
+                {"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL",
                  "specimen_type": "serum", "source_row_id": "1", "source_reference_range": ""},
             ],
         })

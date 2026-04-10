@@ -60,19 +60,19 @@ _INTERNAL_ROWS_HEADER = "X-BNT-Rows-Processed"
 class NormalizeRequest(BaseModel):
     rows: list[dict[str, Any]] = Field(..., description="List of lab result row objects")
     input_file: str = ""
-    chronological_age: float | None = Field(None, ge=0, description="Patient age for PhenoAge")
+    chronological_age: float | None = Field(None, ge=0, allow_inf_nan=False, description="Patient age for PhenoAge")
     sex: str | None = Field(None, description="Patient sex (male/female) for sex-specific optimal ranges")
 
 
 class CompareRequest(BaseModel):
     before: dict[str, Any] = Field(..., description='{"rows": [...]} for baseline results')
     after: dict[str, Any] = Field(..., description='{"rows": [...]} for follow-up results')
-    days_between: float | None = Field(None, ge=0, description="Days between the two tests")
+    days_between: float | None = Field(None, ge=0, allow_inf_nan=False, description="Days between the two tests")
 
 
 class PhenoAgeRequest(BaseModel):
     rows: list[dict[str, Any]] = Field(..., description="Lab result rows (need 9 biomarkers)")
-    chronological_age: float = Field(..., ge=0, description="Patient age in years")
+    chronological_age: float = Field(..., ge=0, allow_inf_nan=False, description="Patient age in years")
 
 
 class RateLimiter:
@@ -477,7 +477,7 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
 def normalize(
     body: NormalizeRequest,
     emit_fhir: bool = Query(False),
-    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0),
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0, allow_inf_nan=False),
 ) -> JSONResponse:
     return _handle_normalize(body.model_dump(), emit_fhir, fuzzy_threshold)
 
@@ -486,7 +486,7 @@ def normalize(
 def normalize_v1(
     body: NormalizeRequest,
     emit_fhir: bool = Query(False),
-    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0),
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0, allow_inf_nan=False),
 ) -> JSONResponse:
     return _handle_normalize(body.model_dump(), emit_fhir, fuzzy_threshold)
 
@@ -495,7 +495,7 @@ def normalize_v1(
 def normalize_upload(
     file: UploadFile = File(...),
     emit_fhir: bool = Query(False),
-    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0),
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0, allow_inf_nan=False),
 ) -> JSONResponse:
     rows, error = _read_upload(file)
     if error:
@@ -518,7 +518,7 @@ def normalize_upload(
 def normalize_upload_v1(
     file: UploadFile = File(...),
     emit_fhir: bool = Query(False),
-    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0),
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0, allow_inf_nan=False),
 ) -> JSONResponse:
     return normalize_upload(file, emit_fhir, fuzzy_threshold)
 
