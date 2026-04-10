@@ -1765,6 +1765,12 @@ class NormalizationTests(unittest.TestCase):
             data = json.loads(json_path.read_text(encoding="utf-8"))
             self.assertEqual(data["summary"]["mapped"], 1)
 
+    def test_normalize_rows_sanitizes_windows_style_input_file(self) -> None:
+        rows = [{"source_row_id": "wr1", "source_test_name": "Glucose", "raw_value": "100",
+                 "source_unit": "mg/dL", "specimen_type": "serum", "source_reference_range": "70-99 mg/dL"}]
+        result = normalize_rows(rows, input_file="..\\..\\secret\\evil.csv\n## injected")
+        self.assertEqual(result.input_file, "evil.csv ## injected")
+
     # --- Coverage: sibling redirect edge cases ---
 
     def test_sibling_redirect_rdw_fl_to_rdw_sd(self) -> None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from pathlib import Path
+from pathlib import PurePosixPath
 
 from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, BIOMARKER_CATALOG, normalize_key, normalize_specimen
 from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord, RangeValue, SourceRecord
@@ -68,6 +68,12 @@ def validate_fuzzy_threshold(fuzzy_threshold: float) -> float:
     if not 0.0 <= fuzzy_threshold <= 1.0:
         raise ValueError("fuzzy_threshold must be between 0.0 and 1.0")
     return fuzzy_threshold
+
+
+def _sanitize_input_filename(value: object) -> str:
+    raw = str(value or "").replace("\\", "/")
+    filename = PurePosixPath(raw).name
+    return " ".join(filename.split())
 
 
 def _str_field(row: dict, key: str) -> str:
@@ -522,7 +528,7 @@ def normalize_rows(rows: list[dict[str, str]], input_file: str = "", fuzzy_thres
     }
 
     return NormalizationResult(
-        input_file=Path(input_file).name if input_file else "",
+        input_file=_sanitize_input_filename(input_file),
         summary=summary,
         records=normalized_records,
         warnings=tuple(warnings),
