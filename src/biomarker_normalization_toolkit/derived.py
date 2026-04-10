@@ -6,9 +6,7 @@ should review their suitability for the clinical or research context.
 """
 
 from __future__ import annotations
-
-import math
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
 from biomarker_normalization_toolkit.models import NormalizationResult
@@ -27,7 +25,10 @@ def _get_value(result: NormalizationResult, biomarker_id: str) -> Decimal | None
 
 
 def _fmt(value: Decimal, places: int = 2) -> str:
-    return str(value.quantize(Decimal(10) ** -places, rounding=ROUND_HALF_UP))
+    try:
+        return str(value.quantize(Decimal(10) ** -places, rounding=ROUND_HALF_UP))
+    except InvalidOperation:
+        return str(value.normalize())
 
 
 def compute_derived_metrics(result: NormalizationResult) -> dict[str, Any]:
@@ -84,17 +85,20 @@ def compute_derived_metrics(result: NormalizationResult) -> dict[str, Any]:
 
     if tg and glucose and tg > 0 and glucose > 0:
         # TyG Index: ln(TG[mg/dL] * Glucose[mg/dL] / 2)
-
-        tyg = Decimal(str(math.log(float(tg * glucose / Decimal("2")))))
-        metrics["tyg_index"] = {
-            "name": "TyG Index",
-            "value": _fmt(tyg),
-            "formula": "ln(Triglycerides x Glucose / 2)",
-            "inputs": {"triglycerides": str(tg), "glucose_serum": str(glucose)},
-            "unit": "",
-            "category": "metabolic",
-            "optimal_range": "< 8.5",
-        }
+        try:
+            tyg = (tg * glucose / Decimal("2")).ln()
+        except (InvalidOperation, OverflowError, ValueError):
+            tyg = None
+        if tyg is not None and tyg.is_finite():
+            metrics["tyg_index"] = {
+                "name": "TyG Index",
+                "value": _fmt(tyg),
+                "formula": "ln(Triglycerides x Glucose / 2)",
+                "inputs": {"triglycerides": str(tg), "glucose_serum": str(glucose)},
+                "unit": "",
+                "category": "metabolic",
+                "optimal_range": "< 8.5",
+            }
 
     # --- Cardiovascular ---
 
@@ -152,16 +156,20 @@ def compute_derived_metrics(result: NormalizationResult) -> dict[str, Any]:
         tg_mmol = tg / Decimal("88.57")
         hdl_mmol = hdl / Decimal("38.67")
         if tg_mmol > 0 and hdl_mmol > 0:
-            aip = Decimal(str(math.log10(float(tg_mmol / hdl_mmol))))
-            metrics["atherogenic_index"] = {
-                "name": "Atherogenic Index of Plasma (AIP)",
-                "value": _fmt(aip, 3),
-                "formula": "log10(TG[mmol/L] / HDL[mmol/L])",
-                "inputs": {"triglycerides": str(tg), "hdl_cholesterol": str(hdl)},
-                "unit": "",
-                "category": "cardiovascular",
-                "optimal_range": "< 0.11 (low risk)",
-            }
+            try:
+                aip = (tg_mmol / hdl_mmol).log10()
+            except (InvalidOperation, OverflowError, ValueError):
+                aip = None
+            if aip is not None and aip.is_finite():
+                metrics["atherogenic_index"] = {
+                    "name": "Atherogenic Index of Plasma (AIP)",
+                    "value": _fmt(aip, 3),
+                    "formula": "log10(TG[mmol/L] / HDL[mmol/L])",
+                    "inputs": {"triglycerides": str(tg), "hdl_cholesterol": str(hdl)},
+                    "unit": "",
+                    "category": "cardiovascular",
+                    "optimal_range": "< 0.11 (low risk)",
+                }
 
     # --- Liver ---
 
@@ -180,16 +188,20 @@ def compute_derived_metrics(result: NormalizationResult) -> dict[str, Any]:
     if ast and alt and platelets and platelets > 0 and alt > 0:
 
         # FIB-4 requires age — we don't have it, but include formula without age
-        fib4_no_age = (ast / (platelets * Decimal(str(math.sqrt(float(alt))))))
-        metrics["fib4_no_age"] = {
-            "name": "FIB-4 Index (age-adjusted)",
-            "value": _fmt(fib4_no_age, 3),
-            "formula": "(Age x AST) / (Platelets x sqrt(ALT)) — multiply by patient age",
-            "inputs": {"ast": str(ast), "alt": str(alt), "platelets": str(platelets)},
-            "unit": "",
-            "category": "liver",
-            "note": "Multiply this value by patient age to get FIB-4. < 1.3 = low fibrosis risk.",
-        }
+        try:
+            fib4_no_age = ast / (platelets * alt.sqrt())
+        except (InvalidOperation, OverflowError, ValueError):
+            fib4_no_age = None
+        if fib4_no_age is not None and fib4_no_age.is_finite():
+            metrics["fib4_no_age"] = {
+                "name": "FIB-4 Index (age-adjusted)",
+                "value": _fmt(fib4_no_age, 3),
+                "formula": "(Age x AST) / (Platelets x sqrt(ALT)) — multiply by patient age",
+                "inputs": {"ast": str(ast), "alt": str(alt), "platelets": str(platelets)},
+                "unit": "",
+                "category": "liver",
+                "note": "Multiply this value by patient age to get FIB-4. < 1.3 = low fibrosis risk.",
+            }
 
     # --- Kidney ---
 

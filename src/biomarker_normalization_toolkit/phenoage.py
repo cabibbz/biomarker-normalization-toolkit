@@ -154,19 +154,37 @@ def compute_phenoage(
     if chronological_age is not None:
         xb = xb_no_age + _COEFFICIENTS["age"] * chronological_age
 
-        # Gompertz parameters from Levine 2018 supplementary R code
-        gamma = 0.0076927
-        # Compute at runtime instead of hardcoding to avoid truncation error
-        gompertz_num = math.exp(120 * gamma) - 1  # ~1.51714
-        mortality_score = 1.0 - math.exp(
-            -gompertz_num * math.exp(xb) / gamma
-        )
+        try:
+            # Gompertz parameters from Levine 2018 supplementary R code
+            gamma = 0.0076927
+            # Compute at runtime instead of hardcoding to avoid truncation error
+            gompertz_num = math.exp(120 * gamma) - 1  # ~1.51714
+            mortality_score = 1.0 - math.exp(
+                -gompertz_num * math.exp(xb) / gamma
+            )
+        except (OverflowError, ValueError):
+            return {
+                "phenoage": None,
+                "error": "Inputs produced an out-of-range PhenoAge calculation.",
+            }
+
+        if not math.isfinite(mortality_score):
+            return {
+                "phenoage": None,
+                "error": "Inputs produced an out-of-range PhenoAge calculation.",
+            }
 
         # Invert: find the age that would give this mortality score for an
         # average person. PhenoAge formula from the paper:
         # PhenoAge = 141.50225 + ln(-0.00553 * ln(1 - mortality_score)) / 0.090165
         if mortality_score > 0 and mortality_score < 1:
-            phenoage = 141.50225 + math.log(-0.00553 * math.log(1 - mortality_score)) / 0.090165
+            try:
+                phenoage = 141.50225 + math.log(-0.00553 * math.log(1 - mortality_score)) / 0.090165
+            except (OverflowError, ValueError):
+                return {
+                    "phenoage": None,
+                    "error": "Inputs produced an out-of-range PhenoAge calculation.",
+                }
             # Clamp to physiologically meaningful range
             phenoage = max(0, min(phenoage, 200))
         else:

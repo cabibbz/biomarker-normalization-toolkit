@@ -2147,6 +2147,21 @@ class NormalizationTests(unittest.TestCase):
         self.assertNotIn("de_ritis_ratio", metrics)
         self.assertNotIn("tg_hdl_ratio", metrics)
 
+    def test_derived_metrics_huge_finite_values_do_not_crash(self) -> None:
+        from biomarker_normalization_toolkit.derived import compute_derived_metrics
+        result = self._make_result_with({
+            "glucose_serum": "1e200",
+            "insulin": "1e200",
+            "triglycerides": "1e200",
+            "hdl_cholesterol": "1",
+        })
+        metrics = compute_derived_metrics(result)
+        self.assertIn("homa_ir", metrics)
+        self.assertIn("homa_beta", metrics)
+        self.assertIn("tyg_index", metrics)
+        self.assertIn("atherogenic_index", metrics)
+        self.assertIsInstance(metrics["homa_ir"]["value"], str)
+
     # --- PhenoAge edge cases ---
 
     def test_phenoage_without_chronological_age(self) -> None:
@@ -2186,6 +2201,18 @@ class NormalizationTests(unittest.TestCase):
         self.assertIsNotNone(pa)
         self.assertIsNone(pa["phenoage"])
         self.assertIn("finite non-negative", pa["error"])
+
+    def test_phenoage_huge_finite_inputs_return_error_not_overflow(self) -> None:
+        from biomarker_normalization_toolkit.phenoage import compute_phenoage
+        result = self._make_result_with({
+            "albumin": "4.5", "creatinine": "1e200", "glucose_serum": "1e200",
+            "crp": "1e200", "lymphocytes_pct": "35", "mcv": "88",
+            "rdw": "12.5", "alp": "60", "wbc": "6",
+        })
+        pa = compute_phenoage(result, chronological_age=45)
+        self.assertIsNotNone(pa)
+        self.assertIsNone(pa["phenoage"])
+        self.assertIn("out-of-range", pa["error"])
 
     # --- Optimal ranges sex-specific ---
 
