@@ -13,3 +13,4 @@ recursive-include docs *.md *.json
 recursive-include examples *.md *.py *.json
 recursive-include fixtures *.csv *.json *.hl7 *.xml
 recursive-include scripts *.py
+recursive-include src/biomarker_normalization_toolkit/data *.csv *.json

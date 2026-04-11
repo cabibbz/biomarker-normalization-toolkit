@@ -34,7 +34,7 @@ def _read_expected_version() -> str | None:
 
 
 def _assert_basic_import(expected_version: str | None) -> None:
-    from biomarker_normalization_toolkit import __version__, normalize
+    from biomarker_normalization_toolkit import __version__, load_catalog_metadata, normalize
 
     result = normalize([
         {
@@ -50,6 +50,9 @@ def _assert_basic_import(expected_version: str | None) -> None:
         assert __version__ == expected_version, (__version__, expected_version)
     assert result.summary["mapped"] == 1, result.summary
     assert result.records[0].canonical_biomarker_id == "glucose_serum"
+    metadata = load_catalog_metadata()
+    assert metadata["biomarker_count"] > 0, metadata
+    assert metadata["biomarkers"][0]["biomarker_id"], metadata["biomarkers"][0]
 
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:

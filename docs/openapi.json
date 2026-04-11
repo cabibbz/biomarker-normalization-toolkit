@@ -149,6 +149,148 @@
         }
       }
     },
+    "/catalog/metadata": {
+      "get": {
+        "summary": "Catalog Metadata",
+        "operationId": "catalog_metadata_catalog_metadata_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Catalog Metadata Catalog Metadata Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog/metadata/search": {
+      "get": {
+        "summary": "Catalog Metadata Search",
+        "operationId": "catalog_metadata_search_catalog_metadata_search_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by name, LOINC, alias, or supported source unit",
+              "title": "Search"
+            },
+            "description": "Filter by name, LOINC, alias, or supported source unit"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results to return",
+              "title": "Limit"
+            },
+            "description": "Max results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Skip first N results",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Skip first N results"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Catalog Metadata Search Catalog Metadata Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/aliases/validate": {
+      "post": {
+        "summary": "Aliases Validate",
+        "operationId": "aliases_validate_aliases_validate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AliasValidationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Aliases Validate Aliases Validate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/lookup": {
       "get": {
         "summary": "Lookup",
@@ -187,6 +329,44 @@
                   "type": "object",
                   "additionalProperties": true,
                   "title": "Response Lookup Lookup Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Lookup Post",
+        "operationId": "lookup_post_lookup_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LookupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Lookup Post Lookup Post"
                 }
               }
             }
@@ -328,15 +508,29 @@
       "post": {
         "summary": "Analyze",
         "operationId": "analyze_analyze_post",
+        "parameters": [
+          {
+            "name": "fuzzy_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "default": 0.0,
+              "title": "Fuzzy Threshold"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/NormalizeRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -364,15 +558,29 @@
       "post": {
         "summary": "Analyze Upload",
         "operationId": "analyze_upload_analyze_upload_post",
+        "parameters": [
+          {
+            "name": "fuzzy_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "default": 0.0,
+              "title": "Fuzzy Threshold"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_analyze_upload_analyze_upload_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -640,15 +848,29 @@
         ],
         "summary": "Analyze V1",
         "operationId": "analyze_v1_v1_analyze_post",
+        "parameters": [
+          {
+            "name": "fuzzy_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "default": 0.0,
+              "title": "Fuzzy Threshold"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/NormalizeRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -679,15 +901,29 @@
         ],
         "summary": "Analyze Upload V1",
         "operationId": "analyze_upload_v1_v1_analyze_upload_post",
+        "parameters": [
+          {
+            "name": "fuzzy_threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "default": 0.0,
+              "title": "Fuzzy Threshold"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_analyze_upload_v1_v1_analyze_upload_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -979,6 +1215,157 @@
         }
       }
     },
+    "/v1/catalog/metadata": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Catalog Metadata V1",
+        "operationId": "catalog_metadata_v1_v1_catalog_metadata_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Catalog Metadata V1 V1 Catalog Metadata Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalog/metadata/search": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Catalog Metadata Search V1",
+        "operationId": "catalog_metadata_search_v1_v1_catalog_metadata_search_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by name, LOINC, alias, or supported source unit",
+              "title": "Search"
+            },
+            "description": "Filter by name, LOINC, alias, or supported source unit"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results to return",
+              "title": "Limit"
+            },
+            "description": "Max results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Skip first N results",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Skip first N results"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Catalog Metadata Search V1 V1 Catalog Metadata Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/aliases/validate": {
+      "post": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Aliases Validate V1",
+        "operationId": "aliases_validate_v1_v1_aliases_validate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AliasValidationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Aliases Validate V1 V1 Aliases Validate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/lookup": {
       "get": {
         "tags": [
@@ -1035,17 +1422,84 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Lookup Post V1",
+        "operationId": "lookup_post_v1_v1_lookup_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LookupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Lookup Post V1 V1 Lookup Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
   "components": {
     "schemas": {
+      "AliasValidationRequest": {
+        "properties": {
+          "custom_aliases": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Custom Aliases",
+            "description": "Vendor alias mappings to validate without mutating global alias state."
+          }
+        },
+        "type": "object",
+        "required": [
+          "custom_aliases"
+        ],
+        "title": "AliasValidationRequest"
+      },
       "Body_analyze_upload_analyze_upload_post": {
         "properties": {
           "file": {
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "File"
+          },
+          "custom_aliases_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Aliases Json"
           }
         },
         "type": "object",
@@ -1060,6 +1514,17 @@
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "File"
+          },
+          "custom_aliases_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Aliases Json"
           }
         },
         "type": "object",
@@ -1074,6 +1539,17 @@
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "File"
+          },
+          "custom_aliases_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Aliases Json"
           }
         },
         "type": "object",
@@ -1088,6 +1564,17 @@
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "File"
+          },
+          "custom_aliases_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Aliases Json"
           }
         },
         "type": "object",
@@ -1109,6 +1596,24 @@
             "type": "object",
             "title": "After",
             "description": "{\"rows\": [...]} for follow-up results"
+          },
+          "custom_aliases": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Aliases",
+            "description": "Optional per-request vendor alias mappings that apply to both before and after rows."
           },
           "days_between": {
             "anyOf": [
@@ -1144,6 +1649,45 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "LookupRequest": {
+        "properties": {
+          "test_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Test Name",
+            "description": "Test name to look up"
+          },
+          "specimen": {
+            "type": "string",
+            "title": "Specimen",
+            "description": "Specimen type (optional)",
+            "default": ""
+          },
+          "custom_aliases": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Aliases",
+            "description": "Optional per-request vendor alias mappings that apply only to this API call."
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_name"
+        ],
+        "title": "LookupRequest"
+      },
       "NormalizeRequest": {
         "properties": {
           "rows": {
@@ -1159,6 +1703,24 @@
             "type": "string",
             "title": "Input File",
             "default": ""
+          },
+          "custom_aliases": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Aliases",
+            "description": "Optional per-request vendor alias mappings that apply only to this API call."
           },
           "chronological_age": {
             "anyOf": [
@@ -1202,6 +1764,24 @@
             "type": "array",
             "title": "Rows",
             "description": "Lab result rows (need 9 biomarkers)"
+          },
+          "custom_aliases": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Aliases",
+            "description": "Optional per-request vendor alias mappings that apply only to this API call."
           },
           "chronological_age": {
             "type": "number",

@@ -1,0 +1,7165 @@
+{
+  "schema_version": "0.1.0",
+  "biomarker_count": 297,
+  "biomarkers": [
+    {
+      "biomarker_id": "acetaminophen",
+      "canonical_name": "Acetaminophen",
+      "loinc": "3298-7",
+      "normalized_unit": "ug/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Acetaminophen",
+        "Acetaminophen Level",
+        "APAP",
+        "Paracetamol",
+        "Tylenol",
+        "Acetaminophen [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "acth",
+      "canonical_name": "ACTH",
+      "loinc": "2141-0",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "ACTH",
+        "Adrenocorticotropic Hormone",
+        "Corticotropin"
+      ],
+      "supported_source_units": [
+        "pg/mL",
+        "pmol/L"
+      ],
+      "conversion_to_normalized": {
+        "pg/mL": "1",
+        "pmol/L": "4.541326067211625794732061762"
+      }
+    },
+    {
+      "biomarker_id": "adiponectin",
+      "canonical_name": "Adiponectin",
+      "loinc": "47828-9",
+      "normalized_unit": "ug/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Adiponectin",
+        "Adiponectin, Serum",
+        "Adiponectin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "afp",
+      "canonical_name": "Alpha-Fetoprotein",
+      "loinc": "1834-1",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "AFP",
+        "Alpha-Fetoprotein",
+        "Alpha-Fetoprotein [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "IU/mL",
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1.21",
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "albumin",
+      "canonical_name": "Albumin",
+      "loinc": "1863-0",
+      "normalized_unit": "g/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Albumin",
+        "Alb",
+        "Serum Albumin",
+        "Albumin, Blood",
+        "Albumin, Serum",
+        "Albumin [Mass/volume] in Serum",
+        "Albumin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "g/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "0.1",
+        "g/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "albumin_ascites",
+      "canonical_name": "Albumin, Ascites",
+      "loinc": "1749-1",
+      "normalized_unit": "g/dL",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "Albumin, Ascites",
+        "Ascites Albumin",
+        "Albumin [Mass/volume] in Peritoneal fluid"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "g/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "0.1",
+        "g/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "albumin_creatinine_ratio",
+      "canonical_name": "Albumin/Creatinine Ratio, Urine",
+      "loinc": "9318-7",
+      "normalized_unit": "mg/g",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Albumin/Creatinine, Urine",
+        "Albumin/Creatinine Ratio",
+        "ACR",
+        "Urine Albumin/Creatinine Ratio",
+        "Microalbumin/Creatinine",
+        "Microalbuminuria (orina)",
+        "Microalbumin/Creatinine [Mass Ratio] in Urine"
+      ],
+      "supported_source_units": [
+        "mg/g",
+        "mg/mmol"
+      ],
+      "conversion_to_normalized": {
+        "mg/g": "1",
+        "mg/mmol": "8.84"
+      }
+    },
+    {
+      "biomarker_id": "albumin_globulin_ratio",
+      "canonical_name": "Albumin/Globulin Ratio",
+      "loinc": "1759-0",
+      "normalized_unit": "ratio",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Albumin/Globulin Ratio",
+        "A/G Ratio",
+        "AG Ratio",
+        "Albumin/Globulin [Mass Ratio] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "",
+        "ratio"
+      ],
+      "conversion_to_normalized": {
+        "": "1",
+        "ratio": "1"
+      }
+    },
+    {
+      "biomarker_id": "albumin_pleural",
+      "canonical_name": "Albumin, Pleural",
+      "loinc": "1748-3",
+      "normalized_unit": "g/dL",
+      "allowed_specimens": [
+        "pleural"
+      ],
+      "aliases": [
+        "Albumin, Pleural",
+        "Pleural Albumin",
+        "Albumin [Mass/volume] in Pleural fluid"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "g/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "0.1",
+        "g/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "albumin_urine",
+      "canonical_name": "Urine Albumin",
+      "loinc": "1754-1",
+      "normalized_unit": "mg/L",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Albumin, Urine",
+        "Urine Albumin",
+        "Microalbumin",
+        "Urine Microalbumin",
+        "Albumin [Mass/volume] in Urine"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "mg/dL",
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "mg/dL": "10",
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "alp",
+      "canonical_name": "Alkaline Phosphatase",
+      "loinc": "6768-6",
+      "normalized_unit": "U/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "ALP",
+        "Alk Phos",
+        "Alkaline Phosphatase",
+        "Alkaline Phosph",
+        "Alkaline Phos.",
+        "Alkaline phosphatase [Enzymatic activity/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "U/L"
+      ],
+      "conversion_to_normalized": {
+        "U/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "alt",
+      "canonical_name": "ALT",
+      "loinc": "1742-6",
+      "normalized_unit": "U/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "ALT",
+        "SGPT",
+        "Alanine Aminotransferase",
+        "ALT/SGPT",
+        "ALT (TGP)",
+        "Alanine Aminotransferase (ALT)",
+        "Alanine aminotransferase [Enzymatic activity/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "U/L"
+      ],
+      "conversion_to_normalized": {
+        "U/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "alveolar_arterial_gradient",
+      "canonical_name": "Alveolar-Arterial Gradient",
+      "loinc": "19991-9",
+      "normalized_unit": "mmHg",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Alveolar-arterial Gradient",
+        "A-a Gradient",
+        "A-ADO2",
+        "Alveolar-arterial oxygen Partial pressure difference"
+      ],
+      "supported_source_units": [
+        "mmHg",
+        "mm[Hg]"
+      ],
+      "conversion_to_normalized": {
+        "mmHg": "1",
+        "mm[Hg]": "1"
+      }
+    },
+    {
+      "biomarker_id": "amh",
+      "canonical_name": "Anti-Mullerian Hormone",
+      "loinc": "58540-6",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "AMH",
+        "Anti-Mullerian Hormone",
+        "Anti-Mullerian",
+        "Mullerian Inhibiting Substance",
+        "Mullerian-inhibiting substance [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL",
+        "pmol/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1",
+        "pmol/L": "0.1399972000559988800223995520"
+      }
+    },
+    {
+      "biomarker_id": "ammonia",
+      "canonical_name": "Ammonia",
+      "loinc": "1842-4",
+      "normalized_unit": "umol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Ammonia",
+        "NH3",
+        "Blood Ammonia",
+        "Ammonia [Moles/volume] in Plasma"
+      ],
+      "supported_source_units": [
+        "ug/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/dL": "0.5872",
+        "umol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "amylase",
+      "canonical_name": "Amylase",
+      "loinc": "1798-8",
+      "normalized_unit": "U/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Amylase",
+        "Serum Amylase",
+        "Amy",
+        "Amylase [Enzymatic activity/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "U/L"
+      ],
+      "conversion_to_normalized": {
+        "U/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "ana_screen",
+      "canonical_name": "ANA Screen",
+      "loinc": "8061-4",
+      "normalized_unit": "",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "ANA",
+        "ANA Screen",
+        "Antinuclear Antibody",
+        "Antinuclear Antibodies",
+        "Nuclear Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        ""
+      ],
+      "conversion_to_normalized": {
+        "": "1"
+      }
+    },
+    {
+      "biomarker_id": "anion_gap",
+      "canonical_name": "Anion Gap",
+      "loinc": "33037-3",
+      "normalized_unit": "mEq/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Anion Gap",
+        "AG",
+        "Anion gap in Serum or Plasma",
+        "Anion gap in Serum or Plasma by calculation"
+      ],
+      "supported_source_units": [
+        "",
+        "mEq/L",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "": "1",
+        "mEq/L": "1",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "anti_ccp",
+      "canonical_name": "Anti-CCP Antibodies",
+      "loinc": "53027-9",
+      "normalized_unit": "U/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Anti-CCP",
+        "CCP Antibodies",
+        "Cyclic Citrullinated Peptide Antibodies"
+      ],
+      "supported_source_units": [
+        "U/mL"
+      ],
+      "conversion_to_normalized": {
+        "U/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "apoa1",
+      "canonical_name": "Apolipoprotein A-1",
+      "loinc": "1869-7",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "ApoA1",
+        "ApoA-1",
+        "Apolipoprotein A-1",
+        "Apolipoprotein A1",
+        "Apo A1",
+        "Apolipoprotein A1 [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "apob",
+      "canonical_name": "Apolipoprotein B",
+      "loinc": "1884-6",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "ApoB",
+        "Apolipoprotein B",
+        "Apo B",
+        "ApoB-100",
+        "Apolipoprotein B [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "arsenic",
+      "canonical_name": "Arsenic",
+      "loinc": "5580-6",
+      "normalized_unit": "ug/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Arsenic",
+        "As",
+        "Arsenic, Blood",
+        "Arsenic [Mass/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "ug/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "ast",
+      "canonical_name": "AST",
+      "loinc": "1920-8",
+      "normalized_unit": "U/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "AST",
+        "SGOT",
+        "Aspartate Aminotransferase",
+        "AST/SGOT",
+        "AST (TGO)",
+        "Asparate Aminotransferase (AST)",
+        "Aspartate aminotransferase [Enzymatic activity/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "U/L"
+      ],
+      "conversion_to_normalized": {
+        "U/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "atypical_lymphocytes_pct",
+      "canonical_name": "Atypical Lymphocytes %",
+      "loinc": "13046-8",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Atypical Lymphocytes",
+        "Atypical Lymphocytes Percent",
+        "Reactive Lymphocytes",
+        "Reactive Lymphocytes Percent",
+        "Variant Lymphocytes",
+        "Variant Lymphocytes Percent",
+        "Variant lymphocytes/100 leukocytes in Blood"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "bands",
+      "canonical_name": "Bands",
+      "loinc": "26507-4",
+      "normalized_unit": "K/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Bands",
+        "Band Cells",
+        "Band Neutrophils",
+        "Band form neutrophils [#/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.001",
+        "10^9/L": "1",
+        "K/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "bands_pct",
+      "canonical_name": "Bands %",
+      "loinc": "26508-2",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Bands",
+        "Bands Percent",
+        "Band Cells",
+        "Band Cells Percent",
+        "Band Neutrophils",
+        "Band Neutrophils Percent",
+        "Band form neutrophils/Leukocytes in Blood"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "base_deficit",
+      "canonical_name": "Base Deficit",
+      "loinc": "30318-0",
+      "normalized_unit": "mEq/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Base Deficit",
+        "BD",
+        "Base deficit in Blood"
+      ],
+      "supported_source_units": [
+        "mEq/L",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mEq/L": "1",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "base_excess",
+      "canonical_name": "Base Excess",
+      "loinc": "11555-0",
+      "normalized_unit": "mEq/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Base Excess",
+        "BE",
+        "Base excess in Blood by calculation"
+      ],
+      "supported_source_units": [
+        "mEq/L",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mEq/L": "1",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "basophils",
+      "canonical_name": "Basophils",
+      "loinc": "26444-0",
+      "normalized_unit": "K/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Basophils",
+        "Basophil Count",
+        "Baso",
+        "Basos",
+        "Absolute Basophil Count",
+        "Absolute Basophils",
+        "Basophils (Absolute)",
+        "Basophils [#/volume] in Blood",
+        "Basophils [#/volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.001",
+        "10^9/L": "1",
+        "K/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "basophils_pct",
+      "canonical_name": "Basophils %",
+      "loinc": "704-7",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Basophils Percent",
+        "Basophil Percent",
+        "Baso Pct",
+        "Basophils/100 leukocytes",
+        "Basophils/100 leukocytes in Blood",
+        "Basophils/100 leukocytes in Blood by Automated count",
+        "Basophils/Leukocytes in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "beta2_microglobulin",
+      "canonical_name": "Beta-2 Microglobulin",
+      "loinc": "1952-1",
+      "normalized_unit": "mg/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Beta-2 Microglobulin",
+        "B2M",
+        "Beta-2 Microglobulin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "nmol/L": "0.01177856301531213191990577150"
+      }
+    },
+    {
+      "biomarker_id": "bicarbonate",
+      "canonical_name": "Bicarbonate",
+      "loinc": "1963-8",
+      "normalized_unit": "mEq/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Bicarbonate",
+        "CO2",
+        "Total CO2",
+        "Carbon Dioxide",
+        "HCO3",
+        "Calculated Total CO2",
+        "Calculated Bicarbonate",
+        "Bicarb",
+        "Calculated Bicarbonate, Whole Blood",
+        "Bicarbonate [Moles/volume] in Arterial blood",
+        "Bicarbonate [Moles/volume] in Venous blood",
+        "Carbon dioxide total [Moles/volume] in Blood",
+        "Carbon dioxide  total [Moles/volume] in Serum or Plasma",
+        "Carbon dioxide  total [Moles/volume] in Venous blood",
+        "Bicarbonate [Moles/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "",
+        "mEq/L",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "": "1",
+        "mEq/L": "1",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "bioavailable_testosterone",
+      "canonical_name": "Bioavailable Testosterone",
+      "loinc": "49041-7",
+      "normalized_unit": "ng/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Bioavailable Testosterone",
+        "Testosterone Bioavailable",
+        "Testosterone.bioavailable [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/dL"
+      ],
+      "conversion_to_normalized": {
+        "ng/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "blasts_pct",
+      "canonical_name": "Blasts %",
+      "loinc": "26446-5",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Blasts",
+        "Blasts Percent",
+        "Blasts/100 leukocytes in Blood"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "blood_ph",
+      "canonical_name": "Blood pH",
+      "loinc": "2744-1",
+      "normalized_unit": "pH",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "pH",
+        "Blood pH",
+        "Arterial pH",
+        "pH of Arterial blood",
+        "pH of Blood",
+        "pH of Venous blood"
+      ],
+      "supported_source_units": [
+        "",
+        "pH",
+        "units"
+      ],
+      "conversion_to_normalized": {
+        "": "1",
+        "pH": "1",
+        "units": "1"
+      }
+    },
+    {
+      "biomarker_id": "bnp",
+      "canonical_name": "BNP",
+      "loinc": "42637-9",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "BNP",
+        "Brain Natriuretic Peptide",
+        "B-type Natriuretic Peptide",
+        "Natriuretic Peptide B",
+        "Natriuretic peptide B [Mass/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "ng/L",
+        "pg/dL",
+        "pg/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/L": "1",
+        "pg/dL": "0.01",
+        "pg/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "bun",
+      "canonical_name": "BUN",
+      "loinc": "3094-0",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "BUN",
+        "Urea Nitrogen",
+        "Blood Urea Nitrogen",
+        "Urea",
+        "Urea N",
+        "Urea nitrogen [Mass/volume] in Blood",
+        "Urea nitrogen [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "2.8"
+      }
+    },
+    {
+      "biomarker_id": "bun_creatinine_ratio",
+      "canonical_name": "BUN/Creatinine Ratio",
+      "loinc": "3097-3",
+      "normalized_unit": "ratio",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "BUN/Creatinine Ratio",
+        "BUN/Creat Ratio",
+        "Urea nitrogen/Creatinine [Mass Ratio] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "",
+        "ratio"
+      ],
+      "conversion_to_normalized": {
+        "": "1",
+        "ratio": "1"
+      }
+    },
+    {
+      "biomarker_id": "bun_urine",
+      "canonical_name": "Urea Nitrogen, Urine",
+      "loinc": "3095-7",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Urea Nitrogen, Urine",
+        "BUN, Urine",
+        "Urine BUN"
+      ],
+      "supported_source_units": [
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "c_peptide",
+      "canonical_name": "C-Peptide",
+      "loinc": "1986-9",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "C-Peptide",
+        "Connecting Peptide",
+        "C peptide [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL",
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1",
+        "nmol/L": "3.021"
+      }
+    },
+    {
+      "biomarker_id": "ca125",
+      "canonical_name": "CA-125",
+      "loinc": "10334-1",
+      "normalized_unit": "U/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "CA-125",
+        "Cancer Antigen 125",
+        "CA-125 [Units/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "U/mL"
+      ],
+      "conversion_to_normalized": {
+        "U/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "cadmium",
+      "canonical_name": "Cadmium",
+      "loinc": "5611-9",
+      "normalized_unit": "ug/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Cadmium",
+        "Cd",
+        "Cadmium, Blood",
+        "Cadmium [Mass/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "nmol/L",
+        "ug/L"
+      ],
+      "conversion_to_normalized": {
+        "nmol/L": "0.1123974373384286838260087670",
+        "ug/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "calcium",
+      "canonical_name": "Calcium",
+      "loinc": "17861-6",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Calcium",
+        "Ca",
+        "Calcium, Total",
+        "Serum Calcium",
+        "Total Calcium",
+        "Calcium, Serum",
+        "Calcium [Mass/volume] in Blood",
+        "Calcium [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "4.008"
+      }
+    },
+    {
+      "biomarker_id": "carbamazepine",
+      "canonical_name": "Carbamazepine",
+      "loinc": "3432-2",
+      "normalized_unit": "ug/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Carbamazepine",
+        "Tegretol",
+        "carBAMazepine [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "carboxyhemoglobin",
+      "canonical_name": "Carboxyhemoglobin",
+      "loinc": "20563-3",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Carboxyhemoglobin",
+        "Carboxyhemoglobin Percent",
+        "COHb",
+        "Carboxyhemoglobin/Hemoglobin.total in Blood"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "cd3_absolute",
+      "canonical_name": "Absolute CD3 Count",
+      "loinc": "8122-4",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Absolute CD3 Count",
+        "CD3 Absolute Count",
+        "CD3 cells [#/volume] in Blood",
+        "CD3 cells (Bld) [#/Vol]"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "10^9/L": "1000",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "cd3_pct",
+      "canonical_name": "CD3 Cells, Percent",
+      "loinc": "8124-0",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "CD3 Cells, Percent",
+        "CD3 cells/cells in Blood",
+        "CD3 cells/Cells (Bld)"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "cd4_absolute",
+      "canonical_name": "Absolute CD4 Count",
+      "loinc": "24467-3",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Absolute CD4 Count",
+        "CD4 Absolute Count",
+        "CD3+CD4+ (T4 helper) cells [#/volume] in Blood",
+        "CD3+CD4+ (T4 helper) cells (Bld) [#/Vol]"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "10^9/L": "1000",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "cd4_cd8_ratio",
+      "canonical_name": "CD4/CD8 Ratio",
+      "loinc": "54218-3",
+      "normalized_unit": "ratio",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "CD4/CD8 Ratio",
+        "Helper Suppressor Ratio",
+        "CD3+CD4+ (T4 helper) cells/CD3+CD8+ (T8 suppressor cells) cells [# Ratio] in Blood"
+      ],
+      "supported_source_units": [
+        "ratio"
+      ],
+      "conversion_to_normalized": {
+        "ratio": "1"
+      }
+    },
+    {
+      "biomarker_id": "cd4_pct",
+      "canonical_name": "CD4 Cells, Percent",
+      "loinc": "8123-2",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "CD4 Cells, Percent",
+        "CD3+CD4+ (T4 helper) cells/cells in Blood",
+        "CD3+CD4+ (T4 helper) cells/Cells (Bld)"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "cd8_absolute",
+      "canonical_name": "Absolute CD8 Count",
+      "loinc": "14135-8",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Absolute CD8 Count",
+        "CD8 Absolute Count",
+        "CD3+CD8+ (T8 suppressor) cells [#/volume] in Blood",
+        "CD3+CD8+ (T8 suppressor) cells (Bld) [#/Vol]"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "10^9/L": "1000",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "cd8_pct",
+      "canonical_name": "CD8 Cells, Percent",
+      "loinc": "8101-8",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "CD8 Cells, Percent",
+        "CD3+CD8+ (T8 suppressor) cells/cells in Blood",
+        "CD3+CD8+ (T8 suppressor) cells/Cells (Bld)"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "cea",
+      "canonical_name": "CEA",
+      "loinc": "2039-6",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "CEA",
+        "Carcinoembryonic Antigen",
+        "Carcinoembyronic Antigen (CEA)"
+      ],
+      "supported_source_units": [
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "chloride",
+      "canonical_name": "Chloride",
+      "loinc": "2075-0",
+      "normalized_unit": "mEq/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Chloride",
+        "Cl",
+        "Serum Chloride",
+        "Chloride, Whole Blood",
+        "Chloride [Moles/volume] in Blood",
+        "Chloride [Moles/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mEq/L",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mEq/L": "1",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "chloride_urine",
+      "canonical_name": "Chloride, Urine",
+      "loinc": "2078-4",
+      "normalized_unit": "mEq/L",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Chloride, Urine",
+        "Urine Chloride",
+        "Cl, Urine"
+      ],
+      "supported_source_units": [
+        "mEq/L",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mEq/L": "1",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "chol_hdl_ratio",
+      "canonical_name": "Total Cholesterol/HDL Ratio",
+      "loinc": "9830-1",
+      "normalized_unit": "ratio",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Total Cholesterol/HDL Ratio",
+        "Chol/HDL Ratio",
+        "TC/HDL Ratio",
+        "Cholesterol Ratio (Total/HDL)",
+        "Cholesterol Ratio",
+        "T. Chol/HDL Ratio",
+        "Cholesterol.total/Cholesterol in HDL [Mass Ratio] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "",
+        "ratio"
+      ],
+      "conversion_to_normalized": {
+        "": "1",
+        "ratio": "1"
+      }
+    },
+    {
+      "biomarker_id": "ck",
+      "canonical_name": "Creatine Kinase",
+      "loinc": "2157-6",
+      "normalized_unit": "U/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "CK",
+        "Creatine Kinase",
+        "Creatine Kinase (CK)",
+        "CPK",
+        "CK Total",
+        "Creatine kinase [Enzymatic activity/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "U/L"
+      ],
+      "conversion_to_normalized": {
+        "U/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "ck_mb",
+      "canonical_name": "CK-MB",
+      "loinc": "2154-3",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "CK-MB",
+        "Creatine Kinase, MB Isoenzyme",
+        "CKMB",
+        "CPK-MB"
+      ],
+      "supported_source_units": [
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ck_mb_index",
+      "canonical_name": "CK-MB Index",
+      "loinc": "12189-7",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "CK-MB Index",
+        "CKMB Index",
+        "CPK-MB INDEX",
+        "Creatine kinase.MB/Creatine kinase.total [Pure catalytic fraction] in Serum or Plasma by Calculation"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "complement_c3",
+      "canonical_name": "Complement C3",
+      "loinc": "4485-9",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "C3",
+        "Complement C3",
+        "Complement C3 [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "complement_c4",
+      "canonical_name": "Complement C4",
+      "loinc": "4498-2",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "C4",
+        "Complement C4",
+        "Complement C4 [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "copper",
+      "canonical_name": "Copper",
+      "loinc": "2508-0",
+      "normalized_unit": "ug/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Copper",
+        "Cu",
+        "Serum Copper",
+        "Copper [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ug/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/dL": "1",
+        "umol/L": "6.355"
+      }
+    },
+    {
+      "biomarker_id": "coq10",
+      "canonical_name": "Coenzyme Q10",
+      "loinc": "46986-6",
+      "normalized_unit": "ug/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "CoQ10",
+        "Coenzyme Q10",
+        "Ubiquinone"
+      ],
+      "supported_source_units": [
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "cortisol",
+      "canonical_name": "Cortisol",
+      "loinc": "2143-6",
+      "normalized_unit": "ug/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Cortisol",
+        "Serum Cortisol",
+        "Cortisol AM",
+        "Cortisol, Total",
+        "Cortisol [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "nmol/L",
+        "ug/dL"
+      ],
+      "conversion_to_normalized": {
+        "nmol/L": "0.03624501631025733961580282711",
+        "ug/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "cortisol_free",
+      "canonical_name": "Free Cortisol",
+      "loinc": "9546-3",
+      "normalized_unit": "ug/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Free Cortisol",
+        "Cortisol Free",
+        "Cortisol [Mass/volume] in Serum or Plasma --free"
+      ],
+      "supported_source_units": [
+        "ug/dL"
+      ],
+      "conversion_to_normalized": {
+        "ug/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "creatinine",
+      "canonical_name": "Creatinine",
+      "loinc": "2160-0",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Creatinine",
+        "Creatinine, Serum",
+        "Creatinine, Plasma",
+        "Creat",
+        "Crea",
+        "SCr",
+        "Creatinina [Volume] no soro ou plasma",
+        "Creatinina sérica",
+        "Creatinina",
+        "Creatinine, Whole Blood",
+        "Serum Creatinine",
+        "Creatinine SerPl",
+        "Creatinine [Mass/volume] in Blood",
+        "Creatinine [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "umol/L": "0.01131221719457013574660633484"
+      }
+    },
+    {
+      "biomarker_id": "creatinine_urine",
+      "canonical_name": "Urine Creatinine",
+      "loinc": "2161-8",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Creatinine",
+        "Urine Creatinine",
+        "Urinary Creatinine",
+        "Creat",
+        "Crea",
+        "Creatinine, Urine"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "umol/L": "0.01131221719457013574660633484"
+      }
+    },
+    {
+      "biomarker_id": "crp",
+      "canonical_name": "CRP",
+      "loinc": "1988-5",
+      "normalized_unit": "mg/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "CRP",
+        "C-Reactive Protein",
+        "C reactive protein [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "mg/dL": "10"
+      }
+    },
+    {
+      "biomarker_id": "cystatin_c",
+      "canonical_name": "Cystatin C",
+      "loinc": "33863-2",
+      "normalized_unit": "mg/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Cystatin C",
+        "Cys C",
+        "Cystatin C [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "nmol/L": "0.01329964090969543822316797446"
+      }
+    },
+    {
+      "biomarker_id": "d_dimer",
+      "canonical_name": "D-Dimer",
+      "loinc": "48065-7",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "D-Dimer",
+        "DDimer",
+        "Fibrin D-Dimer",
+        "Fibrin D-dimer FEU [Mass/volume] in Platelet poor plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "ng/mL",
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1000",
+        "ng/mL": "1",
+        "ug/mL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "dhea_s",
+      "canonical_name": "DHEA-Sulfate",
+      "loinc": "2191-5",
+      "normalized_unit": "ug/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "DHEA-S",
+        "DHEA-Sulfate",
+        "Dehydroepiandrosterone Sulfate",
+        "DHEA-SO4",
+        "Dehydroepiandrosterone (DHEA) Sulfate",
+        "Dehydroepiandrosterone sulfate (DHEA-S) [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ug/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/dL": "1",
+        "umol/L": "36.84598378776713338246131172"
+      }
+    },
+    {
+      "biomarker_id": "dht",
+      "canonical_name": "Dihydrotestosterone",
+      "loinc": "1848-1",
+      "normalized_unit": "ng/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "DHT",
+        "Dihydrotestosterone",
+        "5-alpha-DHT",
+        "Dihydrotestosterone [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/dL",
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/dL": "1",
+        "nmol/L": "29.06976744186046511627906977"
+      }
+    },
+    {
+      "biomarker_id": "digoxin",
+      "canonical_name": "Digoxin",
+      "loinc": "10535-3",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Digoxin",
+        "Digoxin Level",
+        "Lanoxin",
+        "Digoxin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "direct_bilirubin",
+      "canonical_name": "Direct Bilirubin",
+      "loinc": "1968-7",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Direct Bilirubin",
+        "Bilirubin Direct",
+        "Conjugated Bilirubin",
+        "DBIL",
+        "Direct Bili",
+        "Bilirubin.direct [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "umol/L": "0.05847953216374269005847953216"
+      }
+    },
+    {
+      "biomarker_id": "eag",
+      "canonical_name": "Estimated Average Glucose",
+      "loinc": "27353-2",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "eAG",
+        "Estimated Average Glucose",
+        "Estimated Avg Glucose"
+      ],
+      "supported_source_units": [
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "egfr",
+      "canonical_name": "eGFR",
+      "loinc": "33914-3",
+      "normalized_unit": "mL/min/1.73m2",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "eGFR",
+        "GFR",
+        "Estimated GFR",
+        "Estimated Glomerular Filtration Rate",
+        "eGFR-MDRD",
+        "eGFR-CKD-EPI",
+        "eGFR Non-Afr American",
+        "eGFR African American",
+        "GFR CKD-EPI",
+        "TFG / eGFR",
+        "Glomerular filtration rate/1.73 sq M.predicted",
+        "Glomerular filtration rate [Volume Rate/Area] in Serum or Plasma by Creatinine-based formula (MDRD)/1.73 sq M"
+      ],
+      "supported_source_units": [
+        "mL/min",
+        "mL/min/1.73m2"
+      ],
+      "conversion_to_normalized": {
+        "mL/min": "1",
+        "mL/min/1.73m2": "1"
+      }
+    },
+    {
+      "biomarker_id": "eosinophils",
+      "canonical_name": "Eosinophils",
+      "loinc": "26449-9",
+      "normalized_unit": "K/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Eosinophils",
+        "Eosinophil Count",
+        "Eos",
+        "Absolute Eosinophil Count",
+        "Absolute Eosinophils",
+        "Eosinophils (Absolute)",
+        "Eosinophils [#/volume] in Blood",
+        "Eosinophils [#/volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.001",
+        "10^9/L": "1",
+        "K/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "eosinophils_ascites_pct",
+      "canonical_name": "Eosinophils, Ascites %",
+      "loinc": "30380-0",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "Eosinophils",
+        "Eos",
+        "Eosinophils/Leukocytes in Peritoneal fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "eosinophils_body_fluid_pct",
+      "canonical_name": "Eosinophils, Body Fluid %",
+      "loinc": "26452-3",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "body_fluid"
+      ],
+      "aliases": [
+        "Eosinophils",
+        "Eos",
+        "Eosinophils/Leukocytes in Body fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "eosinophils_pct",
+      "canonical_name": "Eosinophils %",
+      "loinc": "713-8",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Eosinophils Percent",
+        "Eosinophil Percent",
+        "Eos Pct",
+        "Eosinophils/100 leukocytes",
+        "Eosinophils/100 leukocytes in Blood",
+        "Eosinophils/100 leukocytes in Blood by Automated count",
+        "Eosinophils/Leukocytes in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "eosinophils_pleural_pct",
+      "canonical_name": "Eosinophils, Pleural %",
+      "loinc": "30379-2",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "pleural"
+      ],
+      "aliases": [
+        "Eosinophils",
+        "Eos",
+        "Eosinophils/Leukocytes in Pleural fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "epithelial_cells_urine",
+      "canonical_name": "Urine Epithelial Cells",
+      "loinc": "5787-7",
+      "normalized_unit": "#/hpf",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Epithelial Cells",
+        "Urine Epithelial Cells",
+        "Epithelial cells [#/area] in Urine sediment by Microscopy high power field"
+      ],
+      "supported_source_units": [
+        "#/hpf"
+      ],
+      "conversion_to_normalized": {
+        "#/hpf": "1"
+      }
+    },
+    {
+      "biomarker_id": "esr",
+      "canonical_name": "Erythrocyte Sedimentation Rate",
+      "loinc": "4537-7",
+      "normalized_unit": "mm/hr",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "ESR",
+        "Sed Rate",
+        "Sedimentation Rate",
+        "Erythrocyte Sedimentation Rate",
+        "ESR Westergren",
+        "Westergren ESR",
+        "ESR (Erythrocyte Sed Rate)",
+        "Erythrocyte sedimentation rate by Westergren method"
+      ],
+      "supported_source_units": [
+        "mm/hr"
+      ],
+      "conversion_to_normalized": {
+        "mm/hr": "1"
+      }
+    },
+    {
+      "biomarker_id": "estradiol",
+      "canonical_name": "Estradiol",
+      "loinc": "2243-4",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Estradiol",
+        "E2",
+        "Estradiol Ultrasensitive",
+        "17-beta Estradiol",
+        "Estradiol (E2) [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "pg/mL",
+        "pmol/L"
+      ],
+      "conversion_to_normalized": {
+        "pg/mL": "1",
+        "pmol/L": "0.2724053391446472350858076818"
+      }
+    },
+    {
+      "biomarker_id": "estrone",
+      "canonical_name": "Estrone",
+      "loinc": "2015-6",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Estrone",
+        "E1",
+        "Estrone, Serum",
+        "Estrone [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "pg/mL",
+        "pmol/L"
+      ],
+      "conversion_to_normalized": {
+        "pg/mL": "1",
+        "pmol/L": "0.2703433360367666937010002703"
+      }
+    },
+    {
+      "biomarker_id": "ethanol",
+      "canonical_name": "Ethanol",
+      "loinc": "5643-2",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Ethanol",
+        "Ethanol Level",
+        "EtOH",
+        "Ethyl Alcohol",
+        "Ethanol [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ferritin",
+      "canonical_name": "Ferritin",
+      "loinc": "2276-4",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Ferritin",
+        "Serum Ferritin",
+        "Ferritin, Serum",
+        "Ferritin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL",
+        "ug/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1",
+        "ug/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "fibrinogen",
+      "canonical_name": "Fibrinogen",
+      "loinc": "3255-7",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Fibrinogen",
+        "Fibrinogen, Functional",
+        "Fibrinogen Activity"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "folate",
+      "canonical_name": "Folate",
+      "loinc": "2155-0",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Folate",
+        "Folic Acid",
+        "Vitamin B9",
+        "Folate (Folic Acid), Serum"
+      ],
+      "supported_source_units": [
+        "ng/mL",
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1",
+        "nmol/L": "0.4413062665489849955869373345"
+      }
+    },
+    {
+      "biomarker_id": "free_psa",
+      "canonical_name": "Free PSA",
+      "loinc": "10886-0",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Free PSA",
+        "PSA Free ng/mL",
+        "Prostate specific Ag Free [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "free_t3",
+      "canonical_name": "Free T3",
+      "loinc": "3051-0",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Free T3",
+        "FT3",
+        "Triiodothyronine Free",
+        "Free Triiodothyronine",
+        "Triiodothyronine (T3), Free",
+        "Triiodothyronine Free (T3) [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "pg/mL",
+        "pmol/L"
+      ],
+      "conversion_to_normalized": {
+        "pg/mL": "1",
+        "pmol/L": "0.6510416666666666666666666667"
+      }
+    },
+    {
+      "biomarker_id": "free_t4",
+      "canonical_name": "Free T4",
+      "loinc": "3024-7",
+      "normalized_unit": "ng/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Free T4",
+        "FT4",
+        "Thyroxine Free",
+        "Free Thyroxine",
+        "Thyroxine (T4), Free",
+        "T4, Free",
+        "Thyroxine, Free (FT4)",
+        "Thyroxine (T4) free [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/dL",
+        "pmol/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/dL": "1",
+        "pmol/L": "0.07770007770007770007770007770"
+      }
+    },
+    {
+      "biomarker_id": "free_testosterone",
+      "canonical_name": "Free Testosterone",
+      "loinc": "2991-8",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Free Testosterone",
+        "Testosterone Free",
+        "Free Testosterone(Direct)",
+        "Testosterone Free [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "pg/mL"
+      ],
+      "conversion_to_normalized": {
+        "pg/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "fructosamine",
+      "canonical_name": "Fructosamine",
+      "loinc": "4983-3",
+      "normalized_unit": "umol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Fructosamine",
+        "Glycated Albumin",
+        "Glycated Serum Protein",
+        "Fructosamine [Moles/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "umol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "fsh",
+      "canonical_name": "FSH",
+      "loinc": "15067-2",
+      "normalized_unit": "mIU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "FSH",
+        "Follicle Stimulating Hormone",
+        "Follitropin",
+        "Follitropin [Units/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "IU/L",
+        "U/L",
+        "mIU/L",
+        "mIU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/L": "1",
+        "U/L": "1",
+        "mIU/L": "0.001",
+        "mIU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "gdf15",
+      "canonical_name": "GDF-15",
+      "loinc": "92665-9",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "GDF-15",
+        "GDF15",
+        "Growth Differentiation Factor 15",
+        "Growth differentiation factor 15 [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/L",
+        "pg/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/L": "1",
+        "pg/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "gentamicin",
+      "canonical_name": "Gentamicin",
+      "loinc": "35668-3",
+      "normalized_unit": "ug/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum"
+      ],
+      "aliases": [
+        "Gentamicin",
+        "Gentamicin Level",
+        "Gentamicin - random",
+        "Gentamicin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ggt",
+      "canonical_name": "GGT",
+      "loinc": "2324-2",
+      "normalized_unit": "U/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "GGT",
+        "Gamma GT",
+        "Gamma-Glutamyl Transferase",
+        "Gamma Glutamyl Transpeptidase",
+        "Gamma Glutamyltransferase",
+        "GGTP",
+        "Gamma glutamyl transferase [Enzymatic activity/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "U/L"
+      ],
+      "conversion_to_normalized": {
+        "U/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "globulin",
+      "canonical_name": "Globulin",
+      "loinc": "10834-0",
+      "normalized_unit": "g/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Globulin",
+        "Serum Globulin",
+        "Total Globulin",
+        "Globulin [Mass/volume] in Serum by calculation"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "g/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "0.1",
+        "g/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "glucose_ascites",
+      "canonical_name": "Glucose, Ascites",
+      "loinc": "2347-3",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "Glucose, Ascites",
+        "Ascites Glucose",
+        "Glucose [Mass/volume] in Peritoneal fluid"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "18"
+      }
+    },
+    {
+      "biomarker_id": "glucose_csf",
+      "canonical_name": "CSF Glucose",
+      "loinc": "2342-4",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "cerebrospinal fluid"
+      ],
+      "aliases": [
+        "Glucose - CSF",
+        "CSF Glucose",
+        "Glucose (CSF) [Mass/Vol]",
+        "Glucose [Mass/volume] in Cerebral spinal fluid"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "18"
+      }
+    },
+    {
+      "biomarker_id": "glucose_pleural",
+      "canonical_name": "Glucose, Pleural",
+      "loinc": "2346-5",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "pleural"
+      ],
+      "aliases": [
+        "Glucose, Pleural",
+        "Pleural Glucose",
+        "Glucose [Mass/volume] in Pleural fluid"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "18"
+      }
+    },
+    {
+      "biomarker_id": "glucose_serum",
+      "canonical_name": "Glucose",
+      "loinc": "2345-7",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Glucose",
+        "Glucose, Serum",
+        "Glucose, Plasma",
+        "Serum Glucose",
+        "Blood Glucose",
+        "GLU",
+        "FBS",
+        "Fasting Glucose",
+        "Fasting Blood Sugar",
+        "Glucosa en sangre",
+        "Glucosa en plasma",
+        "Glucosa en plasma (ayuno)",
+        "Glucose SerPl",
+        "Glucose [Mass/volume] in Blood",
+        "Glucose [Mass/volume] in Serum or Plasma",
+        "Glucose [Moles/volume] in Blood",
+        "Glucose [Moles/volume] in Serum or Plasma",
+        "Glucose, Fasting",
+        "Bedside Glucose",
+        "Random Glucose"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "18"
+      }
+    },
+    {
+      "biomarker_id": "glucose_urine",
+      "canonical_name": "Urine Glucose",
+      "loinc": "53328-1",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Glucose",
+        "Urine Glucose",
+        "GLU",
+        "Glucose [Mass/volume] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "18"
+      }
+    },
+    {
+      "biomarker_id": "glucose_urine_presence",
+      "canonical_name": "Urine Glucose Presence",
+      "loinc": "25428-4",
+      "normalized_unit": "",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Urine Glucose Presence",
+        "Glucose Presence, Urine",
+        "Glucose [Presence] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        ""
+      ],
+      "conversion_to_normalized": {
+        "": "1"
+      }
+    },
+    {
+      "biomarker_id": "glycomark",
+      "canonical_name": "1,5-Anhydroglucitol",
+      "loinc": "53553-4",
+      "normalized_unit": "ug/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "GlycoMark",
+        "1,5-AG",
+        "1,5-Anhydroglucitol"
+      ],
+      "supported_source_units": [
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "granular_casts",
+      "canonical_name": "Granular Casts",
+      "loinc": "5793-5",
+      "normalized_unit": "#/lpf",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Granular Casts",
+        "Urine Granular Casts",
+        "Granular casts [#/area] in Urine sediment by Microscopy low power field"
+      ],
+      "supported_source_units": [
+        "#/lpf"
+      ],
+      "conversion_to_normalized": {
+        "#/lpf": "1"
+      }
+    },
+    {
+      "biomarker_id": "haptoglobin",
+      "canonical_name": "Haptoglobin",
+      "loinc": "4542-7",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Haptoglobin",
+        "Hapto",
+        "Haptoglobin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "hba1c",
+      "canonical_name": "Hemoglobin A1c",
+      "loinc": "4548-4",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Hemoglobin A1c",
+        "A1C",
+        "HbA1c",
+        "Glycated Hemoglobin",
+        "Glycated Hb",
+        "GlycoHb",
+        "Hgb A1C",
+        "Glycohemoglobin A1C",
+        "Hemoglobina glicosilada (HbA1c)",
+        "Hemoglobin A1c/Hemoglobin.total in Blood",
+        "Hemoglobin A1c/Hemoglobin.total in Blood by IFCC protocol"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "hdl_cholesterol",
+      "canonical_name": "HDL Cholesterol",
+      "loinc": "2085-9",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "HDL Cholesterol",
+        "HDL-C",
+        "HDL",
+        "HDL Chol",
+        "HDL Cholesterol Direct",
+        "Cholesterol, HDL",
+        "Colesterol HDL",
+        "High Density Lipoprotein Cholesterol",
+        "Cholesterol in HDL [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "38.67"
+      }
+    },
+    {
+      "biomarker_id": "hdl_particle",
+      "canonical_name": "HDL Particle Number",
+      "loinc": "55437-8",
+      "normalized_unit": "umol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "HDL-P",
+        "HDL Particle Number",
+        "Total HDL Particles",
+        "HDL Particle Number (NMR)"
+      ],
+      "supported_source_units": [
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "umol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "hematocrit",
+      "canonical_name": "Hematocrit",
+      "loinc": "4544-3",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Hematocrit",
+        "Hct",
+        "PCV",
+        "Packed Cell Volume",
+        "Hematocrit, Calculated",
+        "Hematocrit [Volume Fraction] of Blood",
+        "Hematocrit [Volume Fraction] of Blood by Automated count",
+        "Hematocrit [Volume Fraction] of Blood by calculation"
+      ],
+      "supported_source_units": [
+        "%",
+        "L/L"
+      ],
+      "conversion_to_normalized": {
+        "%": "1",
+        "L/L": "100"
+      }
+    },
+    {
+      "biomarker_id": "hemoglobin",
+      "canonical_name": "Hemoglobin",
+      "loinc": "718-7",
+      "normalized_unit": "g/dL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Hemoglobin",
+        "Hgb",
+        "Hb",
+        "Haemoglobin",
+        "Hemoglobina",
+        "Hemoglobin [Mass/volume]",
+        "Hemoglobin [Mass/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "g/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "0.1",
+        "g/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "homocysteine",
+      "canonical_name": "Homocysteine",
+      "loinc": "13965-9",
+      "normalized_unit": "umol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Homocysteine",
+        "Hcy",
+        "Total Homocysteine",
+        "Homocysteine [Moles/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "umol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "hscrp",
+      "canonical_name": "hs-CRP",
+      "loinc": "30522-7",
+      "normalized_unit": "mg/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "hs-CRP",
+        "hsCRP",
+        "High Sensitivity CRP",
+        "High Sensitivity C-Reactive Protein",
+        "CRP-hs",
+        "C-Reactive Protein, High Sensitivity",
+        "C-Reactive Protein, Cardiac",
+        "C-Reactive Protein, Quant"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "mg/dL": "10"
+      }
+    },
+    {
+      "biomarker_id": "hyaline_casts",
+      "canonical_name": "Hyaline Casts",
+      "loinc": "5796-8",
+      "normalized_unit": "#/lpf",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Hyaline Casts",
+        "Urine Hyaline Casts",
+        "Hyaline casts [#/area] in Urine sediment by Microscopy low power field"
+      ],
+      "supported_source_units": [
+        "#/lpf"
+      ],
+      "conversion_to_normalized": {
+        "#/lpf": "1"
+      }
+    },
+    {
+      "biomarker_id": "iga",
+      "canonical_name": "Immunoglobulin A",
+      "loinc": "2458-8",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "IgA",
+        "Immunoglobulin A",
+        "IgA [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_american_house_dust_mite",
+      "canonical_name": "American House Dust Mite IgE",
+      "loinc": "6095-4",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "American House Dust Mite IgE",
+        "American house dust mite specific IgE",
+        "American house dust mite IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_cat_dander",
+      "canonical_name": "Cat Dander IgE",
+      "loinc": "6833-8",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Cat Dander IgE",
+        "Cat dander specific IgE",
+        "Cat dander IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_cladosporium_herbarum",
+      "canonical_name": "Cladosporium herbarum IgE",
+      "loinc": "6075-6",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Cladosporium herbarum IgE",
+        "Cladosporium herbarum specific IgE",
+        "Cladosporium herbarum IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_codfish",
+      "canonical_name": "Codfish IgE",
+      "loinc": "6082-2",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Codfish IgE",
+        "Codfish specific IgE",
+        "Codfish IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_common_ragweed",
+      "canonical_name": "Common Ragweed IgE",
+      "loinc": "6085-5",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Common Ragweed IgE",
+        "Common ragweed specific IgE",
+        "Common Ragweed IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_cow_milk",
+      "canonical_name": "Cow Milk IgE",
+      "loinc": "7258-7",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Cow Milk IgE",
+        "Cow milk specific IgE",
+        "Cow milk IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_egg_white",
+      "canonical_name": "Egg White IgE",
+      "loinc": "6106-9",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Egg White IgE",
+        "Egg white specific IgE",
+        "Egg white IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_honey_bee",
+      "canonical_name": "Honey Bee IgE",
+      "loinc": "6844-5",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Honey Bee IgE",
+        "Honey bee specific IgE",
+        "Honey bee IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_latex",
+      "canonical_name": "Latex IgE",
+      "loinc": "6158-0",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Latex IgE",
+        "Latex specific IgE",
+        "Latex IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_peanut",
+      "canonical_name": "Peanut IgE",
+      "loinc": "6206-7",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Peanut IgE",
+        "Peanut specific IgE",
+        "Peanut IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_shrimp",
+      "canonical_name": "Shrimp IgE",
+      "loinc": "6246-3",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Shrimp IgE",
+        "Shrimp specific IgE",
+        "Shrimp IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_soybean",
+      "canonical_name": "Soybean IgE",
+      "loinc": "6248-9",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Soybean IgE",
+        "Soybean specific IgE",
+        "Soybean IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_total",
+      "canonical_name": "Total IgE",
+      "loinc": "19113-0",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "IgE",
+        "Total IgE",
+        "Immunoglobulin E",
+        "IgE [Units/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_walnut",
+      "canonical_name": "Walnut IgE",
+      "loinc": "6273-7",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Walnut IgE",
+        "Walnut specific IgE",
+        "Walnut IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_wheat",
+      "canonical_name": "Wheat IgE",
+      "loinc": "6276-0",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Wheat IgE",
+        "Wheat specific IgE",
+        "Wheat IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ige_white_oak",
+      "canonical_name": "White Oak IgE",
+      "loinc": "6189-5",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "White Oak IgE",
+        "White oak specific IgE",
+        "White oak IgE Ab [Units/volume] in Serum"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "igf1",
+      "canonical_name": "IGF-1",
+      "loinc": "2484-4",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "IGF-1",
+        "IGF1",
+        "Insulin-like Growth Factor 1",
+        "Somatomedin C",
+        "IGF I, LC/MS",
+        "Insulin-Like Growth Factor I",
+        "Insulin-like growth factor-I [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "igfbp3",
+      "canonical_name": "IGFBP-3",
+      "loinc": "2480-2",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "IGFBP-3",
+        "IGF Binding Protein 3",
+        "Insulin-like Growth Factor Binding Protein 3"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1000",
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "igg",
+      "canonical_name": "Immunoglobulin G",
+      "loinc": "2465-3",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "IgG",
+        "Immunoglobulin G",
+        "IgG [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "igm",
+      "canonical_name": "Immunoglobulin M",
+      "loinc": "2472-9",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "IgM",
+        "Immunoglobulin M",
+        "IgM [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "il6",
+      "canonical_name": "Interleukin-6",
+      "loinc": "26881-3",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "IL-6",
+        "Interleukin 6",
+        "Interleukin 6 [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "pg/mL"
+      ],
+      "conversion_to_normalized": {
+        "pg/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "immature_granulocytes",
+      "canonical_name": "Immature Granulocytes",
+      "loinc": "53115-2",
+      "normalized_unit": "K/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Immature Granulocytes",
+        "IG",
+        "Immature Grans",
+        "Immature granulocytes [#/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.001",
+        "10^9/L": "1",
+        "K/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "immature_granulocytes_pct",
+      "canonical_name": "Immature Granulocytes %",
+      "loinc": "71695-1",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Immature Granulocytes Percent",
+        "IG Percent",
+        "Immature Grans Percent",
+        "Immature Granulocytes/100 leukocytes"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "indirect_bilirubin",
+      "canonical_name": "Indirect Bilirubin",
+      "loinc": "1971-1",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Indirect Bilirubin",
+        "Bilirubin, Indirect",
+        "Unconjugated Bilirubin",
+        "Indirect Bili",
+        "Bilirubin.indirect [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "umol/L": "0.05847953216374269005847953216"
+      }
+    },
+    {
+      "biomarker_id": "inr",
+      "canonical_name": "INR",
+      "loinc": "6301-6",
+      "normalized_unit": "ratio",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "INR",
+        "INR(PT)",
+        "PT - INR",
+        "International Normalized Ratio",
+        "INR in Platelet poor plasma by Coagulation assay"
+      ],
+      "supported_source_units": [
+        "",
+        "ratio"
+      ],
+      "conversion_to_normalized": {
+        "": "1",
+        "ratio": "1"
+      }
+    },
+    {
+      "biomarker_id": "insulin",
+      "canonical_name": "Insulin",
+      "loinc": "20448-7",
+      "normalized_unit": "uIU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Insulin",
+        "Insulin Fasting",
+        "Fasting Insulin",
+        "Serum Insulin",
+        "Insulin [Units/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mIU/L",
+        "mIU/mL",
+        "pmol/L",
+        "uIU/mL"
+      ],
+      "conversion_to_normalized": {
+        "mIU/L": "1",
+        "mIU/mL": "1000",
+        "pmol/L": "0.1439884809215262778977681785",
+        "uIU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ionized_calcium",
+      "canonical_name": "Ionized Calcium",
+      "loinc": "1994-3",
+      "normalized_unit": "mmol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Ionized Calcium",
+        "Free Calcium",
+        "Calcium Ionized",
+        "iCa"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "0.2495009980039920159680638723",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "iron",
+      "canonical_name": "Iron",
+      "loinc": "2498-4",
+      "normalized_unit": "ug/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Iron",
+        "Serum Iron",
+        "Fe",
+        "Iron, Total",
+        "Total Iron",
+        "Iron [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ug/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/dL": "1",
+        "umol/L": "5.585"
+      }
+    },
+    {
+      "biomarker_id": "lactate",
+      "canonical_name": "Lactate",
+      "loinc": "2524-7",
+      "normalized_unit": "mmol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Lactate",
+        "Lactic Acid",
+        "Lactate [Moles/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "0.1109877913429522752497225305",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "large_hdl_particle",
+      "canonical_name": "Large HDL Particle Number",
+      "loinc": "55436-0",
+      "normalized_unit": "umol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Large HDL-P",
+        "Large HDL Particles",
+        "Large HDL Particle Number"
+      ],
+      "supported_source_units": [
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "umol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "large_vldl_particle",
+      "canonical_name": "Large VLDL Particle Number",
+      "loinc": "55438-6",
+      "normalized_unit": "nmol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Large VLDL-P",
+        "Large VLDL Particles",
+        "Large VLDL Particle Number"
+      ],
+      "supported_source_units": [
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "nmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "ldh",
+      "canonical_name": "Lactate Dehydrogenase",
+      "loinc": "2532-0",
+      "normalized_unit": "U/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "LDH",
+        "Lactate Dehydrogenase",
+        "Lactate Dehydrogenase (LD)",
+        "LD",
+        "Lactate dehydrogenase [Enzymatic activity/volume] in Serum or Plasma",
+        "Lactate dehydrogenase [Enzymatic activity/volume] in Serum or Plasma by Lactate to pyruvate reaction"
+      ],
+      "supported_source_units": [
+        "U/L"
+      ],
+      "conversion_to_normalized": {
+        "U/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "ldl_cholesterol",
+      "canonical_name": "LDL Cholesterol",
+      "loinc": "2089-1",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "LDL Cholesterol",
+        "LDL-C",
+        "LDL",
+        "LDL Chol Calc",
+        "LDL Cholesterol Calc",
+        "LDL Cholesterol Calculated",
+        "LDL Calc",
+        "Cholesterol, LDL, Calculated",
+        "Cholesterol, LDL, Measured",
+        "Low Density Lipoprotein Cholesterol",
+        "LDL Chol Calc (NIH)",
+        "Colesterol LDL",
+        "Cholesterol in LDL [Mass/volume] in Serum or Plasma",
+        "Cholesterol in LDL [Mass/volume] in Serum or Plasma by Direct assay",
+        "Cholesterol in LDL [Mass/volume] in Serum or Plasma by calculation"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "38.67"
+      }
+    },
+    {
+      "biomarker_id": "ldl_particle_number",
+      "canonical_name": "LDL Particle Number",
+      "loinc": "54434-6",
+      "normalized_unit": "nmol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "LDL Particle Number",
+        "LDL-P",
+        "LDL Particle Count",
+        "Low density lipoprotein particle number [#/volume] in Serum or Plasma by NMR"
+      ],
+      "supported_source_units": [
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "nmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "ldl_particle_size",
+      "canonical_name": "LDL Particle Size",
+      "loinc": "17782-4",
+      "normalized_unit": "nm",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "LDL Particle Size",
+        "LDL Peak Size",
+        "LDL Size"
+      ],
+      "supported_source_units": [
+        "nm"
+      ],
+      "conversion_to_normalized": {
+        "nm": "1"
+      }
+    },
+    {
+      "biomarker_id": "lead",
+      "canonical_name": "Lead",
+      "loinc": "5671-3",
+      "normalized_unit": "ug/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Lead",
+        "Pb",
+        "Lead, Blood",
+        "Lead Level",
+        "Lead [Mass/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "ug/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/dL": "1",
+        "umol/L": "20.72109407376709490261085785"
+      }
+    },
+    {
+      "biomarker_id": "leptin",
+      "canonical_name": "Leptin",
+      "loinc": "21365-2",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Leptin",
+        "Serum Leptin",
+        "Leptin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "lh",
+      "canonical_name": "Luteinizing Hormone",
+      "loinc": "10501-5",
+      "normalized_unit": "mIU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "LH",
+        "Luteinizing Hormone",
+        "Lutropin [Units/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "IU/L",
+        "U/L",
+        "mIU/L",
+        "mIU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/L": "1",
+        "U/L": "1",
+        "mIU/L": "0.001",
+        "mIU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "lipase",
+      "canonical_name": "Lipase",
+      "loinc": "3040-3",
+      "normalized_unit": "U/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Lipase",
+        "Serum Lipase",
+        "Lipase, Serum",
+        "Lipase [Enzymatic activity/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "U/L"
+      ],
+      "conversion_to_normalized": {
+        "U/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "lithium",
+      "canonical_name": "Lithium",
+      "loinc": "14334-7",
+      "normalized_unit": "mmol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum"
+      ],
+      "aliases": [
+        "Lithium",
+        "Lithium Level",
+        "Lithium [Moles/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "lp_ir_score",
+      "canonical_name": "Lipoprotein Insulin Resistance Score",
+      "loinc": "86909-9",
+      "normalized_unit": "",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "LP-IR",
+        "LP-IR Score",
+        "Lipoprotein Insulin Resistance Score",
+        "LP-IR Score (NMR)"
+      ],
+      "supported_source_units": [
+        ""
+      ],
+      "conversion_to_normalized": {
+        "": "1"
+      }
+    },
+    {
+      "biomarker_id": "lp_pla2",
+      "canonical_name": "Lp-PLA2",
+      "loinc": "86951-1",
+      "normalized_unit": "nmol/min/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Lp-PLA2",
+        "PLAC",
+        "Lipoprotein-associated Phospholipase A2",
+        "Phospholipase A2 group 7 [Enzymatic activity/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL",
+        "nmol/min/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1",
+        "nmol/min/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "lpa",
+      "canonical_name": "Lipoprotein(a)",
+      "loinc": "10835-7",
+      "normalized_unit": "nmol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Lp(a)",
+        "Lipoprotein a",
+        "LPA",
+        "Lipoprotein a [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "2.399808015358771298296136309",
+        "nmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "lymphocytes",
+      "canonical_name": "Lymphocytes",
+      "loinc": "26474-7",
+      "normalized_unit": "K/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Lymphocytes",
+        "Lymphocyte Count",
+        "Lymph",
+        "Lymphs",
+        "Absolute Lymphocyte Count",
+        "Absolute Lymphocytes",
+        "Lymphocytes (Absolute)",
+        "Lymphocytes [#/volume] in Blood",
+        "Lymphocytes [#/volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.001",
+        "10^9/L": "1",
+        "K/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "lymphocytes_ascites_pct",
+      "canonical_name": "Lymphocytes, Ascites %",
+      "loinc": "26482-0",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "Lymphocytes",
+        "Lymphs",
+        "Lymphocytes/Leukocytes in Peritoneal fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "lymphocytes_body_fluid_pct",
+      "canonical_name": "Lymphocytes, Body Fluid %",
+      "loinc": "11031-2",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "body_fluid"
+      ],
+      "aliases": [
+        "Lymphocytes",
+        "Lymphs",
+        "Lymphocytes/Leukocytes in Body fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "lymphocytes_pct",
+      "canonical_name": "Lymphocytes %",
+      "loinc": "731-0",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Lymphocytes Percent",
+        "Lymphocyte Percent",
+        "Lymph Pct",
+        "Lymphocytes/100 leukocytes",
+        "Lymphocytes/100 leukocytes in Blood",
+        "Lymphocytes/100 leukocytes in Blood by Automated count",
+        "Lymphocytes/Leukocytes in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "lymphocytes_pleural_pct",
+      "canonical_name": "Lymphocytes, Pleural %",
+      "loinc": "26481-2",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "pleural"
+      ],
+      "aliases": [
+        "Lymphocytes",
+        "Lymphs",
+        "Lymphocytes/Leukocytes in Pleural fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "macrophages_body_fluid_pct",
+      "canonical_name": "Macrophages, Body Fluid %",
+      "loinc": "30427-9",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "body_fluid"
+      ],
+      "aliases": [
+        "Macrophage",
+        "Macrophages",
+        "Macrophages/Leukocytes in Body fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "macrophages_csf_pct",
+      "canonical_name": "Macrophages, CSF %",
+      "loinc": "30426-1",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "cerebrospinal fluid"
+      ],
+      "aliases": [
+        "Macrophage",
+        "Macrophages",
+        "Macrophages/Leukocytes in Cerebral spinal fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "magnesium",
+      "canonical_name": "Magnesium",
+      "loinc": "19123-9",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Magnesium",
+        "Mag",
+        "Mg",
+        "Serum Magnesium",
+        "Magnesium, Serum",
+        "Magnesium [Mass/volume] in Serum or Plasma",
+        "Magnesium [Mass/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "2.431"
+      }
+    },
+    {
+      "biomarker_id": "manganese",
+      "canonical_name": "Manganese",
+      "loinc": "32551-4",
+      "normalized_unit": "ug/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Manganese",
+        "Mn",
+        "Manganese, Blood",
+        "Manganese [Mass/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "ug/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "mch",
+      "canonical_name": "MCH",
+      "loinc": "785-6",
+      "normalized_unit": "pg",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "MCH",
+        "Mean Corpuscular Hemoglobin",
+        "MCH [Entitic mass]",
+        "MCH [Entitic mass] by Automated count"
+      ],
+      "supported_source_units": [
+        "pg"
+      ],
+      "conversion_to_normalized": {
+        "pg": "1"
+      }
+    },
+    {
+      "biomarker_id": "mchc",
+      "canonical_name": "MCHC",
+      "loinc": "786-4",
+      "normalized_unit": "g/dL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "MCHC",
+        "Mean Corpuscular Hemoglobin Concentration",
+        "MCHC [Mass/volume]",
+        "MCHC [Entitic Mass/volume] in Red Blood Cells by Automated count",
+        "MCHC [Mass/volume] by Automated count"
+      ],
+      "supported_source_units": [
+        "%",
+        "g/L",
+        "g/dL"
+      ],
+      "conversion_to_normalized": {
+        "%": "1",
+        "g/L": "0.1",
+        "g/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "mcv",
+      "canonical_name": "MCV",
+      "loinc": "787-2",
+      "normalized_unit": "fL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "MCV",
+        "Mean Corpuscular Volume",
+        "MCV [Entitic volume]",
+        "MCV [Entitic mean volume] in Red Blood Cells",
+        "MCV [Entitic mean volume] in Red Blood Cells by Automated count",
+        "MCV [Entitic volume] by Automated count"
+      ],
+      "supported_source_units": [
+        "fL"
+      ],
+      "conversion_to_normalized": {
+        "fL": "1"
+      }
+    },
+    {
+      "biomarker_id": "mercury",
+      "canonical_name": "Mercury",
+      "loinc": "5677-0",
+      "normalized_unit": "ug/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Mercury",
+        "Hg",
+        "Mercury, Blood",
+        "Mercury, Whole Blood",
+        "Mercury [Mass/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "nmol/L",
+        "ug/L"
+      ],
+      "conversion_to_normalized": {
+        "nmol/L": "0.2006018054162487462387161484",
+        "ug/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "mesothelial_cells_ascites_pct",
+      "canonical_name": "Mesothelial Cells, Ascites %",
+      "loinc": "30432-9",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "Mesothelial Cell",
+        "Mesothelial Cells",
+        "Mesothelial cells/Leukocytes in Peritoneal fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "metamyelocytes_pct",
+      "canonical_name": "Metamyelocytes %",
+      "loinc": "28541-1",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Metamyelocytes",
+        "Metamyelocytes Percent",
+        "Metamyelocytes/100 leukocytes in Blood"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "methemoglobin",
+      "canonical_name": "Methemoglobin",
+      "loinc": "2614-6",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Methemoglobin",
+        "Methemoglobin Percent",
+        "MetHb",
+        "MetHgb",
+        "Methemoglobin/Hemoglobin.total in Blood"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "methylmalonic_acid",
+      "canonical_name": "Methylmalonic Acid",
+      "loinc": "13964-2",
+      "normalized_unit": "nmol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Methylmalonic Acid",
+        "MMA",
+        "Methylmalonate [Moles/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "nmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "monocytes",
+      "canonical_name": "Monocytes",
+      "loinc": "26484-6",
+      "normalized_unit": "K/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Monocytes",
+        "Monocyte Count",
+        "Mono",
+        "Monos",
+        "Absolute Monocyte Count",
+        "Absolute Monocytes",
+        "Monocytes (Absolute)",
+        "Monocytes [#/volume] in Blood",
+        "Monocytes [#/volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.001",
+        "10^9/L": "1",
+        "K/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "monocytes_ascites_pct",
+      "canonical_name": "Monocytes, Ascites %",
+      "loinc": "26488-7",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "Monocytes",
+        "Mono",
+        "Monocytes/Leukocytes in Peritoneal fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "monocytes_csf_pct",
+      "canonical_name": "Monocytes, CSF %",
+      "loinc": "26486-1",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "cerebrospinal fluid"
+      ],
+      "aliases": [
+        "Monocytes",
+        "Mono",
+        "Monocytes/Leukocytes in Cerebral spinal fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "monocytes_macrophages_ascites_pct",
+      "canonical_name": "Monocytes+Macrophages, Ascites %",
+      "loinc": "35020-7",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "Macrophage",
+        "Macrophages",
+        "Monocytes+Macrophages/Leukocytes in Peritoneal fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "monocytes_macrophages_body_fluid_pct",
+      "canonical_name": "Monocytes+Macrophages, Body Fluid %",
+      "loinc": "30437-8",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "body_fluid"
+      ],
+      "aliases": [
+        "Monos",
+        "Monos+Macros",
+        "Monocytes+Macrophages/Leukocytes in Body fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "monocytes_macrophages_pleural_pct",
+      "canonical_name": "Monocytes+Macrophages, Pleural %",
+      "loinc": "35021-5",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "pleural"
+      ],
+      "aliases": [
+        "Monos",
+        "Monos+Macros",
+        "Monocytes+Macrophages/Leukocytes in Pleural fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "monocytes_pct",
+      "canonical_name": "Monocytes %",
+      "loinc": "742-7",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Monocytes Percent",
+        "Monocyte Percent",
+        "Mono Pct",
+        "Monocytes/100 leukocytes",
+        "Monocytes/100 leukocytes in Blood",
+        "Monocytes/100 leukocytes in Blood by Automated count",
+        "Monocytes/Leukocytes in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "mpv",
+      "canonical_name": "MPV",
+      "loinc": "32623-1",
+      "normalized_unit": "fL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "MPV",
+        "Mean Platelet Volume",
+        "Platelet [Entitic mean volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "fL"
+      ],
+      "conversion_to_normalized": {
+        "fL": "1"
+      }
+    },
+    {
+      "biomarker_id": "myelocytes_pct",
+      "canonical_name": "Myelocytes %",
+      "loinc": "26498-6",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Myelocytes",
+        "Myelocytes Percent",
+        "Myelocytes/100 leukocytes in Blood"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "myoglobin",
+      "canonical_name": "Myoglobin",
+      "loinc": "2639-3",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Myoglobin",
+        "Serum Myoglobin",
+        "Myoglobin Level",
+        "Myoglobin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "neutrophils",
+      "canonical_name": "Neutrophils",
+      "loinc": "26499-4",
+      "normalized_unit": "K/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Neutrophils",
+        "Neutrophil Count",
+        "ANC",
+        "Absolute Neutrophil Count",
+        "Absolute Neutrophils",
+        "Polys",
+        "Segs",
+        "Seg",
+        "PMN",
+        "Neutrophils (Absolute)",
+        "Neutrophils [#/volume] in Blood",
+        "Neutrophils [#/volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.001",
+        "10^9/L": "1",
+        "K/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "neutrophils_ascites_pct",
+      "canonical_name": "Neutrophils, Ascites %",
+      "loinc": "26514-0",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "Polys",
+        "Neutrophils",
+        "PMN",
+        "Neutrophils/Leukocytes in Peritoneal fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "neutrophils_body_fluid_pct",
+      "canonical_name": "Neutrophils, Body Fluid %",
+      "loinc": "26513-2",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "body_fluid"
+      ],
+      "aliases": [
+        "Polys",
+        "Neutrophils",
+        "PMN",
+        "Neutrophils/Leukocytes in Body fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "neutrophils_csf_pct",
+      "canonical_name": "Neutrophils, CSF %",
+      "loinc": "26512-4",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "cerebrospinal fluid"
+      ],
+      "aliases": [
+        "Polys",
+        "Neutrophils",
+        "PMN",
+        "Neutrophils/Leukocytes in Cerebral spinal fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "neutrophils_pct",
+      "canonical_name": "Neutrophils %",
+      "loinc": "770-8",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Neutrophils Percent",
+        "Neutrophil Percent",
+        "Neut Pct",
+        "Neutrophils/100 leukocytes",
+        "Neutrophils/100 leukocytes in Blood",
+        "Neutrophils/100 leukocytes in Blood by Automated count",
+        "Neutrophils/Leukocytes in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "neutrophils_pleural_pct",
+      "canonical_name": "Neutrophils, Pleural %",
+      "loinc": "30455-0",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "pleural"
+      ],
+      "aliases": [
+        "Polys",
+        "Neutrophils",
+        "PMN",
+        "Neutrophils/Leukocytes in Pleural fluid"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "non_hdl_cholesterol",
+      "canonical_name": "Non-HDL Cholesterol",
+      "loinc": "43396-1",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Non-HDL Cholesterol",
+        "Non-HDL Chol",
+        "Cholesterol non HDL [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "38.67"
+      }
+    },
+    {
+      "biomarker_id": "nrbc",
+      "canonical_name": "Nucleated Red Blood Cells",
+      "loinc": "30392-5",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Nucleated Red Cells",
+        "NRBC",
+        "Nucleated RBC",
+        "Nucleated erythrocytes [#/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "nrbc_pct",
+      "canonical_name": "Nucleated Red Blood Cells %",
+      "loinc": "19048-8",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Nucleated Red Cells",
+        "Nucleated Red Cells Percent",
+        "NRBC",
+        "NRBC Percent",
+        "Nucleated RBC",
+        "Nucleated RBC Percent",
+        "Nucleated erythrocytes/Leukocytes [Ratio] in Blood"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "nt_probnp",
+      "canonical_name": "NT-proBNP",
+      "loinc": "33762-6",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "NT-proBNP",
+        "NTproBNP",
+        "Pro-BNP",
+        "N-Terminal Pro-BNP",
+        "Natriuretic peptide.B prohormone N-Terminal [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/L",
+        "pg/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/L": "1",
+        "pg/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "omega3_index",
+      "canonical_name": "Omega-3 Index",
+      "loinc": "88998-0",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Omega-3 Index",
+        "EPA+DHA Index",
+        "Eicosapentaenoic+Docosahexaenoic acid/Total fatty acids in Red Blood Cells"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "osmolality_serum",
+      "canonical_name": "Osmolality, Serum",
+      "loinc": "2692-2",
+      "normalized_unit": "mOsm/kg",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Osmolality",
+        "Osmolality, Measured",
+        "Serum Osmolality",
+        "Osmolality of Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mOsm/kg"
+      ],
+      "conversion_to_normalized": {
+        "mOsm/kg": "1"
+      }
+    },
+    {
+      "biomarker_id": "osmolality_urine",
+      "canonical_name": "Osmolality, Urine",
+      "loinc": "2695-5",
+      "normalized_unit": "mOsm/kg",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Osmolality, Urine",
+        "Urine Osmolality",
+        "Urinary Osmolality",
+        "Osmolality of Urine"
+      ],
+      "supported_source_units": [
+        "mOsm/L",
+        "mOsm/kg"
+      ],
+      "conversion_to_normalized": {
+        "mOsm/L": "1",
+        "mOsm/kg": "1"
+      }
+    },
+    {
+      "biomarker_id": "other_cells_pct",
+      "canonical_name": "Other Cells %",
+      "loinc": "44096-6",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Other Cells",
+        "Other Cells Percent",
+        "Unidentified Cells",
+        "Unidentified cells/Leukocytes in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "oxidized_ldl",
+      "canonical_name": "Oxidized LDL",
+      "loinc": "68935-6",
+      "normalized_unit": "U/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Oxidized LDL",
+        "OxLDL",
+        "Ox-LDL"
+      ],
+      "supported_source_units": [
+        "U/L"
+      ],
+      "conversion_to_normalized": {
+        "U/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "oxygen_content",
+      "canonical_name": "Oxygen Content",
+      "loinc": "57800-5",
+      "normalized_unit": "mL/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "O2 Content",
+        "Oxygen Content",
+        "ctO2",
+        "Oxygen content in Blood by calculation"
+      ],
+      "supported_source_units": [
+        "mL/dL"
+      ],
+      "conversion_to_normalized": {
+        "mL/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "oxygen_saturation",
+      "canonical_name": "Oxygen Saturation",
+      "loinc": "2708-6",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Oxygen Saturation",
+        "O2 Sat",
+        "SpO2",
+        "SaO2",
+        "O2Sat"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "oxyhemoglobin",
+      "canonical_name": "Oxyhemoglobin",
+      "loinc": "11559-2",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Oxyhemoglobin",
+        "Oxyhemoglobin Percent",
+        "O2Hb",
+        "FO2Hb",
+        "Fractional oxyhemoglobin in Blood"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "pco2",
+      "canonical_name": "pCO2",
+      "loinc": "2019-8",
+      "normalized_unit": "mmHg",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "pCO2",
+        "paCO2",
+        "Carbon Dioxide Partial Pressure",
+        "Carbon dioxide [Partial pressure] in Arterial blood",
+        "Carbon dioxide [Partial pressure] in Blood",
+        "Carbon dioxide [Partial pressure] in Venous blood"
+      ],
+      "supported_source_units": [
+        "kPa",
+        "mmHg"
+      ],
+      "conversion_to_normalized": {
+        "kPa": "7.50062",
+        "mmHg": "1"
+      }
+    },
+    {
+      "biomarker_id": "pdw",
+      "canonical_name": "PDW",
+      "loinc": "32207-3",
+      "normalized_unit": "fL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "PDW",
+        "Platelet Distribution Width",
+        "Platelet distribution width [Entitic volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "fL"
+      ],
+      "conversion_to_normalized": {
+        "fL": "1"
+      }
+    },
+    {
+      "biomarker_id": "phenytoin",
+      "canonical_name": "Phenytoin",
+      "loinc": "3968-5",
+      "normalized_unit": "ug/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Phenytoin",
+        "Phenytoin Level",
+        "Dilantin",
+        "Phenytoin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "phosphate",
+      "canonical_name": "Phosphate",
+      "loinc": "2777-1",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Phosphate",
+        "Phosphorus",
+        "Phos",
+        "Inorganic Phosphate",
+        "Phosphate [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "3.097"
+      }
+    },
+    {
+      "biomarker_id": "platelets",
+      "canonical_name": "Platelets",
+      "loinc": "777-3",
+      "normalized_unit": "K/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Platelets",
+        "PLT",
+        "Platelet Count",
+        "Thrombocytes",
+        "Plt Count",
+        "Plaquetas",
+        "Platelets x 1000",
+        "Platelets [#/volume] in Blood",
+        "Platelets [#/volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.001",
+        "10^9/L": "1",
+        "K/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "po2",
+      "canonical_name": "pO2",
+      "loinc": "2703-7",
+      "normalized_unit": "mmHg",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "pO2",
+        "paO2",
+        "Oxygen Partial Pressure",
+        "Oxygen [Partial pressure] in Arterial blood",
+        "Oxygen [Partial pressure] in Blood",
+        "Oxygen [Partial pressure] in Venous blood"
+      ],
+      "supported_source_units": [
+        "kPa",
+        "mmHg"
+      ],
+      "conversion_to_normalized": {
+        "kPa": "7.50062",
+        "mmHg": "1"
+      }
+    },
+    {
+      "biomarker_id": "potassium",
+      "canonical_name": "Potassium",
+      "loinc": "2823-3",
+      "normalized_unit": "mEq/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Potassium",
+        "K",
+        "Serum Potassium",
+        "Potassium Level",
+        "Potassium, Whole Blood",
+        "Potassium [Moles/volume] in Blood",
+        "Potassium [Moles/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mEq/L",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mEq/L": "1",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "potassium_urine",
+      "canonical_name": "Potassium, Urine",
+      "loinc": "2828-2",
+      "normalized_unit": "mEq/L",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Potassium, Urine",
+        "Urine Potassium",
+        "K, Urine"
+      ],
+      "supported_source_units": [
+        "mEq/L",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mEq/L": "1",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "prealbumin",
+      "canonical_name": "Prealbumin",
+      "loinc": "14338-8",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Prealbumin",
+        "Transthyretin",
+        "Serum Prealbumin",
+        "Prealbumin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "pregnenolone",
+      "canonical_name": "Pregnenolone",
+      "loinc": "2897-7",
+      "normalized_unit": "ng/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Pregnenolone",
+        "Pregnenolone, Serum",
+        "Serum Pregnenolone",
+        "Pregnenolone [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/dL"
+      ],
+      "conversion_to_normalized": {
+        "ng/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "procalcitonin",
+      "canonical_name": "Procalcitonin",
+      "loinc": "33959-8",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Procalcitonin",
+        "PCT",
+        "Pro-Calcitonin",
+        "Procalcitonin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL",
+        "ug/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1",
+        "ug/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "progesterone",
+      "canonical_name": "Progesterone",
+      "loinc": "2839-9",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Progesterone",
+        "P4",
+        "Serum Progesterone",
+        "Progesterone [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL",
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1",
+        "nmol/L": "0.3144654088050314465408805031"
+      }
+    },
+    {
+      "biomarker_id": "prolactin",
+      "canonical_name": "Prolactin",
+      "loinc": "2842-3",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Prolactin",
+        "PRL",
+        "Prolactin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mIU/L",
+        "mIU/mL",
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "mIU/L": "0.04716981132075471698113207547",
+        "mIU/mL": "47.16981132075471698113207547",
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "promyelocytes_pct",
+      "canonical_name": "Promyelocytes %",
+      "loinc": "783-1",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Promyelocytes",
+        "Promyelocytes Percent",
+        "Promyelocytes/Leukocytes in Blood by Manual count"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "protein_creatinine_ratio",
+      "canonical_name": "Protein/Creatinine Ratio, Urine",
+      "loinc": "2890-2",
+      "normalized_unit": "ratio",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Protein/Creatinine Ratio",
+        "Urine Protein/Creatinine Ratio",
+        "Protein/Creatinine [Mass Ratio] in Urine"
+      ],
+      "supported_source_units": [
+        "mg/g",
+        "mg/mg",
+        "ratio"
+      ],
+      "conversion_to_normalized": {
+        "mg/g": "0.001",
+        "mg/mg": "1",
+        "ratio": "1"
+      }
+    },
+    {
+      "biomarker_id": "protein_csf",
+      "canonical_name": "CSF Protein",
+      "loinc": "2880-3",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "cerebrospinal fluid"
+      ],
+      "aliases": [
+        "Protein - CSF",
+        "CSF Protein",
+        "Total Protein, CSF",
+        "Protein (CSF) [Mass/Vol]",
+        "Protein [Mass/volume] in Cerebral spinal fluid"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "psa",
+      "canonical_name": "PSA",
+      "loinc": "2857-1",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "PSA",
+        "PSA Total",
+        "Prostate Specific Antigen",
+        "Prostate specific Ag [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "psa_free_pct",
+      "canonical_name": "PSA % Free",
+      "loinc": "12841-3",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "PSA % Free",
+        "PSA Free Percent",
+        "Free PSA Percent",
+        "Percent Free PSA",
+        "Prostate specific Ag Free/Prostate specific Ag.total in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "pt",
+      "canonical_name": "Prothrombin Time",
+      "loinc": "5902-2",
+      "normalized_unit": "sec",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "PT",
+        "Prothrombin Time",
+        "Pro Time",
+        "Prothrombin time (PT)"
+      ],
+      "supported_source_units": [
+        "sec"
+      ],
+      "conversion_to_normalized": {
+        "sec": "1"
+      }
+    },
+    {
+      "biomarker_id": "pth",
+      "canonical_name": "Parathyroid Hormone",
+      "loinc": "2731-8",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Parathyroid Hormone",
+        "PTH",
+        "Intact PTH",
+        "PTH, Intact",
+        "Parathyrin.intact [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/L",
+        "pg/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/L": "1",
+        "pg/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "ptt",
+      "canonical_name": "PTT",
+      "loinc": "3173-2",
+      "normalized_unit": "sec",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "PTT",
+        "aPTT",
+        "Partial Thromboplastin Time",
+        "Activated Partial Thromboplastin Time",
+        "aPTT in Blood by Coagulation assay"
+      ],
+      "supported_source_units": [
+        "sec"
+      ],
+      "conversion_to_normalized": {
+        "sec": "1"
+      }
+    },
+    {
+      "biomarker_id": "ptt_ratio",
+      "canonical_name": "PTT Ratio",
+      "loinc": "63561-5",
+      "normalized_unit": "ratio",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "PTT Ratio",
+        "aPTT Ratio",
+        "PTT actual/normal",
+        "aPTT actual/normal in Platelet poor plasma by Coagulation assay"
+      ],
+      "supported_source_units": [
+        "ratio"
+      ],
+      "conversion_to_normalized": {
+        "ratio": "1"
+      }
+    },
+    {
+      "biomarker_id": "rbc",
+      "canonical_name": "Red Blood Cells",
+      "loinc": "789-8",
+      "normalized_unit": "M/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Red Blood Cells",
+        "RBC",
+        "RBC Count",
+        "Erythrocytes",
+        "Erythrocyte Count",
+        "Erythrocytes [#/volume] in Blood",
+        "Erythrocytes [#/volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^12/L",
+        "M/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.000001",
+        "10^12/L": "1",
+        "M/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "rbc_ascites",
+      "canonical_name": "RBC, Ascites",
+      "loinc": "26457-2",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "RBC, Ascites",
+        "Ascites RBC",
+        "Erythrocytes [#/volume] in Peritoneal fluid"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "rbc_csf",
+      "canonical_name": "RBC, CSF",
+      "loinc": "26454-9",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "cerebrospinal fluid"
+      ],
+      "aliases": [
+        "RBC, CSF",
+        "CSF RBC",
+        "Erythrocytes [#/volume] in Cerebral spinal fluid"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "rbc_pleural",
+      "canonical_name": "RBC, Pleural",
+      "loinc": "26456-4",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "pleural"
+      ],
+      "aliases": [
+        "RBC, Pleural",
+        "Pleural RBC",
+        "Erythrocytes [#/volume] in Pleural fluid"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "rdw",
+      "canonical_name": "RDW",
+      "loinc": "788-0",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "RDW",
+        "Red Cell Distribution Width",
+        "RDW-CV",
+        "Erythrocyte distribution width [Ratio] by Automated count",
+        "Erythrocyte [DistWidth] in Blood",
+        "Erythrocyte [DistWidth] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "rdw_sd",
+      "canonical_name": "RDW-SD",
+      "loinc": "21000-5",
+      "normalized_unit": "fL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "RDW-SD",
+        "RDW Standard Deviation",
+        "Erythrocyte distribution width [Entitic volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "fL"
+      ],
+      "conversion_to_normalized": {
+        "fL": "1"
+      }
+    },
+    {
+      "biomarker_id": "reticulocyte_absolute",
+      "canonical_name": "Reticulocyte Count, Absolute",
+      "loinc": "14196-0",
+      "normalized_unit": "K/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Reticulocyte Count, Absolute",
+        "Absolute Reticulocyte Count",
+        "Reticulocytes [#/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL",
+        "M/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.001",
+        "10^9/L": "1",
+        "K/uL": "1",
+        "M/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "reticulocytes",
+      "canonical_name": "Reticulocyte Count",
+      "loinc": "17849-1",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Reticulocytes",
+        "Reticulocyte Count",
+        "Retic",
+        "Retic Count",
+        "Reticulocyte Count, Automated",
+        "Reticulocytes/100 erythrocytes in Blood"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "reverse_t3",
+      "canonical_name": "Reverse T3",
+      "loinc": "3052-8",
+      "normalized_unit": "ng/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Reverse T3",
+        "rT3",
+        "Reverse Triiodothyronine",
+        "Triiodothyronine reverse [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/dL"
+      ],
+      "conversion_to_normalized": {
+        "ng/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "rheumatoid_factor",
+      "canonical_name": "Rheumatoid Factor",
+      "loinc": "11572-5",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Rheumatoid Factor",
+        "RF",
+        "RA Factor",
+        "Rheumatoid factor [Units/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "salicylates",
+      "canonical_name": "Salicylates",
+      "loinc": "4024-6",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Salicylates",
+        "Salicylate",
+        "Salicylate Level",
+        "Salicylates [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "selenium",
+      "canonical_name": "Selenium",
+      "loinc": "2820-9",
+      "normalized_unit": "ug/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Selenium",
+        "Se",
+        "Serum Selenium",
+        "Selenium [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ug/L",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/L": "1",
+        "umol/L": "78.96"
+      }
+    },
+    {
+      "biomarker_id": "shbg",
+      "canonical_name": "SHBG",
+      "loinc": "13967-5",
+      "normalized_unit": "nmol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "SHBG",
+        "Sex Hormone Binding Globulin",
+        "Sex hormone binding globulin [Moles/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "nmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "small_dense_ldl",
+      "canonical_name": "Small Dense LDL",
+      "loinc": "90364-1",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Small Dense LDL",
+        "sdLDL",
+        "sdLDL-C",
+        "Small Dense LDL Cholesterol"
+      ],
+      "supported_source_units": [
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "small_ldl_particle",
+      "canonical_name": "Small LDL Particle Number",
+      "loinc": "55440-2",
+      "normalized_unit": "nmol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Small LDL-P",
+        "Small LDL Particle Number",
+        "Small LDL Particles"
+      ],
+      "supported_source_units": [
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "nmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "sodium",
+      "canonical_name": "Sodium",
+      "loinc": "2951-2",
+      "normalized_unit": "mEq/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Sodium",
+        "Na",
+        "Serum Sodium",
+        "Sodium, Whole Blood",
+        "Sodium [Moles/volume] in Blood",
+        "Sodium [Moles/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mEq/L",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mEq/L": "1",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "sodium_urine",
+      "canonical_name": "Sodium, Urine",
+      "loinc": "2955-3",
+      "normalized_unit": "mEq/L",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Sodium, Urine",
+        "Urine Sodium",
+        "Urinary Sodium",
+        "Na, Urine"
+      ],
+      "supported_source_units": [
+        "mEq/L",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mEq/L": "1",
+        "mmol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "t3_total",
+      "canonical_name": "T3, Total",
+      "loinc": "3053-6",
+      "normalized_unit": "ng/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Triiodothyronine (T3)",
+        "T3",
+        "Total T3",
+        "T3, Total",
+        "Triiodothyronine (T3), Total",
+        "Triiodothyronine (T3) [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/dL",
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/dL": "1",
+        "nmol/L": "65.10416666666666666666666667"
+      }
+    },
+    {
+      "biomarker_id": "t4_total",
+      "canonical_name": "T4, Total",
+      "loinc": "3026-2",
+      "normalized_unit": "ug/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Thyroxine (T4)",
+        "T4",
+        "Total T4",
+        "T4, Total",
+        "Thyroxine (T4), Total",
+        "Thyroxine (T4) [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "nmol/L",
+        "ug/dL"
+      ],
+      "conversion_to_normalized": {
+        "nmol/L": "0.07770007770007770007770007770",
+        "ug/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "tacrolimus",
+      "canonical_name": "Tacrolimus",
+      "loinc": "11253-2",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "Tacrolimus",
+        "Tacrolimus-FK506",
+        "FK506",
+        "tacroFK",
+        "Tacrolimus [Mass/volume] in Blood"
+      ],
+      "supported_source_units": [
+        "ng/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "testosterone_total",
+      "canonical_name": "Testosterone, Total",
+      "loinc": "2986-8",
+      "normalized_unit": "ng/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Testosterone",
+        "Testosterone Total",
+        "Total Testosterone",
+        "Testosterone,Total,MS",
+        "Testosterone, Total, LC/MS/MS",
+        "Testosterone [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ng/dL",
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/dL": "1",
+        "nmol/L": "28.84338044418805884049610614"
+      }
+    },
+    {
+      "biomarker_id": "theophylline",
+      "canonical_name": "Theophylline",
+      "loinc": "4049-3",
+      "normalized_unit": "ug/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Theophylline",
+        "Theophylline Level",
+        "Theophylline [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "thyroglobulin_antibodies",
+      "canonical_name": "Thyroglobulin Antibodies",
+      "loinc": "8098-6",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Thyroglobulin Antibodies",
+        "Anti-Thyroglobulin",
+        "TgAb",
+        "Anti-Tg",
+        "Thyroglobulin Ab [Units/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "tibc",
+      "canonical_name": "Total Iron Binding Capacity",
+      "loinc": "2500-7",
+      "normalized_unit": "ug/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "TIBC",
+        "Total Iron Binding Capacity",
+        "Iron Binding Capacity",
+        "Iron Binding Capacity, Total",
+        "Iron binding capacity [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ug/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/dL": "1",
+        "umol/L": "5.585"
+      }
+    },
+    {
+      "biomarker_id": "tmao",
+      "canonical_name": "TMAO",
+      "loinc": "90360-9",
+      "normalized_unit": "umol/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "TMAO",
+        "Trimethylamine N-oxide",
+        "Trimethylamine N-oxide [Moles/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "umol/L": "1"
+      }
+    },
+    {
+      "biomarker_id": "tnf_alpha",
+      "canonical_name": "TNF-alpha",
+      "loinc": "3074-2",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "TNF-alpha",
+        "Tumor Necrosis Factor alpha",
+        "Tumor necrosis factor alpha [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "pg/mL"
+      ],
+      "conversion_to_normalized": {
+        "pg/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "total_bilirubin",
+      "canonical_name": "Total Bilirubin",
+      "loinc": "1975-2",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Total Bilirubin",
+        "Bilirubin",
+        "TBIL",
+        "Bili",
+        "T Bili",
+        "Bilirubin Total",
+        "Bilirubin.total [Mass/volume] in Blood",
+        "Bilirubin.total [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "umol/L": "0.05847953216374269005847953216"
+      }
+    },
+    {
+      "biomarker_id": "total_cholesterol",
+      "canonical_name": "Total Cholesterol",
+      "loinc": "2093-3",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Total Cholesterol",
+        "Cholesterol",
+        "Cholesterol, Total",
+        "CHOL TOTAL",
+        "Chol",
+        "TCHOL",
+        "TC",
+        "Colesterol total",
+        "Cholesterol [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "38.67"
+      }
+    },
+    {
+      "biomarker_id": "total_nucleated_cells_ascites",
+      "canonical_name": "Total Nucleated Cells, Ascites",
+      "loinc": "51926-4",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "Total Nucleated Cells, Ascites",
+        "Ascites Nucleated Cells",
+        "Nucleated cells [#/volume] in Peritoneal fluid by Manual count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "total_nucleated_cells_csf",
+      "canonical_name": "Total Nucleated Cells, CSF",
+      "loinc": "58906-9",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "cerebrospinal fluid"
+      ],
+      "aliases": [
+        "Total Nucleated Cells, CSF",
+        "CSF Nucleated Cells",
+        "Nucleated cells [#/volume] in Cerebral spinal fluid by Manual count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "total_nucleated_cells_pleural",
+      "canonical_name": "Total Nucleated Cells, Pleural",
+      "loinc": "58904-4",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "pleural"
+      ],
+      "aliases": [
+        "Total Nucleated Cells, Pleural",
+        "Pleural Nucleated Cells",
+        "Nucleated cells [#/volume] in Pleural fluid by Manual count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "total_protein",
+      "canonical_name": "Total Protein",
+      "loinc": "2885-2",
+      "normalized_unit": "g/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Total Protein",
+        "Protein, Total",
+        "Protein",
+        "TP",
+        "Protein [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "g/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "0.1",
+        "g/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "total_protein_ascites",
+      "canonical_name": "Total Protein, Ascites",
+      "loinc": "2883-7",
+      "normalized_unit": "g/dL",
+      "allowed_specimens": [
+        "ascites"
+      ],
+      "aliases": [
+        "Total Protein, Ascites",
+        "Ascites Total Protein",
+        "Protein [Mass/volume] in Peritoneal fluid"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "g/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "0.1",
+        "g/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "total_protein_pleural",
+      "canonical_name": "Total Protein, Pleural",
+      "loinc": "2882-9",
+      "normalized_unit": "g/dL",
+      "allowed_specimens": [
+        "pleural"
+      ],
+      "aliases": [
+        "Total Protein, Pleural",
+        "Pleural Total Protein",
+        "Protein [Mass/volume] in Pleural fluid"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "g/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "0.1",
+        "g/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "total_protein_urine",
+      "canonical_name": "Urine Total Protein",
+      "loinc": "2036-2",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Total Protein, Urine",
+        "Urine Total Protein",
+        "Protein, Urine, Total",
+        "Protein [Mass/volume] in Urine"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "0.1",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "total_protein_urine_24h",
+      "canonical_name": "24 Hour Urine Total Protein",
+      "loinc": "2889-4",
+      "normalized_unit": "mg/24h",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "24 h urine protein",
+        "24 hour urine protein",
+        "24 hr urine protein",
+        "Urine Protein 24h",
+        "Protein, 24H Urine",
+        "Protein [Mass/time] in 24 hour Urine"
+      ],
+      "supported_source_units": [
+        "g/24h",
+        "mg/24h"
+      ],
+      "conversion_to_normalized": {
+        "g/24h": "1000",
+        "mg/24h": "1"
+      }
+    },
+    {
+      "biomarker_id": "tpo_antibodies",
+      "canonical_name": "TPO Antibodies",
+      "loinc": "8099-4",
+      "normalized_unit": "IU/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "TPO Antibodies",
+        "Thyroid Peroxidase Antibodies",
+        "Anti-TPO",
+        "TPO Ab",
+        "Thyroid Peroxidase Ab",
+        "Thyroperoxidase Ab [Units/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "IU/mL"
+      ],
+      "conversion_to_normalized": {
+        "IU/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "transferrin",
+      "canonical_name": "Transferrin",
+      "loinc": "3034-6",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Transferrin",
+        "Serum Transferrin",
+        "Transferrin [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "g/L",
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "g/L": "100",
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "transferrin_saturation",
+      "canonical_name": "Transferrin Saturation",
+      "loinc": "2502-3",
+      "normalized_unit": "%",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Transferrin Saturation",
+        "TSAT",
+        "Iron Saturation",
+        "Fe/TIBC Ratio",
+        "Transferrin Sat",
+        "Iron saturation [Mass Fraction] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "%"
+      ],
+      "conversion_to_normalized": {
+        "%": "1"
+      }
+    },
+    {
+      "biomarker_id": "triglycerides",
+      "canonical_name": "Triglycerides",
+      "loinc": "2571-8",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Triglycerides",
+        "Triglyceride",
+        "TG",
+        "TRIG",
+        "Triglyc",
+        "Triglicéridos",
+        "Trigliceridos",
+        "Triglycerides [Mass/volume] in Serum or Plasma",
+        "Triglyceride [Mass/volume] in Serum or Plasma",
+        "Triglyceride [Mass/volume] in Serum or Plasma --fasting"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "88.57"
+      }
+    },
+    {
+      "biomarker_id": "troponin_i",
+      "canonical_name": "Troponin I",
+      "loinc": "10839-9",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Troponin I",
+        "cTnI",
+        "Cardiac Troponin I",
+        "Troponin I.cardiac [Mass/volume] in Serum or Plasma",
+        "Troponin I.cardiac [Mass/volume] in Serum or Plasma by High sensitivity method"
+      ],
+      "supported_source_units": [
+        "ng/L",
+        "ng/mL",
+        "pg/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/L": "0.001",
+        "ng/mL": "1",
+        "pg/mL": "0.001"
+      }
+    },
+    {
+      "biomarker_id": "troponin_t",
+      "canonical_name": "Troponin T",
+      "loinc": "6598-7",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Troponin T",
+        "cTnT",
+        "Cardiac Troponin T"
+      ],
+      "supported_source_units": [
+        "ng/L",
+        "ng/mL",
+        "pg/mL"
+      ],
+      "conversion_to_normalized": {
+        "ng/L": "0.001",
+        "ng/mL": "1",
+        "pg/mL": "0.001"
+      }
+    },
+    {
+      "biomarker_id": "tsh",
+      "canonical_name": "TSH",
+      "loinc": "3016-3",
+      "normalized_unit": "mIU/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "TSH",
+        "Thyroid Stimulating Hormone",
+        "Thyrotropin",
+        "TSH, 3rd Generation",
+        "TSH, Ultrasensitive",
+        "Thyrotropin [Units/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mIU/L",
+        "mIU/mL"
+      ],
+      "conversion_to_normalized": {
+        "mIU/L": "1",
+        "mIU/mL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "uric_acid",
+      "canonical_name": "Uric Acid",
+      "loinc": "3084-1",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Uric Acid",
+        "Urate",
+        "Uric Acid, Serum",
+        "Urate [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "umol/L": "0.01681237390719569603227975790"
+      }
+    },
+    {
+      "biomarker_id": "urine_bilirubin",
+      "canonical_name": "Urine Bilirubin",
+      "loinc": "1977-8",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Bilirubin",
+        "Urine Bilirubin",
+        "Bilirubin.total [Mass/volume] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_bilirubin_presence",
+      "canonical_name": "Urine Bilirubin Presence",
+      "loinc": "5770-3",
+      "normalized_unit": "",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Urine Bilirubin Presence",
+        "Bilirubin Presence, Urine",
+        "Bilirubin.total [Presence] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        ""
+      ],
+      "conversion_to_normalized": {
+        "": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_blood",
+      "canonical_name": "Urine Blood",
+      "loinc": "5794-3",
+      "normalized_unit": "",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Urine Blood",
+        "Blood, Urine",
+        "Urine Blood Occult",
+        "Occult Blood",
+        "Hemoglobin [Presence] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        ""
+      ],
+      "conversion_to_normalized": {
+        "": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_ketones",
+      "canonical_name": "Urine Ketones",
+      "loinc": "5797-6",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Ketones",
+        "Ketone",
+        "Urine Ketones",
+        "Ketones [Mass/volume] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_ketones_presence",
+      "canonical_name": "Urine Ketones Presence",
+      "loinc": "2514-8",
+      "normalized_unit": "",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Urine Ketones Presence",
+        "Ketones Presence, Urine",
+        "Ketones [Presence] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        ""
+      ],
+      "conversion_to_normalized": {
+        "": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_leukocyte_esterase",
+      "canonical_name": "Urine Leukocyte Esterase",
+      "loinc": "5799-2",
+      "normalized_unit": "",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Leukocyte Esterase",
+        "Urine Leukocyte Esterase",
+        "LE",
+        "Leukocyte esterase [Presence] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        ""
+      ],
+      "conversion_to_normalized": {
+        "": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_nitrite",
+      "canonical_name": "Urine Nitrite",
+      "loinc": "5802-4",
+      "normalized_unit": "",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Urine Nitrite",
+        "Nitrite",
+        "Nitrite, Urine",
+        "Nitrite [Presence] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        ""
+      ],
+      "conversion_to_normalized": {
+        "": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_ph",
+      "canonical_name": "Urine pH",
+      "loinc": "5803-2",
+      "normalized_unit": "pH",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "pH",
+        "Urine pH",
+        "pH of Urine by Test strip"
+      ],
+      "supported_source_units": [
+        "",
+        "pH",
+        "units"
+      ],
+      "conversion_to_normalized": {
+        "": "1",
+        "pH": "1",
+        "units": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_protein",
+      "canonical_name": "Urine Protein",
+      "loinc": "2888-6",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Protein",
+        "Urine Protein",
+        "Protein [Mass/volume] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_protein_presence",
+      "canonical_name": "Urine Protein Presence",
+      "loinc": "20454-5",
+      "normalized_unit": "",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Urine Protein Presence",
+        "Protein Presence, Urine",
+        "Protein [Presence] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        ""
+      ],
+      "conversion_to_normalized": {
+        "": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_rbc",
+      "canonical_name": "Urine RBC",
+      "loinc": "30391-7",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "RBC",
+        "Urine RBC",
+        "RBC, Urine",
+        "Red Blood Cells, Urine",
+        "Erythrocytes [#/area] in Urine sediment by Microscopy high power field",
+        "Erythrocytes [#/volume] in Urine by Automated count"
+      ],
+      "supported_source_units": [
+        "#/hpf",
+        "#/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/hpf": "1",
+        "#/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_specific_gravity",
+      "canonical_name": "Urine Specific Gravity",
+      "loinc": "5811-5",
+      "normalized_unit": "",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Specific Gravity",
+        "Urine Specific Gravity",
+        "Urinary Specific Gravity",
+        "SG",
+        "Specific gravity of Urine by Test strip"
+      ],
+      "supported_source_units": [
+        ""
+      ],
+      "conversion_to_normalized": {
+        "": "1"
+      }
+    },
+    {
+      "biomarker_id": "urine_wbc",
+      "canonical_name": "Urine WBC",
+      "loinc": "5821-4",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "WBC",
+        "Urine WBC",
+        "WBC, Urine",
+        "White Blood Cells, Urine",
+        "WBC's in urine",
+        "WBCs in urine",
+        "Leukocytes [#/area] in Urine sediment by Microscopy high power field",
+        "Leukocytes [#/volume] in Urine by Automated count"
+      ],
+      "supported_source_units": [
+        "#/hpf",
+        "#/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/hpf": "1",
+        "#/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "urobilinogen",
+      "canonical_name": "Urine Urobilinogen",
+      "loinc": "20405-7",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "urine"
+      ],
+      "aliases": [
+        "Urobilinogen",
+        "Urine Urobilinogen",
+        "Urobilinogen [Mass/volume] in Urine by Test strip"
+      ],
+      "supported_source_units": [
+        "mg/dL"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1"
+      }
+    },
+    {
+      "biomarker_id": "vancomycin",
+      "canonical_name": "Vancomycin",
+      "loinc": "20578-1",
+      "normalized_unit": "ug/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Vancomycin",
+        "Vancomycin Random",
+        "Vancomycin [Mass/volume] in Serum or Plasma --random"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "vancomycin_trough",
+      "canonical_name": "Vancomycin Trough",
+      "loinc": "4092-3",
+      "normalized_unit": "ug/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Vancomycin Trough",
+        "Vanc Trough",
+        "Vancomycin [Mass/volume] in Serum or Plasma --trough"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "ug/mL"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "ug/mL": "1"
+      }
+    },
+    {
+      "biomarker_id": "vitamin_a",
+      "canonical_name": "Vitamin A",
+      "loinc": "2923-1",
+      "normalized_unit": "ug/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Vitamin A",
+        "Retinol",
+        "Serum Retinol",
+        "Retinol [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ug/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/dL": "1",
+        "umol/L": "28.64508736751647092523632197"
+      }
+    },
+    {
+      "biomarker_id": "vitamin_b12",
+      "canonical_name": "Vitamin B12",
+      "loinc": "2132-9",
+      "normalized_unit": "pg/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Vitamin B12",
+        "B12",
+        "Cobalamin",
+        "Vitamin B-12",
+        "Cyanocobalamin"
+      ],
+      "supported_source_units": [
+        "pg/mL",
+        "pmol/L"
+      ],
+      "conversion_to_normalized": {
+        "pg/mL": "1",
+        "pmol/L": "1.355"
+      }
+    },
+    {
+      "biomarker_id": "vitamin_c",
+      "canonical_name": "Vitamin C",
+      "loinc": "2925-6",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Vitamin C",
+        "Ascorbic Acid",
+        "Ascorbate",
+        "Ascorbate [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "umol/L": "0.01761183515322296583303980275"
+      }
+    },
+    {
+      "biomarker_id": "vitamin_d",
+      "canonical_name": "Vitamin D 25-OH",
+      "loinc": "14979-9",
+      "normalized_unit": "ng/mL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Vitamin D",
+        "25-OH Vitamin D",
+        "25-Hydroxyvitamin D",
+        "Vit D",
+        "D 25-OH",
+        "Vitamin D, 25-OH",
+        "25-OH-D",
+        "25OH Vitamin D",
+        "Vitamin D 25-Hydroxy",
+        "Vitamin D,25-OH,Total"
+      ],
+      "supported_source_units": [
+        "ng/mL",
+        "nmol/L"
+      ],
+      "conversion_to_normalized": {
+        "ng/mL": "1",
+        "nmol/L": "0.4006410256410256410256410256"
+      }
+    },
+    {
+      "biomarker_id": "vitamin_e",
+      "canonical_name": "Vitamin E",
+      "loinc": "2927-2",
+      "normalized_unit": "mg/L",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Vitamin E",
+        "Alpha-Tocopherol",
+        "Tocopherol",
+        "alpha-Tocopherol [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/L",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/L": "1",
+        "umol/L": "0.4306632213608957795004306632"
+      }
+    },
+    {
+      "biomarker_id": "vldl_cholesterol",
+      "canonical_name": "VLDL Cholesterol",
+      "loinc": "2091-7",
+      "normalized_unit": "mg/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "VLDL Cholesterol",
+        "VLDL-C",
+        "VLDL",
+        "VLDL Cholesterol Cal",
+        "VLDL Cholesterol Calc",
+        "Cholesterol in VLDL [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "mg/dL",
+        "mmol/L"
+      ],
+      "conversion_to_normalized": {
+        "mg/dL": "1",
+        "mmol/L": "38.67"
+      }
+    },
+    {
+      "biomarker_id": "wbc",
+      "canonical_name": "WBC",
+      "loinc": "6690-2",
+      "normalized_unit": "K/uL",
+      "allowed_specimens": [
+        "whole_blood"
+      ],
+      "aliases": [
+        "WBC",
+        "White Blood Cells",
+        "Leukocytes",
+        "White Cell Count",
+        "WBC Count",
+        "Leukocyte Count",
+        "White Blood Cell Count",
+        "WBC x 1000",
+        "Leukocytes [#/volume] in Blood",
+        "Leukocytes [#/volume] in Blood by Automated count"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "10^9/L",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "0.001",
+        "10^9/L": "1",
+        "K/uL": "1"
+      }
+    },
+    {
+      "biomarker_id": "wbc_body_fluid",
+      "canonical_name": "WBC, Body Fluid",
+      "loinc": "26466-3",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "body_fluid"
+      ],
+      "aliases": [
+        "WBC, Body Fluid",
+        "Body Fluid WBC",
+        "WBC's in body fluid",
+        "WBCs in body fluid",
+        "Leukocytes [#/volume] in Body fluid"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "wbc_csf",
+      "canonical_name": "WBC, CSF",
+      "loinc": "26465-5",
+      "normalized_unit": "#/uL",
+      "allowed_specimens": [
+        "cerebrospinal fluid"
+      ],
+      "aliases": [
+        "WBC, CSF",
+        "CSF WBC",
+        "WBC's in cerebrospinal fluid",
+        "WBCs in cerebrospinal fluid",
+        "Leukocytes [#/volume] in Cerebral spinal fluid"
+      ],
+      "supported_source_units": [
+        "#/uL",
+        "K/uL"
+      ],
+      "conversion_to_normalized": {
+        "#/uL": "1",
+        "K/uL": "1000"
+      }
+    },
+    {
+      "biomarker_id": "zinc",
+      "canonical_name": "Zinc",
+      "loinc": "2601-3",
+      "normalized_unit": "ug/dL",
+      "allowed_specimens": [
+        "plasma",
+        "serum",
+        "whole_blood"
+      ],
+      "aliases": [
+        "Zinc",
+        "Zn",
+        "Serum Zinc",
+        "Zinc [Mass/volume] in Serum or Plasma"
+      ],
+      "supported_source_units": [
+        "ug/dL",
+        "umol/L"
+      ],
+      "conversion_to_normalized": {
+        "ug/dL": "1",
+        "umol/L": "6.536"
+      }
+    }
+  ]
+}

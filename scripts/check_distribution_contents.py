@@ -46,10 +46,12 @@ def _check_sdist(dist_dir: Path, version: str) -> None:
         f"{root}/fixtures/input/interop/ccda_non_ucum_platelets.xml",
         f"{root}/fixtures/input/interop/fhir_bundle_minimal.json",
         f"{root}/fixtures/input/interop/hl7_oru_cmp.hl7",
+        f"{root}/scripts/export_catalog_metadata.py",
         f"{root}/scripts/export_openapi.py",
         f"{root}/scripts/smoke_installed_package.py",
         f"{root}/scripts/scrutinize.py",
         f"{root}/src/biomarker_normalization_toolkit/api.py",
+        f"{root}/src/biomarker_normalization_toolkit/data/catalog_metadata.json",
     }
 
     with tarfile.open(sdist_path, "r:gz") as tf:
@@ -77,6 +79,7 @@ def _check_wheel(dist_dir: Path, version: str) -> None:
         "biomarker_normalization_toolkit/__init__.py",
         "biomarker_normalization_toolkit/api.py",
         "biomarker_normalization_toolkit/cli.py",
+        "biomarker_normalization_toolkit/data/catalog_metadata.json",
         "biomarker_normalization_toolkit/data/v0_sample.csv",
         f"biomarker_normalization_toolkit-{version}.dist-info/METADATA",
         f"biomarker_normalization_toolkit-{version}.dist-info/entry_points.txt",

@@ -15,6 +15,40 @@ Health check:
 curl http://localhost:8000/health
 ```
 
+Read machine-readable catalog metadata:
+
+```bash
+curl http://localhost:8000/catalog/metadata
+```
+
+Search machine-readable catalog metadata:
+
+```bash
+curl "http://localhost:8000/catalog/metadata/search?search=glucose&limit=3"
+```
+
+Validate a custom alias payload before using it:
+
+```bash
+curl -X POST http://localhost:8000/aliases/validate \
+  -H "Content-Type: application/json" \
+  -d '{"custom_aliases": {"hemoglobin": ["Vendor Hgb Alias"]}}'
+```
+
+Look up a built-in alias:
+
+```bash
+curl "http://localhost:8000/lookup?test_name=GLU&specimen=serum"
+```
+
+Look up with per-request custom aliases:
+
+```bash
+curl -X POST http://localhost:8000/lookup \
+  -H "Content-Type: application/json" \
+  -d '{"test_name": "Vendor Glucose Alias", "specimen": "serum", "custom_aliases": {"glucose_serum": ["Vendor Glucose Alias"]}}'
+```
+
 Normalize rows:
 
 ```bash
@@ -23,10 +57,26 @@ curl -X POST http://localhost:8000/normalize \
   -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
 ```
 
+Normalize rows with per-request custom aliases:
+
+```bash
+curl -X POST http://localhost:8000/normalize \
+  -H "Content-Type: application/json" \
+  -d '{"custom_aliases": {"glucose_serum": ["Vendor Glucose Alias"]}, "rows": [{"source_test_name": "Vendor Glucose Alias", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
+```
+
 Upload a tracked CSV fixture:
 
 ```bash
 curl -X POST http://localhost:8000/normalize/upload -F "file=@fixtures/input/v0_sample.csv"
+```
+
+Upload a tracked CSV fixture with per-request custom aliases:
+
+```bash
+curl -X POST http://localhost:8000/normalize/upload \
+  -F "file=@fixtures/input/v0_sample.csv" \
+  -F 'custom_aliases_json={"glucose_serum":["Vendor Glucose Alias"]}'
 ```
 
 Compute PhenoAge with the full required biomarker set:

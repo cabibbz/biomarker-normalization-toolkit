@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from pathlib import PurePosixPath
+from typing import Mapping, Sequence
 
 from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, BIOMARKER_CATALOG, normalize_key, normalize_specimen
 from biomarker_normalization_toolkit.models import NormalizationResult, NormalizedRecord, RangeValue, SourceRecord
@@ -278,10 +279,16 @@ def _effective_source_unit(source_unit: str, biomarker_id: str) -> tuple[str, bo
     return source_unit, False
 
 
-def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.0) -> NormalizedRecord:
+def normalize_source_record(
+    source: SourceRecord,
+    *,
+    fuzzy_threshold: float = 0.0,
+    alias_index: Mapping[str, Sequence[str]] | None = None,
+) -> NormalizedRecord:
+    active_alias_index = ALIAS_INDEX if alias_index is None else alias_index
     source_loinc_matched = False
     source_loinc_candidate = _LOINC_INDEX.get(source.source_loinc.strip()) if source.source_loinc else None
-    candidate_ids = [source_loinc_candidate] if source_loinc_candidate else ALIAS_INDEX.get(source.alias_key, [])
+    candidate_ids = [source_loinc_candidate] if source_loinc_candidate else list(active_alias_index.get(source.alias_key, []))
     if source_loinc_candidate:
         source_loinc_matched = True
     fuzzy_result: tuple[str, float] | None = None
@@ -309,16 +316,20 @@ def normalize_source_record(source: SourceRecord, *, fuzzy_threshold: float = 0.
         suffix = source.source_test_name.rsplit(":", 1)[-1].strip()
         if suffix:
             stripped_key = normalize_key(suffix)
-            candidate_ids = ALIAS_INDEX.get(stripped_key, [])
+            candidate_ids = list(active_alias_index.get(stripped_key, []))
             if candidate_ids:
                 panel_prefix_stripped = True
 
     if not candidate_ids and fuzzy_threshold > 0:
         from biomarker_normalization_toolkit.fuzzy import fuzzy_match
-        matches = fuzzy_match(source.alias_key, threshold=max(fuzzy_threshold, 0.70))
+        matches = fuzzy_match(
+            source.alias_key,
+            threshold=max(fuzzy_threshold, 0.70),
+            alias_index=active_alias_index,
+        )
         if matches:
             best_alias, best_bio_id, best_score = matches[0]
-            candidate_ids = ALIAS_INDEX.get(best_alias, [best_bio_id])
+            candidate_ids = list(active_alias_index.get(best_alias, [best_bio_id]))
             fuzzy_result = (best_alias, best_score)
 
     if not candidate_ids:
@@ -496,10 +507,18 @@ def _detect_duplicate_row_ids(source_records: list[SourceRecord]) -> list[str]:
     return warnings
 
 
-def normalize_rows(rows: list[dict[str, str]], input_file: str = "", fuzzy_threshold: float = 0.0) -> NormalizationResult:
+def normalize_rows(
+    rows: list[dict[str, str]],
+    input_file: str = "",
+    fuzzy_threshold: float = 0.0,
+    alias_index: Mapping[str, Sequence[str]] | None = None,
+) -> NormalizationResult:
     validate_fuzzy_threshold(fuzzy_threshold)
     source_records = build_source_records(rows)
-    normalized_records = [normalize_source_record(record, fuzzy_threshold=fuzzy_threshold) for record in source_records]
+    normalized_records = [
+        normalize_source_record(record, fuzzy_threshold=fuzzy_threshold, alias_index=alias_index)
+        for record in source_records
+    ]
 
     warnings = _detect_duplicate_row_ids(source_records)
 

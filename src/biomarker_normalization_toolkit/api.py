@@ -6,6 +6,7 @@ Or: uvicorn biomarker_normalization_toolkit.api:app --host 127.0.0.1 --port 8000
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -18,14 +19,21 @@ from pathlib import Path
 from pathlib import PurePosixPath
 from typing import Annotated, Any
 
-from fastapi import APIRouter, FastAPI, File, Header, Query, Request, UploadFile
+from fastapi import APIRouter, FastAPI, File, Form, Header, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from biomarker_normalization_toolkit import __version__
-from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, BIOMARKER_CATALOG, normalize_key, normalize_specimen
+from biomarker_normalization_toolkit import __version__, load_catalog_metadata
+from biomarker_normalization_toolkit.catalog import (
+    BIOMARKER_CATALOG,
+    build_alias_index,
+    list_catalog as list_catalog_entries,
+    lookup as lookup_biomarker,
+    validate_custom_aliases,
+)
+from biomarker_normalization_toolkit.catalog_metadata import list_catalog_metadata
 from biomarker_normalization_toolkit.derived import compute_derived_metrics
 from biomarker_normalization_toolkit.fhir import build_bundle
 from biomarker_normalization_toolkit.io_utils import read_input
@@ -61,6 +69,10 @@ _INTERNAL_ROWS_HEADER = "X-BNT-Rows-Processed"
 class NormalizeRequest(BaseModel):
     rows: list[dict[str, Any]] = Field(..., description="List of lab result row objects")
     input_file: str = ""
+    custom_aliases: dict[str, list[str]] | None = Field(
+        None,
+        description="Optional per-request vendor alias mappings that apply only to this API call.",
+    )
     chronological_age: float | None = Field(None, ge=0, allow_inf_nan=False, description="Patient age for PhenoAge")
     sex: str | None = Field(None, description="Patient sex (male/female) for sex-specific optimal ranges")
 
@@ -68,12 +80,36 @@ class NormalizeRequest(BaseModel):
 class CompareRequest(BaseModel):
     before: dict[str, Any] = Field(..., description='{"rows": [...]} for baseline results')
     after: dict[str, Any] = Field(..., description='{"rows": [...]} for follow-up results')
+    custom_aliases: dict[str, list[str]] | None = Field(
+        None,
+        description="Optional per-request vendor alias mappings that apply to both before and after rows.",
+    )
     days_between: float | None = Field(None, ge=0, allow_inf_nan=False, description="Days between the two tests")
 
 
 class PhenoAgeRequest(BaseModel):
     rows: list[dict[str, Any]] = Field(..., description="Lab result rows (need 9 biomarkers)")
+    custom_aliases: dict[str, list[str]] | None = Field(
+        None,
+        description="Optional per-request vendor alias mappings that apply only to this API call.",
+    )
     chronological_age: float = Field(..., ge=0, allow_inf_nan=False, description="Patient age in years")
+
+
+class LookupRequest(BaseModel):
+    test_name: str = Field(..., min_length=1, description="Test name to look up")
+    specimen: str = Field("", description="Specimen type (optional)")
+    custom_aliases: dict[str, list[str]] | None = Field(
+        None,
+        description="Optional per-request vendor alias mappings that apply only to this API call.",
+    )
+
+
+class AliasValidationRequest(BaseModel):
+    custom_aliases: dict[str, Any] = Field(
+        ...,
+        description="Vendor alias mappings to validate without mutating global alias state.",
+    )
 
 
 class RateLimiter:
@@ -162,13 +198,19 @@ class MetricsCollector:
             "/phenoage",
             "/optimal-ranges",
             "/compare",
+            "/aliases/validate",
             "/lookup",
             "/catalog",
+            "/catalog/metadata",
+            "/catalog/metadata/search",
             "/health",
             "/metrics",
             "/v1/health",
             "/v1/metrics",
             "/v1/catalog",
+            "/v1/catalog/metadata",
+            "/v1/catalog/metadata/search",
+            "/v1/aliases/validate",
             "/v1/lookup",
             "/v1/normalize",
             "/v1/normalize/upload",
@@ -385,6 +427,33 @@ def _with_rows_processed(response: JSONResponse, rows: int) -> JSONResponse:
     return response
 
 
+def _alias_index_from_body(custom_aliases: dict[str, list[str]] | None) -> dict[str, list[str]] | None:
+    if not custom_aliases:
+        return None
+    return build_alias_index(custom_aliases)
+
+
+def _alias_index_from_form_json(custom_aliases_json: str | None) -> tuple[dict[str, list[str]] | None, str | None]:
+    if not custom_aliases_json:
+        return None, None
+    try:
+        raw = json.loads(custom_aliases_json)
+    except json.JSONDecodeError:
+        return None, "custom_aliases_json must be valid JSON."
+    if not isinstance(raw, dict):
+        return None, "custom_aliases_json must be a JSON object mapping biomarker_id to alias lists."
+
+    custom_aliases: dict[str, list[str]] = {}
+    for biomarker_id, aliases in raw.items():
+        if not isinstance(aliases, list):
+            return None, "custom_aliases_json must map each biomarker_id to a list of aliases."
+        if any(not isinstance(alias, str) for alias in aliases):
+            return None, "custom_aliases_json alias lists must contain only strings."
+        custom_aliases[str(biomarker_id)] = aliases
+
+    return build_alias_index(custom_aliases), None
+
+
 @app.get("/health")
 def health() -> dict[str, Any]:
     return {"status": "ok", "version": __version__, "biomarkers": len(BIOMARKER_CATALOG)}
@@ -406,29 +475,26 @@ def catalog(
     limit: Annotated[int | None, Query(description="Max results to return", ge=0)] = None,
     offset: Annotated[int, Query(description="Skip first N results", ge=0)] = 0,
 ) -> dict[str, Any]:
-    entries = []
-    for _, biomarker in sorted(BIOMARKER_CATALOG.items()):
-        if search:
-            query = search.lower()
-            searchable = (
-                f"{biomarker.biomarker_id} {biomarker.canonical_name} "
-                f"{biomarker.loinc} {' '.join(biomarker.aliases)}"
-            ).lower()
-            if query not in searchable:
-                continue
-        entries.append(
-            {
-                "biomarker_id": biomarker.biomarker_id,
-                "canonical_name": biomarker.canonical_name,
-                "loinc": biomarker.loinc,
-                "normalized_unit": biomarker.normalized_unit,
-                "allowed_specimens": sorted(biomarker.allowed_specimens),
-                "aliases": list(biomarker.aliases),
-            }
-        )
-    total = len(entries)
-    page = entries[offset:] if limit is None else entries[offset : offset + limit]
-    return {"biomarkers": page, "count": len(page), "total": total, "offset": offset}
+    return list_catalog_entries(search=search, limit=limit, offset=offset)
+
+
+@app.get("/catalog/metadata")
+def catalog_metadata() -> dict[str, Any]:
+    return load_catalog_metadata()
+
+
+@app.get("/catalog/metadata/search")
+def catalog_metadata_search(
+    search: Annotated[str | None, Query(description="Filter by name, LOINC, alias, or supported source unit")] = None,
+    limit: Annotated[int | None, Query(description="Max results to return", ge=0)] = None,
+    offset: Annotated[int, Query(description="Skip first N results", ge=0)] = 0,
+) -> dict[str, Any]:
+    return list_catalog_metadata(search=search, limit=limit, offset=offset)
+
+
+@app.post("/aliases/validate")
+def aliases_validate(body: AliasValidationRequest) -> dict[str, Any]:
+    return validate_custom_aliases(body.custom_aliases)
 
 
 @app.get("/lookup")
@@ -436,31 +502,12 @@ def lookup(
     test_name: Annotated[str, Query(description="Test name to look up")],
     specimen: Annotated[str, Query(description="Specimen type (optional)")] = "",
 ) -> dict[str, Any]:
-    key = normalize_key(test_name)
-    candidates = ALIAS_INDEX.get(key, [])
-    specimen_key = normalize_specimen(specimen) if specimen else None
-    if specimen_key:
-        candidates = [
-            biomarker_id
-            for biomarker_id in candidates
-            if not BIOMARKER_CATALOG[biomarker_id].allowed_specimens
-            or specimen_key in BIOMARKER_CATALOG[biomarker_id].allowed_specimens
-        ]
-    if not candidates:
-        return {"matched": False, "test_name": test_name, "alias_key": key, "candidates": []}
+    return lookup_biomarker(test_name, specimen)
 
-    results = []
-    for biomarker_id in candidates:
-        biomarker = BIOMARKER_CATALOG[biomarker_id]
-        results.append(
-            {
-                "biomarker_id": biomarker.biomarker_id,
-                "canonical_name": biomarker.canonical_name,
-                "loinc": biomarker.loinc,
-                "normalized_unit": biomarker.normalized_unit,
-            }
-        )
-    return {"matched": True, "test_name": test_name, "alias_key": key, "candidates": results}
+
+@app.post("/lookup")
+def lookup_post(body: LookupRequest) -> dict[str, Any]:
+    return lookup_biomarker(body.test_name, body.specimen, custom_aliases=body.custom_aliases)
 
 
 v1 = APIRouter(prefix="/v1", tags=["v1"])
@@ -472,7 +519,8 @@ def _handle_normalize(body: dict[str, Any], emit_fhir: bool, fuzzy_threshold: fl
         return JSONResponse(status_code=400, content={"error": error})
 
     input_file = _sanitize_client_filename(body.get("input_file", ""))
-    result = normalize_rows(rows, input_file=input_file, fuzzy_threshold=fuzzy_threshold)
+    alias_index = _alias_index_from_body(body.get("custom_aliases"))
+    result = normalize_rows(rows, input_file=input_file, fuzzy_threshold=fuzzy_threshold, alias_index=alias_index)
 
     response = result.to_json_dict(include_generated_at=True)
     if emit_fhir:
@@ -502,9 +550,13 @@ def normalize_v1(
 @app.post("/normalize/upload")
 def normalize_upload(
     file: UploadFile = File(...),
+    custom_aliases_json: str | None = Form(None),
     emit_fhir: bool = Query(False),
     fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0, allow_inf_nan=False),
 ) -> JSONResponse:
+    alias_index, alias_error = _alias_index_from_form_json(custom_aliases_json)
+    if alias_error:
+        return JSONResponse(status_code=400, content={"error": alias_error})
     rows, error = _read_upload(file)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
@@ -513,7 +565,7 @@ def normalize_upload(
         return JSONResponse(status_code=400, content={"error": row_error})
 
     safe_name = _sanitize_client_filename(file.filename)
-    result = normalize_rows(rows, input_file=safe_name, fuzzy_threshold=fuzzy_threshold)
+    result = normalize_rows(rows, input_file=safe_name, fuzzy_threshold=fuzzy_threshold, alias_index=alias_index)
 
     response = result.to_json_dict(include_generated_at=True)
     if emit_fhir:
@@ -525,10 +577,11 @@ def normalize_upload(
 @v1.post("/normalize/upload")
 def normalize_upload_v1(
     file: UploadFile = File(...),
+    custom_aliases_json: str | None = Form(None),
     emit_fhir: bool = Query(False),
     fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0, allow_inf_nan=False),
 ) -> JSONResponse:
-    return normalize_upload(file, emit_fhir, fuzzy_threshold)
+    return normalize_upload(file, custom_aliases_json, emit_fhir, fuzzy_threshold)
 
 
 def _build_analysis(result: Any) -> dict[str, Any]:
@@ -562,7 +615,10 @@ def _build_analysis(result: Any) -> dict[str, Any]:
 
 
 @app.post("/analyze")
-def analyze(body: NormalizeRequest) -> JSONResponse:
+def analyze(
+    body: NormalizeRequest,
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0, allow_inf_nan=False),
+) -> JSONResponse:
     rows, error = _validate_rows(body.model_dump())
     if error:
         return JSONResponse(status_code=400, content={"error": error})
@@ -570,18 +626,30 @@ def analyze(body: NormalizeRequest) -> JSONResponse:
     result = normalize_rows(
         rows,
         input_file=_sanitize_client_filename(body.input_file) if body.input_file else "",
+        alias_index=_alias_index_from_body(body.custom_aliases),
+        fuzzy_threshold=fuzzy_threshold,
     )
     response = _build_analysis(result)
     return _with_rows_processed(JSONResponse(content=response), len(rows))
 
 
 @v1.post("/analyze")
-def analyze_v1(body: NormalizeRequest) -> JSONResponse:
-    return analyze(body)
+def analyze_v1(
+    body: NormalizeRequest,
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0, allow_inf_nan=False),
+) -> JSONResponse:
+    return analyze(body, fuzzy_threshold)
 
 
 @app.post("/analyze/upload")
-def analyze_upload(file: UploadFile = File(...)) -> JSONResponse:
+def analyze_upload(
+    file: UploadFile = File(...),
+    custom_aliases_json: str | None = Form(None),
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0, allow_inf_nan=False),
+) -> JSONResponse:
+    alias_index, alias_error = _alias_index_from_form_json(custom_aliases_json)
+    if alias_error:
+        return JSONResponse(status_code=400, content={"error": alias_error})
     rows, error = _read_upload(file)
     if error:
         return JSONResponse(status_code=400, content={"error": error})
@@ -589,14 +657,23 @@ def analyze_upload(file: UploadFile = File(...)) -> JSONResponse:
     if row_error:
         return JSONResponse(status_code=400, content={"error": row_error})
 
-    result = normalize_rows(rows, input_file=_sanitize_client_filename(file.filename))
+    result = normalize_rows(
+        rows,
+        input_file=_sanitize_client_filename(file.filename),
+        alias_index=alias_index,
+        fuzzy_threshold=fuzzy_threshold,
+    )
     response = _build_analysis(result)
     return _with_rows_processed(JSONResponse(content=response), len(rows))
 
 
 @v1.post("/analyze/upload")
-def analyze_upload_v1(file: UploadFile = File(...)) -> JSONResponse:
-    return analyze_upload(file)
+def analyze_upload_v1(
+    file: UploadFile = File(...),
+    custom_aliases_json: str | None = Form(None),
+    fuzzy_threshold: float = Query(0.0, ge=0.0, le=1.0, allow_inf_nan=False),
+) -> JSONResponse:
+    return analyze_upload(file, custom_aliases_json, fuzzy_threshold)
 
 
 @app.post("/phenoage")
@@ -606,7 +683,8 @@ def phenoage_endpoint(body: PhenoAgeRequest) -> JSONResponse:
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
-    result = normalize_rows(rows)
+    alias_index = _alias_index_from_body(body.custom_aliases)
+    result = normalize_rows(rows, alias_index=alias_index)
     pheno = compute_phenoage(result, chronological_age=body.chronological_age)
     return _with_rows_processed(JSONResponse(content=pheno or {"error": "Could not compute PhenoAge"}), len(rows))
 
@@ -623,7 +701,8 @@ def optimal_ranges_endpoint(body: NormalizeRequest) -> JSONResponse:
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
-    result = normalize_rows(rows)
+    alias_index = _alias_index_from_body(body.custom_aliases)
+    result = normalize_rows(rows, alias_index=alias_index)
     summary = summarize_optimal(evaluate_optimal_ranges(result, sex=body.sex))
     return _with_rows_processed(JSONResponse(content=summary), len(rows))
 
@@ -644,8 +723,9 @@ def compare_endpoint(body: CompareRequest) -> JSONResponse:
     if after_err:
         return JSONResponse(status_code=400, content={"error": f"after: {after_err}"})
 
-    before_result = normalize_rows(before_validated)
-    after_result = normalize_rows(after_validated)
+    alias_index = _alias_index_from_body(body.custom_aliases)
+    before_result = normalize_rows(before_validated, alias_index=alias_index)
+    after_result = normalize_rows(after_validated, alias_index=alias_index)
     comparison = compare_results(before_result, after_result, days_between=body.days_between)
     return _with_rows_processed(JSONResponse(content=comparison), len(before_validated) + len(after_validated))
 
@@ -674,12 +754,36 @@ def catalog_v1(
     return catalog(search, limit, offset)
 
 
+@v1.get("/catalog/metadata")
+def catalog_metadata_v1() -> dict[str, Any]:
+    return catalog_metadata()
+
+
+@v1.get("/catalog/metadata/search")
+def catalog_metadata_search_v1(
+    search: Annotated[str | None, Query(description="Filter by name, LOINC, alias, or supported source unit")] = None,
+    limit: Annotated[int | None, Query(description="Max results to return", ge=0)] = None,
+    offset: Annotated[int, Query(description="Skip first N results", ge=0)] = 0,
+) -> dict[str, Any]:
+    return catalog_metadata_search(search, limit, offset)
+
+
+@v1.post("/aliases/validate")
+def aliases_validate_v1(body: AliasValidationRequest) -> dict[str, Any]:
+    return aliases_validate(body)
+
+
 @v1.get("/lookup")
 def lookup_v1(
     test_name: Annotated[str, Query(description="Test name to look up")],
     specimen: Annotated[str, Query(description="Specimen type (optional)")] = "",
 ) -> dict[str, Any]:
     return lookup(test_name, specimen)
+
+
+@v1.post("/lookup")
+def lookup_post_v1(body: LookupRequest) -> dict[str, Any]:
+    return lookup_post(body)
 
 
 app.include_router(v1)

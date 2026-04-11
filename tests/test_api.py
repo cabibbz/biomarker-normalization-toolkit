@@ -48,6 +48,78 @@ class APITests(unittest.TestCase):
             searchable = f"{bio['biomarker_id']} {bio['canonical_name']} {' '.join(bio['aliases'])}".lower()
             self.assertIn("glucose", searchable)
 
+    def test_catalog_metadata(self) -> None:
+        response = client.get("/catalog/metadata")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("schema_version", data)
+        self.assertIn("biomarker_count", data)
+        self.assertIn("biomarkers", data)
+        self.assertEqual(data["biomarker_count"], len(data["biomarkers"]))
+        self.assertIn("conversion_to_normalized", data["biomarkers"][0])
+
+    def test_catalog_metadata_search(self) -> None:
+        response = client.get("/catalog/metadata/search", params={"search": "glucose", "limit": 1, "offset": 0})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("schema_version", data)
+        self.assertIn("biomarker_count", data)
+        self.assertIn("count", data)
+        self.assertIn("total", data)
+        self.assertIn("offset", data)
+        self.assertEqual(data["count"], 1)
+        self.assertGreaterEqual(data["total"], 1)
+        searchable = (
+            f"{data['biomarkers'][0]['biomarker_id']} "
+            f"{data['biomarkers'][0]['canonical_name']} "
+            f"{' '.join(data['biomarkers'][0]['aliases'])} "
+            f"{' '.join(data['biomarkers'][0]['supported_source_units'])}"
+        ).lower()
+        self.assertIn("glucose", searchable)
+
+    def test_aliases_validate_clean(self) -> None:
+        response = client.post("/aliases/validate", json={
+            "custom_aliases": {"hemoglobin": ["API Clean Alias"]},
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["clean"])
+        self.assertEqual(data["accepted_alias_count"], 1)
+        self.assertEqual(data["net_new_alias_count"], 1)
+        self.assertEqual(data["catalog_conflicts"], [])
+
+    def test_aliases_validate_reports_conflicts(self) -> None:
+        response = client.post("/aliases/validate", json={
+            "custom_aliases": {
+                "glucose_serum": ["API Shared Alias"],
+                "hemoglobin": ["API Shared Alias", "Glucose", " "],
+            },
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data["clean"])
+        self.assertEqual(data["empty_alias_count"], 1)
+        self.assertEqual(len(data["custom_conflicts"]), 1)
+        self.assertEqual(data["custom_conflicts"][0]["alias_key"], "api shared alias")
+        self.assertEqual(len(data["catalog_conflicts"]), 1)
+        self.assertEqual(data["catalog_conflicts"][0]["alias_key"], "glucose")
+
+    def test_aliases_validate_reports_malformed_entries_instead_of_422(self) -> None:
+        response = client.post("/aliases/validate", json={
+            "custom_aliases": {
+                "albumin": "not-a-list",
+                "hemoglobin": ["Vendor Alias", 123, " "],
+                "totally_fake_biomarker_xyz": ["Unknown Alias"],
+            },
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data["clean"])
+        self.assertEqual(data["non_list_entries"], ["albumin"])
+        self.assertEqual(data["non_string_alias_count"], 1)
+        self.assertEqual(data["empty_alias_count"], 1)
+        self.assertEqual(data["unknown_biomarker_ids"], ["totally_fake_biomarker_xyz"])
+
     def test_normalize_json(self) -> None:
         response = client.post("/normalize", json={
             "rows": [
@@ -63,6 +135,23 @@ class APITests(unittest.TestCase):
         self.assertEqual(data["summary"]["total_rows"], 2)
         self.assertEqual(data["summary"]["mapped"], 2)
         self.assertEqual(len(data["records"]), 2)
+
+    def test_normalize_json_accepts_per_request_custom_aliases_without_global_leak(self) -> None:
+        response = client.post("/normalize", json={
+            "custom_aliases": {"hemoglobin": ["Vendor Hgb Alias"]},
+            "rows": [
+                {"source_test_name": "Vendor Hgb Alias", "raw_value": "14.2", "source_unit": "g/dL",
+                 "specimen_type": "whole blood", "source_row_id": "1", "source_reference_range": ""},
+            ],
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["summary"]["mapped"], 1)
+        self.assertEqual(data["records"][0]["canonical_biomarker_id"], "hemoglobin")
+
+        lookup = client.get("/lookup", params={"test_name": "Vendor Hgb Alias", "specimen": "whole blood"})
+        self.assertEqual(lookup.status_code, 200)
+        self.assertFalse(lookup.json()["matched"])
 
     def test_normalize_with_fhir(self) -> None:
         response = client.post("/normalize?emit_fhir=true", json={
@@ -125,6 +214,38 @@ class APITests(unittest.TestCase):
         self.assertEqual(data["summary"]["total_rows"], 6)
         self.assertGreaterEqual(data["summary"]["mapped"], 5)
 
+    def test_normalize_upload_accepts_per_request_custom_aliases_without_global_leak(self) -> None:
+        csv_bytes = (
+            b"source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+            b"1,Vendor Glucose Alias,100,mg/dL,serum,\n"
+        )
+        response = client.post(
+            "/normalize/upload",
+            data={"custom_aliases_json": '{"glucose_serum": ["Vendor Glucose Alias"]}'},
+            files={"file": ("vendor.csv", csv_bytes, "text/csv")},
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["summary"]["mapped"], 1)
+        self.assertEqual(data["records"][0]["canonical_biomarker_id"], "glucose_serum")
+
+        lookup = client.get("/lookup", params={"test_name": "Vendor Glucose Alias", "specimen": "serum"})
+        self.assertEqual(lookup.status_code, 200)
+        self.assertFalse(lookup.json()["matched"])
+
+    def test_normalize_upload_rejects_invalid_custom_aliases_json(self) -> None:
+        csv_bytes = (
+            b"source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+            b"1,Glucose,100,mg/dL,serum,\n"
+        )
+        response = client.post(
+            "/normalize/upload",
+            data={"custom_aliases_json": "{not valid json"},
+            files={"file": ("vendor.csv", csv_bytes, "text/csv")},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("custom_aliases_json", response.json()["error"])
+
     def test_normalize_upload_hl7(self) -> None:
         hl7_path = INTEROP_FIXTURES / "hl7_oru_cmp.hl7"
         with hl7_path.open("rb") as f:
@@ -174,6 +295,18 @@ class APITests(unittest.TestCase):
         self.assertIn("Unknown Test", data["unmapped_tests"])
         self.assertIn("mapping_rate", data)
 
+    def test_analyze_json_accepts_fuzzy_threshold(self) -> None:
+        response = client.post("/analyze?fuzzy_threshold=0.7", json={
+            "rows": [
+                {"source_test_name": "Glocose", "raw_value": "100", "source_unit": "mg/dL",
+                 "specimen_type": "serum", "source_row_id": "1", "source_reference_range": ""},
+            ],
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["summary"]["mapped"], 1)
+        self.assertIn("Glucose", data["mapped_biomarkers"])
+
     def test_analyze_upload(self) -> None:
         csv_path = FIXTURES / "input" / "coverage_wave_2.csv"
         with csv_path.open("rb") as f:
@@ -184,6 +317,21 @@ class APITests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertGreater(data["mapping_rate"], 90)
+
+    def test_analyze_upload_accepts_per_request_custom_aliases(self) -> None:
+        csv_bytes = (
+            b"source_row_id,source_test_name,raw_value,source_unit,specimen_type,source_reference_range\n"
+            b"1,Vendor Glucose Alias,100,mg/dL,serum,\n"
+        )
+        response = client.post(
+            "/analyze/upload",
+            data={"custom_aliases_json": '{"glucose_serum": ["Vendor Glucose Alias"]}'},
+            files={"file": ("vendor.csv", csv_bytes, "text/csv")},
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["summary"]["mapped"], 1)
+        self.assertIn("Glucose", data["mapped_biomarkers"])
 
     def test_openapi_docs_available(self) -> None:
         response = client.get("/docs")
@@ -286,6 +434,38 @@ class APITests(unittest.TestCase):
         self.assertEqual(len(data["candidates"]), 1)
         self.assertEqual(data["candidates"][0]["biomarker_id"], "glucose_urine")
 
+    def test_lookup_post_accepts_per_request_custom_aliases_without_global_leak(self) -> None:
+        response = client.post("/lookup", json={
+            "test_name": "Vendor Hgb Alias",
+            "specimen": "whole blood",
+            "custom_aliases": {"hemoglobin": ["Vendor Hgb Alias"]},
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["matched"])
+        self.assertEqual(data["alias_key"], "vendor hgb alias")
+        self.assertEqual(data["candidates"][0]["biomarker_id"], "hemoglobin")
+
+        lookup = client.get("/lookup", params={"test_name": "Vendor Hgb Alias", "specimen": "whole blood"})
+        self.assertEqual(lookup.status_code, 200)
+        self.assertFalse(lookup.json()["matched"])
+
+    def test_lookup_post_reuses_lookup_response_shape(self) -> None:
+        response = client.post("/lookup", json={"test_name": "Glucose", "specimen": "serum"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(set(data.keys()), {"matched", "test_name", "alias_key", "candidates"})
+        self.assertTrue(data["matched"])
+        self.assertGreater(len(data["candidates"]), 0)
+        self.assertEqual(
+            set(data["candidates"][0].keys()),
+            {"biomarker_id", "canonical_name", "loinc", "normalized_unit"},
+        )
+
+    def test_lookup_post_missing_test_name(self) -> None:
+        response = client.post("/lookup", json={"specimen": "serum"})
+        self.assertEqual(response.status_code, 422)
+
     def test_lookup_missing_test_name(self) -> None:
         """Lookup without required test_name returns 422."""
         response = client.get("/lookup")
@@ -336,11 +516,63 @@ class APITests(unittest.TestCase):
         self.assertLess(data["age_acceleration"], 0)
         self.assertIn("interpretation", data)
 
+    def test_phenoage_accepts_per_request_custom_aliases(self) -> None:
+        response = client.post("/phenoage", json={
+            "chronological_age": 45,
+            "custom_aliases": {"albumin": ["Vendor Albumin Alias"]},
+            "rows": [
+                {"source_test_name": "Vendor Albumin Alias", "raw_value": "4.5", "source_unit": "g/dL",
+                 "specimen_type": "serum", "source_row_id": "pa1"},
+                {"source_test_name": "Creatinine", "raw_value": "0.9", "source_unit": "mg/dL",
+                 "specimen_type": "serum", "source_row_id": "pa2"},
+                {"source_test_name": "Glucose", "raw_value": "90", "source_unit": "mg/dL",
+                 "specimen_type": "serum", "source_row_id": "pa3"},
+                {"source_test_name": "hs-CRP", "raw_value": "0.5", "source_unit": "mg/L",
+                 "specimen_type": "serum", "source_row_id": "pa4"},
+                {"source_test_name": "Lymphocytes Percent", "raw_value": "30", "source_unit": "%",
+                 "specimen_type": "whole blood", "source_row_id": "pa5"},
+                {"source_test_name": "MCV", "raw_value": "88", "source_unit": "fL",
+                 "specimen_type": "whole blood", "source_row_id": "pa6"},
+                {"source_test_name": "RDW", "raw_value": "12.5", "source_unit": "%",
+                 "specimen_type": "whole blood", "source_row_id": "pa7"},
+                {"source_test_name": "ALP", "raw_value": "55", "source_unit": "U/L",
+                 "specimen_type": "serum", "source_row_id": "pa8"},
+                {"source_test_name": "WBC", "raw_value": "5.5", "source_unit": "K/uL",
+                 "specimen_type": "whole blood", "source_row_id": "pa9"},
+            ],
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIsNotNone(data["phenoage"])
+        self.assertEqual(data["chronological_age"], 45.0)
+
     def test_v1_get_endpoints_available(self) -> None:
         self.assertEqual(client.get("/v1/health").status_code, 200)
         self.assertEqual(client.get("/v1/metrics").status_code, 200)
         self.assertEqual(client.get("/v1/catalog", params={"limit": 1}).status_code, 200)
+        self.assertEqual(client.get("/v1/catalog/metadata").status_code, 200)
+        self.assertEqual(client.get("/v1/catalog/metadata/search", params={"limit": 1}).status_code, 200)
         self.assertEqual(client.get("/v1/lookup", params={"test_name": "Glucose"}).status_code, 200)
+
+    def test_v1_aliases_validate_available(self) -> None:
+        response = client.post("/v1/aliases/validate", json={
+            "custom_aliases": {"hemoglobin": ["V1 Alias"]},
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["clean"])
+        self.assertEqual(data["accepted_alias_count"], 1)
+
+    def test_v1_lookup_post_available(self) -> None:
+        response = client.post("/v1/lookup", json={
+            "test_name": "Vendor Glucose Alias",
+            "specimen": "serum",
+            "custom_aliases": {"glucose_serum": ["Vendor Glucose Alias"]},
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["matched"])
+        self.assertEqual(data["candidates"][0]["biomarker_id"], "glucose_serum")
 
     # ─── POST /analyze (JSON body) ────────────────────────────
 
@@ -423,6 +655,27 @@ class APITests(unittest.TestCase):
             self.assertIn("absolute_delta", delta)
             self.assertIn("direction", delta)
             self.assertIn("velocity_per_month", delta)
+
+    def test_compare_accepts_per_request_custom_aliases(self) -> None:
+        response = client.post(
+            "/compare",
+            json={
+                "custom_aliases": {"glucose_serum": ["Vendor Glucose Alias"]},
+                "before": {"rows": [
+                    {"source_test_name": "Vendor Glucose Alias", "raw_value": "110", "source_unit": "mg/dL",
+                     "specimen_type": "serum", "source_row_id": "b1", "source_reference_range": ""},
+                ]},
+                "after": {"rows": [
+                    {"source_test_name": "Vendor Glucose Alias", "raw_value": "95", "source_unit": "mg/dL",
+                     "specimen_type": "serum", "source_row_id": "a1", "source_reference_range": ""},
+                ]},
+                "days_between": 90,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["biomarkers_compared"], 1)
+        self.assertEqual(data["deltas"][0]["biomarker_id"], "glucose_serum")
 
     def test_compare_rejects_negative_days_between(self) -> None:
         response = client.post("/compare", json={
@@ -816,7 +1069,72 @@ class APISnapshotTests(unittest.TestCase):
         self.assertIsInstance(entry["allowed_specimens"], list)
         self.assertIsInstance(entry["aliases"], list)
 
+    def test_snapshot_catalog_metadata(self) -> None:
+        """Pin the top-level and entry structure from /catalog/metadata."""
+        response = client.get("/catalog/metadata")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        metadata_keys = {"schema_version", "biomarker_count", "biomarkers"}
+        self.assertEqual(set(data.keys()), metadata_keys,
+                         f"Catalog metadata keys changed: {set(data.keys())} != {metadata_keys}")
+        self.assertIsInstance(data["schema_version"], str)
+        self.assertIsInstance(data["biomarker_count"], int)
+        self.assertIsInstance(data["biomarkers"], list)
+        self.assertGreater(len(data["biomarkers"]), 0)
+
+        entry = data["biomarkers"][0]
+        entry_keys = {
+            "biomarker_id", "canonical_name", "loinc", "normalized_unit",
+            "allowed_specimens", "aliases", "supported_source_units", "conversion_to_normalized",
+        }
+        self.assertEqual(set(entry.keys()), entry_keys,
+                         f"Catalog metadata entry keys changed: {set(entry.keys())} != {entry_keys}")
+        self.assertIsInstance(entry["supported_source_units"], list)
+        self.assertIsInstance(entry["conversion_to_normalized"], dict)
+
     # ─── 3. GET /lookup matched ──────────────────────────────
+
+    def test_snapshot_aliases_validate_conflict_report(self) -> None:
+        """Pin POST /aliases/validate response structure for a conflict report."""
+        response = client.post("/aliases/validate", json={
+            "custom_aliases": {
+                "glucose_serum": ["Snapshot Alias"],
+                "hemoglobin": ["Snapshot Alias", "Glucose"],
+            },
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        expected_keys = {
+            "clean",
+            "biomarker_entries",
+            "string_alias_count",
+            "accepted_alias_count",
+            "net_new_alias_count",
+            "existing_alias_count",
+            "redundant_alias_count",
+            "unknown_biomarker_ids",
+            "non_list_entries",
+            "non_string_alias_count",
+            "empty_alias_count",
+            "custom_conflicts",
+            "catalog_conflicts",
+        }
+        self.assertEqual(set(data.keys()), expected_keys)
+        self.assertFalse(data["clean"])
+        self.assertIsInstance(data["custom_conflicts"], list)
+        self.assertIsInstance(data["catalog_conflicts"], list)
+        self.assertGreater(len(data["custom_conflicts"]), 0)
+        self.assertGreater(len(data["catalog_conflicts"]), 0)
+
+        custom_conflict = data["custom_conflicts"][0]
+        self.assertEqual(set(custom_conflict.keys()), {"alias", "alias_key", "biomarker_ids"})
+        catalog_conflict = data["catalog_conflicts"][0]
+        self.assertEqual(
+            set(catalog_conflict.keys()),
+            {"alias", "alias_key", "requested_biomarker_ids", "existing_biomarker_ids"},
+        )
 
     def test_snapshot_lookup_matched(self) -> None:
         """Pin matched=True response structure from /lookup."""
@@ -866,6 +1184,27 @@ class APISnapshotTests(unittest.TestCase):
         self.assertEqual(len(data["candidates"]), 0)
 
     # ─── 5. POST /normalize top-level keys ───────────────────
+
+    def test_snapshot_lookup_post_custom_alias(self) -> None:
+        """Pin POST /lookup structure when per-request aliases are supplied."""
+        response = client.post("/lookup", json={
+            "test_name": "Vendor Glucose Alias",
+            "specimen": "serum",
+            "custom_aliases": {"glucose_serum": ["Vendor Glucose Alias"]},
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        lookup_keys = {"matched", "test_name", "alias_key", "candidates"}
+        self.assertEqual(set(data.keys()), lookup_keys)
+        self.assertTrue(data["matched"])
+        self.assertEqual(data["test_name"], "Vendor Glucose Alias")
+        self.assertEqual(data["alias_key"], "vendor glucose alias")
+        self.assertEqual(len(data["candidates"]), 1)
+        self.assertEqual(
+            set(data["candidates"][0].keys()),
+            {"biomarker_id", "canonical_name", "loinc", "normalized_unit"},
+        )
 
     def test_snapshot_normalize_response(self) -> None:
         """Pin top-level response keys from POST /normalize."""

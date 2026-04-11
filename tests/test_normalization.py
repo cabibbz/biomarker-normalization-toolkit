@@ -5509,6 +5509,58 @@ class CLICommandTests(unittest.TestCase):
         for key in ("biomarker_id", "canonical_name", "loinc", "normalized_unit"):
             self.assertIn(key, entry)
 
+    def test_cli_catalog_json_search_limit(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_catalog
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = command_catalog(fmt="json", search="glucose", limit=1, offset=0)
+        self.assertEqual(rc, 0)
+        data = json.loads(buf.getvalue())
+        self.assertEqual(len(data), 1)
+        searchable = f"{data[0]['biomarker_id']} {data[0]['canonical_name']} {' '.join(data[0]['aliases'])}".lower()
+        self.assertIn("glucose", searchable)
+
+    def test_cli_catalog_metadata_json(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_catalog
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = command_catalog(fmt="metadata-json")
+        self.assertEqual(rc, 0)
+        data = json.loads(buf.getvalue())
+        self.assertIn("biomarker_count", data)
+        self.assertIn("biomarkers", data)
+        self.assertGreater(data["biomarker_count"], 0)
+        self.assertEqual(data["biomarker_count"], len(data["biomarkers"]))
+        self.assertIn("conversion_to_normalized", data["biomarkers"][0])
+
+    def test_cli_catalog_metadata_json_search_limit(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_catalog
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = command_catalog(fmt="metadata-json", search="glucose", limit=1, offset=0)
+        self.assertEqual(rc, 0)
+        data = json.loads(buf.getvalue())
+        self.assertEqual(data["count"], 1)
+        self.assertGreaterEqual(data["total"], 1)
+        self.assertEqual(data["offset"], 0)
+        self.assertIn("conversion_to_normalized", data["biomarkers"][0])
+        searchable = (
+            f"{data['biomarkers'][0]['biomarker_id']} "
+            f"{data['biomarkers'][0]['canonical_name']} "
+            f"{' '.join(data['biomarkers'][0]['aliases'])} "
+            f"{' '.join(data['biomarkers'][0]['supported_source_units'])}"
+        ).lower()
+        self.assertIn("glucose", searchable)
+
     def test_cli_catalog_table(self) -> None:
         import io
         import contextlib
@@ -5522,6 +5574,95 @@ class CLICommandTests(unittest.TestCase):
         self.assertIn("Biomarker ID", output)
         self.assertIn("LOINC", output)
         self.assertIn("Total:", output)
+
+    def test_cli_aliases_json_clean(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_aliases
+
+        data = {"hemoglobin": ["CLI Clean Alias"]}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f)
+            f.flush()
+            path = Path(f.name)
+
+        try:
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = command_aliases(str(path), fmt="json")
+            self.assertEqual(rc, 0)
+            report = json.loads(buf.getvalue())
+            self.assertTrue(report["clean"])
+            self.assertEqual(report["accepted_alias_count"], 1)
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_cli_aliases_json_reports_conflicts(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_aliases
+
+        data = {
+            "glucose_serum": ["CLI Shared Alias"],
+            "hemoglobin": ["CLI Shared Alias"],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f)
+            f.flush()
+            path = Path(f.name)
+
+        try:
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = command_aliases(str(path), fmt="json")
+            self.assertEqual(rc, 1)
+            report = json.loads(buf.getvalue())
+            self.assertFalse(report["clean"])
+            self.assertEqual(len(report["custom_conflicts"]), 1)
+            self.assertEqual(report["custom_conflicts"][0]["alias_key"], "cli shared alias")
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_cli_lookup_json(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_lookup
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = command_lookup("GLU", specimen="urine", fmt="json")
+        self.assertEqual(rc, 0)
+        data = json.loads(buf.getvalue())
+        self.assertTrue(data["matched"])
+        self.assertEqual(len(data["candidates"]), 1)
+        self.assertEqual(data["candidates"][0]["biomarker_id"], "glucose_urine")
+
+    def test_cli_lookup_json_with_custom_alias_file(self) -> None:
+        import io
+        import contextlib
+        from biomarker_normalization_toolkit.cli import command_lookup
+        from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, normalize_key
+
+        data = {"hemoglobin": ["CLI Vendor Hgb Alias"]}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f)
+            f.flush()
+            path = Path(f.name)
+
+        alias_key = normalize_key("CLI Vendor Hgb Alias")
+        self.assertNotIn(alias_key, ALIAS_INDEX)
+
+        try:
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = command_lookup("CLI Vendor Hgb Alias", specimen="whole blood", aliases_path=str(path), fmt="json")
+            self.assertEqual(rc, 0)
+            output = json.loads(buf.getvalue())
+            self.assertTrue(output["matched"])
+            self.assertEqual(output["candidates"][0]["biomarker_id"], "hemoglobin")
+            self.assertNotIn(alias_key, ALIAS_INDEX)
+        finally:
+            path.unlink(missing_ok=True)
 
     def test_cli_serve_incomplete_rest_dependencies_prints_guidance(self) -> None:
         import io
@@ -5652,8 +5793,10 @@ class CustomAliasTests(unittest.TestCase):
     def tearDown(self) -> None:
         """Restore ALIAS_INDEX to its original state."""
         from biomarker_normalization_toolkit.catalog import ALIAS_INDEX
+        from biomarker_normalization_toolkit.fuzzy import reset_index
         ALIAS_INDEX.clear()
         ALIAS_INDEX.update(self._saved_alias_index)
+        reset_index()
 
     def test_load_custom_aliases_adds_mapping(self) -> None:
         """Custom alias file adds new alias that maps to the correct biomarker."""
@@ -5730,6 +5873,36 @@ class CustomAliasTests(unittest.TestCase):
         finally:
             path.unlink(missing_ok=True)
 
+    def test_validate_custom_aliases_reports_clean_summary(self) -> None:
+        from biomarker_normalization_toolkit import validate_custom_aliases
+
+        report = validate_custom_aliases({"hemoglobin": ["Process Local Hgb Alias"]})
+        self.assertTrue(report["clean"])
+        self.assertEqual(report["biomarker_entries"], 1)
+        self.assertEqual(report["accepted_alias_count"], 1)
+        self.assertEqual(report["net_new_alias_count"], 1)
+        self.assertEqual(report["catalog_conflicts"], [])
+        self.assertEqual(report["custom_conflicts"], [])
+
+    def test_validate_custom_aliases_reports_conflicts_and_malformed_entries(self) -> None:
+        from biomarker_normalization_toolkit import validate_custom_aliases
+
+        report = validate_custom_aliases({
+            "glucose_serum": ["Shared Alias"],
+            "hemoglobin": ["Shared Alias", "Glucose", 123, " "],
+            "albumin": "not-a-list",
+            "totally_fake_biomarker_xyz": ["Unknown Alias"],
+        })
+        self.assertFalse(report["clean"])
+        self.assertEqual(report["non_string_alias_count"], 1)
+        self.assertEqual(report["empty_alias_count"], 1)
+        self.assertEqual(report["non_list_entries"], ["albumin"])
+        self.assertEqual(report["unknown_biomarker_ids"], ["totally_fake_biomarker_xyz"])
+        self.assertEqual(len(report["custom_conflicts"]), 1)
+        self.assertEqual(report["custom_conflicts"][0]["alias_key"], "shared alias")
+        self.assertEqual(len(report["catalog_conflicts"]), 1)
+        self.assertEqual(report["catalog_conflicts"][0]["alias_key"], "glucose")
+
     def test_custom_alias_used_in_normalization(self) -> None:
         """After loading a custom alias, normalizing with that alias maps correctly."""
         from biomarker_normalization_toolkit.catalog import load_custom_aliases
@@ -5757,6 +5930,123 @@ class CustomAliasTests(unittest.TestCase):
             self.assertEqual(record.normalized_value, "14.5")
         finally:
             path.unlink(missing_ok=True)
+
+    def test_custom_alias_refreshes_fuzzy_index(self) -> None:
+        """New custom aliases should be visible even if fuzzy matching was used earlier."""
+        from biomarker_normalization_toolkit.catalog import load_custom_aliases
+        from biomarker_normalization_toolkit.fuzzy import fuzzy_match
+
+        # Build the fuzzy cache before adding the new alias.
+        fuzzy_match("glucose", threshold=0.7)
+
+        data = {"glucose_serum": ["My Custom Fuzzy Glucose Alias"]}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f)
+            f.flush()
+            path = Path(f.name)
+        try:
+            load_custom_aliases(path)
+            matches = fuzzy_match("My Custom Fuzzy Glucose Alias", threshold=0.7)
+            self.assertTrue(matches)
+            self.assertEqual(matches[0][1], "glucose_serum")
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_read_custom_aliases_and_top_level_normalize_do_not_mutate_global_alias_index(self) -> None:
+        """Per-call alias use should not leak aliases into the process-global catalog."""
+        from biomarker_normalization_toolkit import normalize, read_custom_aliases
+        from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, normalize_key
+
+        data = {"hemoglobin": ["Process Local Hgb Alias"]}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f)
+            f.flush()
+            path = Path(f.name)
+        try:
+            custom_aliases = read_custom_aliases(path)
+            alias_key = normalize_key("Process Local Hgb Alias")
+            self.assertNotIn(alias_key, ALIAS_INDEX)
+
+            rows = [
+                {
+                    "source_row_id": "local1",
+                    "source_test_name": "Process Local Hgb Alias",
+                    "raw_value": "14.5",
+                    "source_unit": "g/dL",
+                    "specimen_type": "whole_blood",
+                    "source_reference_range": "",
+                }
+            ]
+            result = normalize(rows, custom_aliases=custom_aliases)
+            self.assertEqual(result.records[0].mapping_status, "mapped")
+            self.assertEqual(result.records[0].canonical_biomarker_id, "hemoglobin")
+            self.assertNotIn(alias_key, ALIAS_INDEX)
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_per_call_custom_aliases_participate_in_fuzzy_matching(self) -> None:
+        """Per-call custom aliases should be used for fuzzy matching inside that call."""
+        from biomarker_normalization_toolkit import normalize
+
+        rows = [
+            {
+                "source_row_id": "local2",
+                "source_test_name": "Vendr Hemo Globn",
+                "raw_value": "14.5",
+                "source_unit": "g/dL",
+                "specimen_type": "whole_blood",
+                "source_reference_range": "",
+            }
+        ]
+        result = normalize(
+            rows,
+            fuzzy_threshold=0.7,
+            custom_aliases={"hemoglobin": ["Vendor Hemo Globin"]},
+        )
+        self.assertEqual(result.records[0].mapping_status, "mapped")
+        self.assertEqual(result.records[0].canonical_biomarker_id, "hemoglobin")
+
+    def test_top_level_lookup_accepts_per_call_custom_aliases_without_global_leak(self) -> None:
+        """Public lookup helper should support local aliases without mutating the global catalog."""
+        from biomarker_normalization_toolkit import lookup
+        from biomarker_normalization_toolkit.catalog import ALIAS_INDEX, normalize_key
+
+        alias_key = normalize_key("Process Local Hgb Alias")
+        self.assertNotIn(alias_key, ALIAS_INDEX)
+
+        result = lookup(
+            "Process Local Hgb Alias",
+            specimen="whole blood",
+            custom_aliases={"hemoglobin": ["Process Local Hgb Alias"]},
+        )
+        self.assertTrue(result["matched"])
+        self.assertEqual(result["candidates"][0]["biomarker_id"], "hemoglobin")
+        self.assertNotIn(alias_key, ALIAS_INDEX)
+
+    def test_top_level_list_catalog_supports_search_and_pagination(self) -> None:
+        from biomarker_normalization_toolkit import list_catalog
+
+        page = list_catalog(search="glucose", limit=1, offset=0)
+        self.assertEqual(page["count"], 1)
+        self.assertGreaterEqual(page["total"], 1)
+        self.assertEqual(page["offset"], 0)
+        searchable = (
+            f"{page['biomarkers'][0]['biomarker_id']} "
+            f"{page['biomarkers'][0]['canonical_name']} "
+            f"{' '.join(page['biomarkers'][0]['aliases'])}"
+        ).lower()
+        self.assertIn("glucose", searchable)
+
+    def test_top_level_list_catalog_metadata_supports_search_and_pagination(self) -> None:
+        from biomarker_normalization_toolkit import list_catalog_metadata
+
+        page = list_catalog_metadata(search="mg/dl", limit=2, offset=0)
+        self.assertEqual(page["count"], 2)
+        self.assertGreaterEqual(page["total"], 2)
+        self.assertGreaterEqual(page["biomarker_count"], page["total"])
+        self.assertEqual(page["offset"], 0)
+        self.assertIn("conversion_to_normalized", page["biomarkers"][0])
+        self.assertIn("supported_source_units", page["biomarkers"][0])
 
 
 class CLIErrorHandlingTests(unittest.TestCase):
@@ -6393,6 +6683,13 @@ class CatalogIntegrityTests(unittest.TestCase):
                 if bio_id not in BIOMARKER_CATALOG:
                     orphans.append(f"alias_key={alias_key!r} -> {bio_id!r}")
         self.assertEqual(orphans, [], f"Orphan biomarker IDs in ALIAS_INDEX:\n" + "\n".join(orphans))
+
+    def test_packaged_catalog_metadata_matches_runtime_export(self) -> None:
+        """The bundled catalog metadata JSON should stay in sync with runtime definitions."""
+        from biomarker_normalization_toolkit import load_catalog_metadata
+        from biomarker_normalization_toolkit.catalog_metadata import build_catalog_metadata
+
+        self.assertEqual(load_catalog_metadata(), build_catalog_metadata())
 
     def test_biomarker_ids_are_snake_case(self) -> None:
         """Every biomarker_id must be lowercase snake_case."""

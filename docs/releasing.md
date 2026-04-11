@@ -10,7 +10,8 @@ Make sure the working tree reflects the intended release:
 2. Move the top changelog section in `CHANGELOG.md` into the correct release state.
 3. Update `CITATION.cff` release metadata if you use it for published versions.
 4. Regenerate `docs/openapi.json` if the API contract changed.
-5. Build from a clean artifact directory so local checks only inspect the intended release:
+5. Regenerate `src/biomarker_normalization_toolkit/data/catalog_metadata.json` if catalog or conversion metadata changed.
+6. Build from a clean artifact directory so local checks only inspect the intended release:
 
 ```bash
 python -c "import shutil; [shutil.rmtree(path, ignore_errors=True) for path in ('dist', 'build')]"
@@ -22,6 +23,7 @@ python -c "import shutil; [shutil.rmtree(path, ignore_errors=True) for path in (
 pytest -q
 python scripts/scrutinize.py
 python scripts/export_openapi.py
+python scripts/export_catalog_metadata.py
 python -m build
 python scripts/check_distribution_contents.py
 python -m twine check dist/*

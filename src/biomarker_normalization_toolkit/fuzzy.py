@@ -7,6 +7,7 @@ Falls back gracefully to empty results when rapidfuzz is not installed.
 from __future__ import annotations
 
 import threading
+from typing import Mapping, Sequence
 
 from biomarker_normalization_toolkit.catalog import ALIAS_INDEX
 
@@ -42,6 +43,15 @@ _QUERY_BLOCKLIST_PATTERNS: list[str] = [
 ]
 
 
+def reset_index() -> None:
+    """Clear the cached fuzzy alias index so later lookups rebuild from ALIAS_INDEX."""
+    global _BUILT
+    with _LOCK:
+        _ALIAS_CHOICES.clear()
+        _ALIAS_BIO_IDS.clear()
+        _BUILT = False
+
+
 def _build_index() -> None:
     global _BUILT
     with _LOCK:
@@ -53,7 +63,11 @@ def _build_index() -> None:
         _BUILT = True
 
 
-def fuzzy_match(query: str, threshold: float = 0.70) -> list[tuple[str, str, float]]:
+def fuzzy_match(
+    query: str,
+    threshold: float = 0.70,
+    alias_index: Mapping[str, Sequence[str]] | None = None,
+) -> list[tuple[str, str, float]]:
     """Find fuzzy matches for query against all known alias keys.
 
     Returns list of (matched_alias_key, biomarker_id, score) tuples, sorted by score desc.
@@ -69,12 +83,19 @@ def fuzzy_match(query: str, threshold: float = 0.70) -> list[tuple[str, str, flo
     if any(pat in query_lower for pat in _QUERY_BLOCKLIST_PATTERNS):
         return []
 
-    _build_index()
-    if not _ALIAS_CHOICES:
+    if alias_index is None:
+        _build_index()
+        alias_choices = _ALIAS_CHOICES
+        alias_bio_ids = _ALIAS_BIO_IDS
+    else:
+        alias_choices = list(alias_index.keys())
+        alias_bio_ids = [list(bio_ids) for bio_ids in alias_index.values()]
+
+    if not alias_choices:
         return []
 
     results = process.extract(
-        query, _ALIAS_CHOICES,
+        query, alias_choices,
         scorer=fuzz.ratio,
         score_cutoff=threshold * 100,
         limit=5,
@@ -82,10 +103,10 @@ def fuzzy_match(query: str, threshold: float = 0.70) -> list[tuple[str, str, flo
 
     out: list[tuple[str, str, float]] = []
     for match_str, score, idx in results:
-        for bio_id in _ALIAS_BIO_IDS[idx]:
+        for bio_id in alias_bio_ids[idx]:
             # Check blocklist (case-insensitive substring matching)
             blocked = any(
-                substr in query.lower() and bio_id == blocked_bio
+                substr in query_lower and bio_id == blocked_bio
                 for substr, blocked_bio in _BLOCKLIST
             )
             if blocked:

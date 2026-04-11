@@ -5,6 +5,7 @@ import json
 import logging
 from pathlib import Path
 import re
+from typing import Any, Mapping, Sequence
 
 logger = logging.getLogger("bnt.catalog")
 
@@ -2971,6 +2972,231 @@ for biomarker_id, biomarker in BIOMARKER_CATALOG.items():
             candidates.append(biomarker_id)
 
 
+def _merge_custom_aliases(
+    alias_index: dict[str, list[str]],
+    custom_aliases: Mapping[str, Sequence[str]],
+) -> int:
+    added = 0
+    for biomarker_id, aliases in custom_aliases.items():
+        if biomarker_id not in BIOMARKER_CATALOG:
+            logger.warning("Custom alias file references unknown biomarker_id: %r (skipped)", biomarker_id)
+            continue
+        for alias in aliases:
+            if not isinstance(alias, str):
+                continue
+            alias_key = normalize_key(alias)
+            candidates = alias_index.setdefault(alias_key, [])
+            if biomarker_id not in candidates:
+                candidates.append(biomarker_id)
+                added += 1
+    return added
+
+
+def read_custom_aliases(path: Path) -> dict[str, list[str]]:
+    """Read a custom alias JSON file without mutating global alias state."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("Custom alias file must be a JSON object mapping biomarker_id to alias lists.")
+
+    validated: dict[str, list[str]] = {}
+    for biomarker_id, aliases in data.items():
+        if biomarker_id not in BIOMARKER_CATALOG:
+            logger.warning("Custom alias file references unknown biomarker_id: %r (skipped)", biomarker_id)
+            continue
+        if not isinstance(aliases, list):
+            continue
+        validated[biomarker_id] = [alias for alias in aliases if isinstance(alias, str)]
+    return validated
+
+
+def validate_custom_aliases(source: str | Path | Mapping[str, object]) -> dict[str, Any]:
+    """Validate a custom alias file or mapping without mutating global alias state."""
+    if isinstance(source, (str, Path)):
+        raw_data = json.loads(Path(source).read_text(encoding="utf-8"))
+    else:
+        raw_data = source
+
+    if not isinstance(raw_data, Mapping):
+        raise ValueError("Custom alias file must be a JSON object mapping biomarker_id to alias lists.")
+
+    unknown_biomarker_ids: set[str] = set()
+    non_list_entries: set[str] = set()
+    non_string_alias_count = 0
+    empty_alias_count = 0
+    raw_string_alias_count = 0
+    redundant_alias_count = 0
+    accepted_pairs: set[tuple[str, str]] = set()
+    custom_targets: dict[str, set[str]] = {}
+    alias_examples: dict[str, str] = {}
+    catalog_conflicts: dict[str, dict[str, Any]] = {}
+
+    for biomarker_id_raw, aliases in raw_data.items():
+        biomarker_id = str(biomarker_id_raw)
+        biomarker_known = biomarker_id in BIOMARKER_CATALOG
+        if not biomarker_known:
+            unknown_biomarker_ids.add(biomarker_id)
+        if not isinstance(aliases, list):
+            non_list_entries.add(biomarker_id)
+            continue
+
+        for alias in aliases:
+            if not isinstance(alias, str):
+                non_string_alias_count += 1
+                continue
+            raw_string_alias_count += 1
+            alias_key = normalize_key(alias)
+            if not alias_key:
+                empty_alias_count += 1
+                continue
+            if not biomarker_known:
+                continue
+
+            pair = (alias_key, biomarker_id)
+            if pair in accepted_pairs:
+                redundant_alias_count += 1
+                continue
+
+            accepted_pairs.add(pair)
+            alias_examples.setdefault(alias_key, alias)
+            custom_targets.setdefault(alias_key, set()).add(biomarker_id)
+
+            existing_ids = [existing_id for existing_id in ALIAS_INDEX.get(alias_key, []) if existing_id != biomarker_id]
+            if existing_ids:
+                conflict = catalog_conflicts.setdefault(
+                    alias_key,
+                    {
+                        "alias": alias,
+                        "alias_key": alias_key,
+                        "requested_biomarker_ids": set(),
+                        "existing_biomarker_ids": set(),
+                    },
+                )
+                conflict["requested_biomarker_ids"].add(biomarker_id)
+                conflict["existing_biomarker_ids"].update(existing_ids)
+
+    existing_alias_count = sum(1 for alias_key, biomarker_id in accepted_pairs if biomarker_id in ALIAS_INDEX.get(alias_key, []))
+    custom_conflicts = [
+        {
+            "alias": alias_examples[alias_key],
+            "alias_key": alias_key,
+            "biomarker_ids": sorted(biomarker_ids),
+        }
+        for alias_key, biomarker_ids in sorted(custom_targets.items())
+        if len(biomarker_ids) > 1
+    ]
+    catalog_conflict_list = [
+        {
+            "alias": entry["alias"],
+            "alias_key": entry["alias_key"],
+            "requested_biomarker_ids": sorted(entry["requested_biomarker_ids"]),
+            "existing_biomarker_ids": sorted(entry["existing_biomarker_ids"]),
+        }
+        for _, entry in sorted(catalog_conflicts.items())
+    ]
+
+    report = {
+        "clean": not (
+            unknown_biomarker_ids
+            or non_list_entries
+            or non_string_alias_count
+            or empty_alias_count
+            or custom_conflicts
+            or catalog_conflict_list
+        ),
+        "biomarker_entries": len(raw_data),
+        "string_alias_count": raw_string_alias_count,
+        "accepted_alias_count": len(accepted_pairs),
+        "net_new_alias_count": len(accepted_pairs) - existing_alias_count,
+        "existing_alias_count": existing_alias_count,
+        "redundant_alias_count": redundant_alias_count,
+        "unknown_biomarker_ids": sorted(unknown_biomarker_ids),
+        "non_list_entries": sorted(non_list_entries),
+        "non_string_alias_count": non_string_alias_count,
+        "empty_alias_count": empty_alias_count,
+        "custom_conflicts": custom_conflicts,
+        "catalog_conflicts": catalog_conflict_list,
+    }
+    return report
+
+
+def build_alias_index(custom_aliases: Mapping[str, Sequence[str]] | None = None) -> dict[str, list[str]]:
+    """Build a local alias index, optionally merged with custom aliases."""
+    alias_index = {alias_key: list(candidates) for alias_key, candidates in ALIAS_INDEX.items()}
+    if custom_aliases:
+        _merge_custom_aliases(alias_index, custom_aliases)
+    return alias_index
+
+
+def list_catalog(
+    search: str | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """List biomarker catalog entries with optional search and pagination."""
+    if limit is not None and limit < 0:
+        raise ValueError("limit must be >= 0")
+    if offset < 0:
+        raise ValueError("offset must be >= 0")
+
+    entries = []
+    for _, biomarker in sorted(BIOMARKER_CATALOG.items()):
+        if search:
+            query = search.lower()
+            searchable = (
+                f"{biomarker.biomarker_id} {biomarker.canonical_name} "
+                f"{biomarker.loinc} {' '.join(biomarker.aliases)}"
+            ).lower()
+            if query not in searchable:
+                continue
+        entries.append(
+            {
+                "biomarker_id": biomarker.biomarker_id,
+                "canonical_name": biomarker.canonical_name,
+                "loinc": biomarker.loinc,
+                "normalized_unit": biomarker.normalized_unit,
+                "allowed_specimens": sorted(biomarker.allowed_specimens),
+                "aliases": list(biomarker.aliases),
+            }
+        )
+    total = len(entries)
+    page = entries[offset:] if limit is None else entries[offset : offset + limit]
+    return {"biomarkers": page, "count": len(page), "total": total, "offset": offset}
+
+
+def lookup(
+    test_name: str,
+    specimen: str = "",
+    custom_aliases: Mapping[str, Sequence[str]] | None = None,
+) -> dict[str, Any]:
+    """Look up candidate biomarkers for a test name and optional specimen."""
+    alias_index = build_alias_index(custom_aliases) if custom_aliases is not None else ALIAS_INDEX
+    key = normalize_key(test_name)
+    candidates = list(alias_index.get(key, []))
+    specimen_key = normalize_specimen(specimen) if specimen else None
+    if specimen_key:
+        candidates = [
+            biomarker_id
+            for biomarker_id in candidates
+            if not BIOMARKER_CATALOG[biomarker_id].allowed_specimens
+            or specimen_key in BIOMARKER_CATALOG[biomarker_id].allowed_specimens
+        ]
+    if not candidates:
+        return {"matched": False, "test_name": test_name, "alias_key": key, "candidates": []}
+
+    results = []
+    for biomarker_id in candidates:
+        biomarker = BIOMARKER_CATALOG[biomarker_id]
+        results.append(
+            {
+                "biomarker_id": biomarker.biomarker_id,
+                "canonical_name": biomarker.canonical_name,
+                "loinc": biomarker.loinc,
+                "normalized_unit": biomarker.normalized_unit,
+            }
+        )
+    return {"matched": True, "test_name": test_name, "alias_key": key, "candidates": results}
+
+
 def load_custom_aliases(path: Path) -> int:
     """Load custom alias mappings from a JSON file and merge into ALIAS_INDEX.
 
@@ -2982,22 +3208,12 @@ def load_custom_aliases(path: Path) -> int:
 
     Returns the number of aliases added.
     """
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError("Custom alias file must be a JSON object mapping biomarker_id to alias lists.")
-    added = 0
-    for biomarker_id, aliases in data.items():
-        if biomarker_id not in BIOMARKER_CATALOG:
-            logger.warning("Custom alias file references unknown biomarker_id: %r (skipped)", biomarker_id)
-            continue
-        if not isinstance(aliases, list):
-            continue
-        for alias in aliases:
-            if not isinstance(alias, str):
-                continue
-            alias_key = normalize_key(alias)
-            candidates = ALIAS_INDEX.setdefault(alias_key, [])
-            if biomarker_id not in candidates:
-                candidates.append(biomarker_id)
-                added += 1
+    data = read_custom_aliases(path)
+    added = _merge_custom_aliases(ALIAS_INDEX, data)
+    if added:
+        try:
+            from biomarker_normalization_toolkit.fuzzy import reset_index
+            reset_index()
+        except Exception:
+            logger.debug("Failed to reset fuzzy alias index after loading custom aliases.", exc_info=True)
     return added

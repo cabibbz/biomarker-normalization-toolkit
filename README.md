@@ -80,6 +80,47 @@ for record in result.records:
 result = normalize_file("path/to/input.csv", fuzzy_threshold=0.85)
 ```
 
+For per-call vendor aliases without mutating global process state:
+
+```python
+from biomarker_normalization_toolkit import normalize, read_custom_aliases, validate_custom_aliases
+
+report = validate_custom_aliases("path/to/custom_aliases.json")
+print(report["clean"], report["net_new_alias_count"])
+custom_aliases = read_custom_aliases("path/to/custom_aliases.json")
+result = normalize(rows, custom_aliases=custom_aliases)
+```
+
+For machine-readable catalog metadata from the installed package:
+
+```python
+from biomarker_normalization_toolkit import list_catalog_metadata, load_catalog_metadata
+
+catalog = load_catalog_metadata()
+print(catalog["biomarker_count"])
+
+page = list_catalog_metadata(search="glucose", limit=3)
+print(page["count"], page["biomarkers"][0]["supported_source_units"])
+```
+
+For searchable catalog discovery in the Python API:
+
+```python
+from biomarker_normalization_toolkit import list_catalog
+
+page = list_catalog(search="glucose", limit=5)
+print(page["total"], page["biomarkers"][0]["canonical_name"])
+```
+
+For safe per-call lookup in the Python API:
+
+```python
+from biomarker_normalization_toolkit import lookup
+
+print(lookup("GLU", specimen="serum"))
+print(lookup("Vendor Glucose Alias", specimen="serum", custom_aliases={"glucose_serum": ["Vendor Glucose Alias"]}))
+```
+
 ### CLI
 
 ```bash
@@ -98,9 +139,19 @@ bnt batch --input-dir /data/labs --output-dir /data/normalized --emit-fhir
 # Load custom aliases
 bnt normalize --input path/to/input.csv --output-dir out --aliases path/to/custom_aliases.json
 
+# Validate a custom alias file before using it
+bnt aliases --input path/to/custom_aliases.json
+bnt aliases --input path/to/custom_aliases.json --format json
+
 # Explore the built-in catalog
 bnt catalog
+bnt catalog --search glucose --limit 10
 bnt catalog --format json
+bnt catalog --format metadata-json
+
+# Look up a candidate biomarker
+bnt lookup --test-name GLU --specimen serum
+bnt lookup --test-name "Vendor Glucose Alias" --specimen serum --aliases path/to/custom_aliases.json --format json
 ```
 
 ### REST API
@@ -119,14 +170,31 @@ curl http://localhost:8000/health
 # Catalog
 curl http://localhost:8000/catalog
 curl "http://localhost:8000/catalog?search=glucose"
+curl http://localhost:8000/catalog/metadata
+curl "http://localhost:8000/catalog/metadata/search?search=glucose&limit=3"
+
+# Validate a custom alias payload
+curl -X POST http://localhost:8000/aliases/validate \
+  -H "Content-Type: application/json" \
+  -d '{"custom_aliases": {"hemoglobin": ["Vendor Hgb Alias"]}}'
 
 # Lookup
 curl "http://localhost:8000/lookup?test_name=GLU&specimen=serum"
+
+# Lookup with per-request custom aliases
+curl -X POST http://localhost:8000/lookup \
+  -H "Content-Type: application/json" \
+  -d '{"test_name": "Vendor Glucose Alias", "specimen": "serum", "custom_aliases": {"glucose_serum": ["Vendor Glucose Alias"]}}'
 
 # Normalize JSON rows
 curl -X POST http://localhost:8000/normalize \
   -H "Content-Type: application/json" \
   -d '{"rows": [{"source_test_name": "Glucose", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1", "source_reference_range": "70-99 mg/dL"}]}'
+
+# Normalize with per-request custom aliases
+curl -X POST http://localhost:8000/normalize \
+  -H "Content-Type: application/json" \
+  -d '{"custom_aliases": {"glucose_serum": ["Vendor Glucose Alias"]}, "rows": [{"source_test_name": "Vendor Glucose Alias", "raw_value": "100", "source_unit": "mg/dL", "specimen_type": "serum", "source_row_id": "1"}]}'
 
 # Normalize with FHIR output
 curl -X POST "http://localhost:8000/normalize?emit_fhir=true" \
@@ -135,6 +203,11 @@ curl -X POST "http://localhost:8000/normalize?emit_fhir=true" \
 
 # Upload a source file
 curl -X POST http://localhost:8000/normalize/upload -F "file=@path/to/input.csv"
+
+# Upload a source file with per-request custom aliases
+curl -X POST http://localhost:8000/normalize/upload \
+  -F "file=@path/to/input.csv" \
+  -F 'custom_aliases_json={"glucose_serum":["Vendor Glucose Alias"]}'
 
 # Analyze coverage from JSON rows
 curl -X POST http://localhost:8000/analyze \
@@ -220,6 +293,12 @@ When your source system uses vendor-specific naming, create a JSON alias file:
 ```
 
 Then pass it with `--aliases`.
+
+You can validate an alias file before using it:
+
+```bash
+bnt aliases --input path/to/custom_aliases.json
+```
 
 ## Safety Notes
 

@@ -46,6 +46,7 @@ Re-run at least:
 pytest -q
 python scripts/scrutinize.py
 python scripts/export_openapi.py
+python scripts/export_catalog_metadata.py
 python -m build
 python -m twine check dist/*
 ```

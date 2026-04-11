@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 from importlib import resources
 from pathlib import Path
 import sys
 
-from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG, load_custom_aliases
+from biomarker_normalization_toolkit import (
+    list_catalog,
+    list_catalog_metadata,
+    load_catalog_metadata,
+    lookup as lookup_biomarker,
+    validate_custom_aliases,
+)
+from biomarker_normalization_toolkit.catalog import BIOMARKER_CATALOG, build_alias_index, read_custom_aliases
 from biomarker_normalization_toolkit.io_utils import read_input, write_fhir_bundle, write_result, write_summary_report
 from biomarker_normalization_toolkit.normalizer import normalize_rows, validate_fuzzy_threshold
 
@@ -120,6 +128,65 @@ def build_parser() -> argparse.ArgumentParser:
     )
     catalog.add_argument(
         "--format",
+        choices=["table", "json", "metadata-json"],
+        default="table",
+        help="Output format (default: table).",
+    )
+    catalog.add_argument(
+        "--search",
+        default=None,
+        help="Filter catalog entries by biomarker ID, canonical name, LOINC, or alias.",
+    )
+    catalog.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of catalog entries to show.",
+    )
+    catalog.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Skip the first N catalog entries after filtering.",
+    )
+
+    aliases = subparsers.add_parser(
+        "aliases",
+        help="Validate a custom alias JSON file without loading it into global state.",
+    )
+    aliases.add_argument(
+        "--input",
+        required=True,
+        help="Path to custom alias JSON file.",
+    )
+    aliases.add_argument(
+        "--format",
+        choices=["table", "json"],
+        default="table",
+        help="Output format (default: table).",
+    )
+
+    lookup = subparsers.add_parser(
+        "lookup",
+        help="Look up candidate biomarkers for a test name.",
+    )
+    lookup.add_argument(
+        "--test-name",
+        required=True,
+        help="Source test name or alias to look up.",
+    )
+    lookup.add_argument(
+        "--specimen",
+        default="",
+        help="Specimen type to use when filtering ambiguous aliases.",
+    )
+    lookup.add_argument(
+        "--aliases",
+        default=None,
+        help="Path to custom alias JSON file to apply only to this lookup call.",
+    )
+    lookup.add_argument(
+        "--format",
         choices=["table", "json"],
         default="table",
         help="Output format (default: table).",
@@ -211,21 +278,24 @@ def command_status() -> int:
     return 0
 
 
-def _load_aliases(aliases_path: str | None) -> bool:
-    """Load custom aliases. Returns False if file was specified but missing."""
+def _load_aliases(aliases_path: str | None, announce: bool = True) -> dict[str, list[str]] | None:
+    """Read custom aliases without mutating global process state."""
     if not aliases_path:
-        return True
+        return None
     alias_path = Path(aliases_path)
     if not alias_path.exists():
         print(f"Alias file does not exist: {_display_text(alias_path)}", file=sys.stderr)
-        return False
-    added = load_custom_aliases(alias_path)
-    print(f"Loaded {added} custom aliases from {_display_text(alias_path)}")
-    return True
+        return None
+    custom_aliases = read_custom_aliases(alias_path)
+    added = sum(len(aliases) for aliases in custom_aliases.values())
+    if announce:
+        print(f"Loaded {added} custom aliases from {_display_text(alias_path)}")
+    return custom_aliases
 
 
 def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None, fuzzy_threshold: float = 0.0) -> int:
-    if not _load_aliases(aliases_path):
+    custom_aliases = _load_aliases(aliases_path)
+    if aliases_path and custom_aliases is None:
         return 1
 
     source_path = Path(input_path)
@@ -236,7 +306,8 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
     try:
         validate_fuzzy_threshold(fuzzy_threshold)
         rows = read_input(source_path)
-        result = normalize_rows(rows, input_file=source_path.name, fuzzy_threshold=fuzzy_threshold)
+        alias_index = build_alias_index(custom_aliases) if custom_aliases is not None else None
+        result = normalize_rows(rows, input_file=source_path.name, fuzzy_threshold=fuzzy_threshold, alias_index=alias_index)
         json_path, csv_path = write_result(result, Path(output_dir))
         fhir_path = write_fhir_bundle(result, Path(output_dir)) if emit_fhir else None
         summary_path = write_summary_report(result, Path(output_dir))
@@ -276,33 +347,139 @@ def command_normalize(input_path: str, output_dir: str, emit_fhir: bool, aliases
     return 0
 
 
-def command_catalog(fmt: str) -> int:
+def command_catalog(fmt: str, search: str | None = None, limit: int | None = None, offset: int = 0) -> int:
+    if fmt == "metadata-json":
+        if search or limit is not None or offset:
+            print(json.dumps(list_catalog_metadata(search=search, limit=limit, offset=offset), indent=2))
+        else:
+            print(json.dumps(load_catalog_metadata(), indent=2))
+        return 0
+
+    try:
+        page = list_catalog(search=search, limit=limit, offset=offset)
+    except Exception as exc:
+        logger.debug("Catalog failed", exc_info=True)
+        print(f"Catalog failed: {_user_friendly_error(exc)}", file=sys.stderr)
+        return 1
+
     if fmt == "json":
-        import json
-        entries = []
-        for bio_id, bio in sorted(BIOMARKER_CATALOG.items()):
-            entries.append({
-                "biomarker_id": bio.biomarker_id,
-                "canonical_name": bio.canonical_name,
-                "loinc": bio.loinc,
-                "normalized_unit": bio.normalized_unit,
-                "allowed_specimens": sorted(bio.allowed_specimens),
-                "aliases": list(bio.aliases),
-            })
-        print(json.dumps(entries, indent=2))
+        print(json.dumps(page["biomarkers"], indent=2))
         return 0
 
     print(f"{'Biomarker ID':<25s} {'Name':<30s} {'LOINC':<12s} {'Unit':<15s} {'Specimens'}")
     print("-" * 110)
-    for bio_id, bio in sorted(BIOMARKER_CATALOG.items()):
-        specimens = ", ".join(sorted(bio.allowed_specimens))
-        print(f"{bio.biomarker_id:<25s} {bio.canonical_name:<30s} {bio.loinc:<12s} {bio.normalized_unit:<15s} {specimens}")
-    print(f"\nTotal: {len(BIOMARKER_CATALOG)} biomarkers")
+    for bio in page["biomarkers"]:
+        specimens = ", ".join(bio["allowed_specimens"])
+        print(
+            f"{bio['biomarker_id']:<25s} {bio['canonical_name']:<30s} "
+            f"{bio['loinc']:<12s} {bio['normalized_unit']:<15s} {specimens}"
+        )
+    if page["count"] != page["total"] or page["offset"]:
+        print(f"\nShowing: {page['count']} biomarkers (offset {page['offset']})")
+    print(f"\nTotal: {page['total']} biomarkers")
+    return 0
+
+
+def command_aliases(input_path: str, fmt: str = "table") -> int:
+    alias_path = Path(input_path)
+    if not alias_path.exists():
+        print(f"Alias file does not exist: {_display_text(alias_path)}", file=sys.stderr)
+        return 1
+
+    try:
+        report = validate_custom_aliases(alias_path)
+    except Exception as exc:
+        logger.debug("Alias validation failed", exc_info=True)
+        print(f"Alias validation failed: {_user_friendly_error(exc)}", file=sys.stderr)
+        return 1
+
+    if fmt == "json":
+        print(json.dumps(report, indent=2))
+        return 0 if report["clean"] else 1
+
+    print(f"Alias file: {_display_text(alias_path)}")
+    print(f"Status: {'clean' if report['clean'] else 'issues found'}")
+    print(f"Biomarker entries: {report['biomarker_entries']}")
+    print(f"String aliases: {report['string_alias_count']}")
+    print(
+        f"Accepted aliases: {report['accepted_alias_count']} "
+        f"({report['net_new_alias_count']} new, {report['existing_alias_count']} existing)"
+    )
+    if report["redundant_alias_count"]:
+        print(f"Redundant aliases in file: {report['redundant_alias_count']}")
+
+    if report["clean"]:
+        print("No structural issues or alias conflicts detected.")
+        return 0
+
+    if report["unknown_biomarker_ids"]:
+        print(f"Unknown biomarker IDs: {', '.join(report['unknown_biomarker_ids'])}")
+    if report["non_list_entries"]:
+        print(f"Entries with non-list values: {', '.join(report['non_list_entries'])}")
+    if report["non_string_alias_count"]:
+        print(f"Non-string aliases: {report['non_string_alias_count']}")
+    if report["empty_alias_count"]:
+        print(f"Empty aliases after normalization: {report['empty_alias_count']}")
+    if report["custom_conflicts"]:
+        print("Conflicts within custom aliases:")
+        for conflict in report["custom_conflicts"]:
+            print(
+                f"  {_display_text(conflict['alias'])} -> "
+                f"{', '.join(conflict['biomarker_ids'])}"
+            )
+    if report["catalog_conflicts"]:
+        print("Conflicts with built-in catalog:")
+        for conflict in report["catalog_conflicts"]:
+            print(
+                f"  {_display_text(conflict['alias'])} -> requested "
+                f"{', '.join(conflict['requested_biomarker_ids'])}; existing "
+                f"{', '.join(conflict['existing_biomarker_ids'])}"
+            )
+    return 1
+
+
+def command_lookup(test_name: str, specimen: str = "", aliases_path: str | None = None, fmt: str = "table") -> int:
+    custom_aliases = _load_aliases(aliases_path, announce=fmt != "json")
+    if aliases_path and custom_aliases is None:
+        return 1
+
+    try:
+        result = lookup_biomarker(test_name, specimen=specimen, custom_aliases=custom_aliases)
+    except Exception as exc:
+        logger.debug("Lookup failed", exc_info=True)
+        print(f"Lookup failed: {_user_friendly_error(exc)}", file=sys.stderr)
+        return 1
+
+    if fmt == "json":
+        print(json.dumps(result, indent=2))
+        return 0
+
+    print(f"Lookup: {_display_text(test_name)}")
+    if specimen:
+        print(f"Specimen: {_display_text(specimen)}")
+    print(f"Alias key: {_display_text(result['alias_key'])}")
+    print(f"Matched: {'yes' if result['matched'] else 'no'}")
+
+    candidates = result["candidates"]
+    if not candidates:
+        print("Candidates: none")
+        return 0
+
+    print(f"{'Biomarker ID':<25s} {'Name':<30s} {'LOINC':<12s} {'Unit'}")
+    print("-" * 84)
+    for candidate in candidates:
+        print(
+            f"{candidate['biomarker_id']:<25s} "
+            f"{candidate['canonical_name']:<30s} "
+            f"{candidate['loinc']:<12s} "
+            f"{candidate['normalized_unit']}"
+        )
     return 0
 
 
 def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_threshold: float = 0.0) -> int:
-    if not _load_aliases(aliases_path):
+    custom_aliases = _load_aliases(aliases_path)
+    if aliases_path and custom_aliases is None:
         return 1
 
     source_path = Path(input_path)
@@ -313,7 +490,8 @@ def command_analyze(input_path: str, aliases_path: str | None = None, fuzzy_thre
     try:
         validate_fuzzy_threshold(fuzzy_threshold)
         rows = read_input(source_path)
-        result = normalize_rows(rows, input_file=source_path.name, fuzzy_threshold=fuzzy_threshold)
+        alias_index = build_alias_index(custom_aliases) if custom_aliases is not None else None
+        result = normalize_rows(rows, input_file=source_path.name, fuzzy_threshold=fuzzy_threshold, alias_index=alias_index)
     except Exception as exc:
         logger.debug("Analysis failed", exc_info=True)
         print(f"Analysis failed: {_user_friendly_error(exc)}", file=sys.stderr)
@@ -394,7 +572,8 @@ SUPPORTED_EXTENSIONS = {".csv", ".json", ".hl7", ".oru", ".xml", ".xlsx", ".xls"
 
 
 def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path: str | None = None, fuzzy_threshold: float = 0.0) -> int:
-    if not _load_aliases(aliases_path):
+    custom_aliases = _load_aliases(aliases_path)
+    if aliases_path and custom_aliases is None:
         return 1
     try:
         validate_fuzzy_threshold(fuzzy_threshold)
@@ -417,6 +596,7 @@ def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path
         return 1
 
     out_base = Path(output_dir)
+    alias_index = build_alias_index(custom_aliases) if custom_aliases is not None else None
     total_mapped = 0
     total_rows = 0
     errors: list[str] = []
@@ -425,7 +605,7 @@ def command_batch(input_dir: str, output_dir: str, emit_fhir: bool, aliases_path
         file_out = out_base / source_file.stem
         try:
             rows = read_input(source_file)
-            result = normalize_rows(rows, input_file=source_file.name, fuzzy_threshold=fuzzy_threshold)
+            result = normalize_rows(rows, input_file=source_file.name, fuzzy_threshold=fuzzy_threshold, alias_index=alias_index)
             write_result(result, file_out)
             if emit_fhir:
                 write_fhir_bundle(result, file_out)
@@ -506,7 +686,11 @@ def main() -> int:
     if args.command == "serve":
         return command_serve(args.host, args.port)
     if args.command == "catalog":
-        return command_catalog(args.format)
+        return command_catalog(args.format, args.search, args.limit, args.offset)
+    if args.command == "aliases":
+        return command_aliases(args.input, args.format)
+    if args.command == "lookup":
+        return command_lookup(args.test_name, args.specimen, args.aliases, args.format)
     if args.command == "analyze":
         return command_analyze(args.input, args.aliases, args.fuzzy_threshold)
 
