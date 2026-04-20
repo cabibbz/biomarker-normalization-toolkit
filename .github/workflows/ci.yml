@@ -107,7 +107,7 @@ jobs:
           python scripts/smoke_installed_package.py --serve --port 8010
 
       - name: Upload distributions
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/*
